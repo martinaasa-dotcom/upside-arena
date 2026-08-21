@@ -29,6 +29,20 @@ const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? "";
 /** The recurring price, made in the Stripe dashboard and referenced by id. */
 const PLUS_PRICE_ID = process.env.STRIPE_PLUS_PRICE_ID ?? "";
 
+/*
+  Arena's own customer portal configuration.
+
+  Named explicitly rather than left to the account default, because the Stripe
+  account is shared with Upside Lab and an account has exactly one default. A
+  product that marks its own configuration as the default silently rewrites
+  the other product's portal: its heading, its return link, and its rules
+  about when a cancellation takes effect.
+
+  Unset falls back to the account default, which is correct for an account
+  with only one product on it.
+*/
+const PORTAL_CONFIGURATION_ID = process.env.STRIPE_PORTAL_CONFIGURATION_ID ?? "";
+
 export const stripeConfigured = Boolean(SECRET_KEY && WEBHOOK_SECRET);
 export const subscriptionConfigured = Boolean(stripeConfigured && PLUS_PRICE_ID);
 
@@ -207,6 +221,7 @@ export async function openBillingPortal(userId: string): Promise<CheckoutResult>
     const session = await stripe().billingPortal.sessions.create({
       customer,
       return_url: `${siteUrl()}/plus`,
+      ...(PORTAL_CONFIGURATION_ID ? { configuration: PORTAL_CONFIGURATION_ID } : {}),
     });
     return { ok: true, url: session.url };
   } catch {

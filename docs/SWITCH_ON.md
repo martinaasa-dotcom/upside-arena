@@ -223,6 +223,13 @@ against a list the server controls.
 3. Turn on **Customers can update payment methods**.
 4. Save.
 
+**If this Stripe account is shared with Upside Lab, do not make Arena's
+configuration the default.** An account has exactly one default, and claiming
+it rewrites Lab's portal: its heading, where it returns to, and when a
+cancellation takes effect. Instead, copy Arena's configuration id, which
+starts `bpc_`, and set it in Vercel as `STRIPE_PORTAL_CONFIGURATION_ID`. Arena
+then asks for its own by name and leaves the default alone.
+
 This is not optional. Cancelling has to be as easy as subscribing, and Arena has
 no other cancel path anywhere on purpose.
 

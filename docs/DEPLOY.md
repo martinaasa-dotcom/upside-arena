@@ -36,6 +36,7 @@ Production and Preview both. None of them belongs in the repository.
 | `STRIPE_SECRET_KEY` | from the Stripe dashboard | **Server only.** Without it nothing is on sale. |
 | `STRIPE_WEBHOOK_SECRET` | from the Stripe webhook endpoint | **Server only.** Without it the webhook refuses everything. |
 | `STRIPE_PLUS_PRICE_ID` | the recurring price's id | The subscription only appears once this is set. |
+| `STRIPE_PORTAL_CONFIGURATION_ID` | Arena's own portal configuration | Only needed when the Stripe account is shared with another product. |
 | `NEXT_PUBLIC_LAB_URL` | `https://upsidelab.app` | Optional. Where the handoff points. |
 
 Everything to do with notifications is optional. With no VAPID keys the panel
