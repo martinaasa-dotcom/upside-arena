@@ -302,16 +302,3 @@ parameter and store it. Until it does, the link still works, the click is still
 recorded on Arena's side, and nothing is lost.
 
 ---
-
-## 7. One security job that is nobody's feature
-
-An **Upside Lab** service role key was pasted into a chat with Claude by
-mistake, early on. It was never used and never written to disk, but it has been
-sitting in a transcript ever since.
-
-**Supabase, the Upside Lab project, Settings, API, Service role, Reset.**
-
-Then update it wherever Lab reads it, which is Lab's own hosting environment.
-
-That key can read and write every row in Lab's database and ignores every
-permission rule. Arena's own keys are unaffected and do not need touching.
