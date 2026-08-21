@@ -1,0 +1,254 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+  Upside Arena shares Upside Lab's shipped visual system.
+  Source of truth: UPSIDE_LAB_BRAND_FOR_ARENA.md (docs/brand/).
+  Do not add a second palette, a second brand color, or a light theme.
+*/
+
+:root {
+  /* Surfaces */
+  --background: oklch(0 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 16%);
+  --input: oklch(1 0 0 / 18%);
+
+  /* Brand accent, one only. Quiet warm yellow. */
+  --primary: oklch(0.8 0.09 90);
+  --primary-foreground: oklch(0.145 0 0);
+  --ring: oklch(0.8 0.09 90);
+
+  /* Semantic, never decorative */
+  --gain: oklch(0.696 0.17 162.48);
+  --loss: oklch(0.645 0.21 16.439);
+  --warning: oklch(0.63 0.22 45);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
+
+  /* Categorical, charts only. Never chrome, never good/bad. */
+  --cat-1: oklch(0.78 0.1 195);
+  --cat-2: oklch(0.62 0.11 230);
+  --cat-3: oklch(0.78 0.1 125);
+  --cat-4: oklch(0.62 0.11 340);
+  --cat-5: oklch(0.78 0.09 260);
+  --cat-6: oklch(0.62 0.11 195);
+  --cat-7: oklch(0.78 0.1 340);
+  --cat-8: oklch(0.62 0.1 125);
+  --cat-9: oklch(0.78 0.09 230);
+  --cat-10: oklch(0.62 0.11 260);
+  --cat-neutral: oklch(0.62 0 0);
+
+  --chart-1: var(--primary);
+  --chart-2: var(--gain);
+  --chart-3: var(--warning);
+  --chart-4: var(--cat-2);
+  --chart-5: var(--cat-5);
+
+  --radius: 0.625rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
+  --color-warning: var(--warning);
+
+  --color-cat-1: var(--cat-1);
+  --color-cat-2: var(--cat-2);
+  --color-cat-3: var(--cat-3);
+  --color-cat-4: var(--cat-4);
+  --color-cat-5: var(--cat-5);
+  --color-cat-6: var(--cat-6);
+  --color-cat-7: var(--cat-7);
+  --color-cat-8: var(--cat-8);
+  --color-cat-9: var(--cat-9);
+  --color-cat-10: var(--cat-10);
+  --color-cat-neutral: var(--cat-neutral);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+
+  /* Dock labels appear from 30rem up, icons only below. */
+  --breakpoint-xs: 30rem;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    /* Safe areas matter once the PWA runs standalone. */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+
+  /* Visible focus is a WCAG 2.1 AA basic, not a nicety. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklch, var(--primary), transparent 70%);
+  }
+}
+
+@layer components {
+  /*
+    Page field: true black plus two ambient lobes, both in --primary.
+    Never gain-green in ambient chrome.
+  */
+  .page-frame {
+    position: relative;
+    isolation: isolate;
+    min-height: 100dvh;
+  }
+
+  .page-frame::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+      radial-gradient(
+        1250px 1000px at -4% -8%,
+        oklch(from var(--primary) l c h / 52%),
+        transparent 66%
+      ),
+      radial-gradient(
+        1300px 1000px at 100% 100%,
+        oklch(from var(--primary) l c h / 14%),
+        transparent 72%
+      );
+  }
+
+  /*
+    Those lobe sizes are tuned for a desktop frame. Left alone on a phone one
+    lobe covers the whole viewport and the field stops reading as black, so
+    below the desktop breakpoint they scale down with it.
+  */
+  @media (max-width: 1023px) {
+    .page-frame::before {
+      background-image:
+        radial-gradient(
+          78vw 46vh at -8% -4%,
+          oklch(from var(--primary) l c h / 34%),
+          transparent 66%
+        ),
+        radial-gradient(
+          82vw 48vh at 100% 100%,
+          oklch(from var(--primary) l c h / 10%),
+          transparent 72%
+        );
+    }
+  }
+
+  /*
+    Top-level panel treatment. The glow has to read through the pane,
+    so never paint an opaque bg-card here.
+  */
+  .card-sheen {
+    position: relative;
+    box-shadow:
+      inset 0 1px 0 0 oklch(1 0 0 / 24%),
+      inset 0 -1px 0 0 oklch(1 0 0 / 7%),
+      inset 0 0 0 1px var(--border),
+      0 14px 36px -18px oklch(0.05 0 0 / 90%);
+  }
+
+  .glass {
+    background-color: color-mix(in oklch, var(--card), transparent 38%);
+    -webkit-backdrop-filter: blur(28px) saturate(1.6);
+    backdrop-filter: blur(28px) saturate(1.6);
+  }
+
+  /* Nested well. No second card-in-card. */
+  .glass-well {
+    background-color: color-mix(in oklch, var(--muted), transparent 50%);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+
+  /* Money, percents, tickers, counts. */
+  .figure {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
