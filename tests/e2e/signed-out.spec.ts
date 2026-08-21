@@ -324,6 +324,16 @@ test.describe("the numbers page", () => {
 });
 
 test.describe("brand shell", () => {
+  /*
+    Arena shares Lab's system and diverges from it in exactly two places, both
+    by explicit decision recorded in docs/brand/ARENA_MARK.md: the mark is a
+    parted aqua stone, and the accent is a warmer amber so the two read as a
+    warm-against-cool pair rather than as two accents competing.
+
+    Everything else is still Lab's, and the point of this test is that it
+    stays that way. Two deliberate exceptions are a divergence; a third that
+    nobody wrote down is the second palette the brand doc forbids.
+  */
   test("paints the locked tokens, not a second palette", async ({ page }) => {
     await page.goto("/");
 
@@ -345,8 +355,9 @@ test.describe("brand shell", () => {
           ["--foreground", "oklch(0.985 0 0)"],
           ["--card", "oklch(0.205 0 0)"],
           ["--muted", "oklch(0.269 0 0)"],
-          ["--primary", "oklch(0.8 0.09 90)"],
-          ["--ring", "oklch(0.8 0.09 90)"],
+          // Arena's own accent, not Lab's. oklch(0.82 0.11 74), #efb970.
+          ["--primary", "oklch(0.82 0.11 74)"],
+          ["--ring", "oklch(0.82 0.11 74)"],
           ["--gain", "oklch(0.696 0.17 162.48)"],
           ["--loss", "oklch(0.645 0.21 16.439)"],
           ["--warning", "oklch(0.63 0.22 45)"],
@@ -355,8 +366,30 @@ test.describe("brand shell", () => {
     );
 
     for (const { token, actual, expected } of results) {
-      expect(actual, `${token} must match Upside Lab`).toEqual(expected);
+      expect(actual, `${token} has moved off the locked palette`).toEqual(expected);
     }
+  });
+
+  test("keeps the accent clear of the banned hues and of Lab's own gold", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const primary = await page.evaluate((resolveSource) => {
+      const resolve = eval(resolveSource) as (value: string) => number[];
+      const style = getComputedStyle(document.documentElement);
+      return resolve(style.getPropertyValue("--primary").trim());
+    }, RESOLVE_COLOR);
+
+    const [r, g, b] = primary;
+
+    // Warm: red leads, blue trails. A cool accent would fight the aqua mark
+    // instead of pairing with it.
+    expect(r).toBeGreaterThan(g);
+    expect(g).toBeGreaterThan(b);
+
+    // And distinct from Lab's gold, which is the whole reason it moved.
+    expect(primary.slice(0, 3)).not.toEqual([212, 188, 121]);
   });
 
   test("carries no violet, purple or magenta anywhere in the palette", async ({
