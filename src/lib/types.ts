@@ -10,6 +10,8 @@ export type Profile = {
   career_alpha_avg: number | null;
   longest_streak: number;
   equipped_title: string | null;
+  equipped_flair: string | null;
+  equipped_theme: string | null;
   onboarded_at: string | null;
   created_at: string;
   updated_at: string;

@@ -11,7 +11,11 @@ import {
   nyDate,
   tradingDaysBetween,
 } from "@/lib/market/session";
-import type { RewardRow, StreakRow } from "@/lib/supabase/database.types";
+import type {
+  CosmeticSlot,
+  RewardRow,
+  StreakRow,
+} from "@/lib/supabase/database.types";
 
 /*
   Showing up, counted in trading days.
@@ -42,6 +46,14 @@ export type EarnedReward = {
   id: string;
   name: string;
   description: string;
+};
+
+export type { CosmeticSlot } from "@/lib/supabase/database.types";
+
+/** Something not yet owned, with what earns it. */
+export type LockedReward = EarnedReward & {
+  kind: CosmeticSlot;
+  streakRequired: number | null;
 };
 
 function toStreak(
@@ -203,35 +215,63 @@ async function ownedRewardIds(userId: string): Promise<Set<string>> {
 }
 
 export type OwnedReward = EarnedReward & {
+  kind: CosmeticSlot;
+  styleKey: string | null;
   earnedAt: string;
   equipped: boolean;
 };
 
 /** A cosmetic that can be bought outright, at a price that never varies. */
 export type ForSaleReward = EarnedReward & {
+  kind: CosmeticSlot;
   coinPrice: number | null;
   plusOnly: boolean;
+  styleKey: string | null;
 };
 
 /** Every title a player has earned, and which one they are wearing. */
-export async function getRewards(userId: string): Promise<{
+export type Wardrobe = {
   owned: OwnedReward[];
-  locked: (EarnedReward & { streakRequired: number | null })[];
+  locked: LockedReward[];
   /** The ones with a price on them, or that come with a subscription. */
   forSale: ForSaleReward[];
-  equipped: string | null;
-}> {
-  if (!canWriteGame) return { owned: [], locked: [], forSale: [], equipped: null };
+  /** What is being worn in each slot. */
+  equipped: Record<CosmeticSlot, string | null>;
+};
+
+const NOTHING_WORN: Record<CosmeticSlot, string | null> = {
+  title: null,
+  flair: null,
+  theme: null,
+};
+
+export async function getRewards(userId: string): Promise<Wardrobe> {
+  if (!canWriteGame) {
+    return { owned: [], locked: [], forSale: [], equipped: { ...NOTHING_WORN } };
+  }
 
   const admin = createAdminClient();
   const [catalogueRows, { data: mine }, { data: profile }] = await Promise.all([
     getCatalogue(),
     admin.from("user_rewards").select("reward_id, earned_at").eq("user_id", userId),
-    admin.from("profiles").select("equipped_title").eq("id", userId).maybeSingle(),
+    admin
+      .from("profiles")
+      .select("equipped_title, equipped_flair, equipped_theme")
+      .eq("id", userId)
+      .maybeSingle(),
   ]);
 
-  const equipped =
-    (profile as { equipped_title: string | null } | null)?.equipped_title ?? null;
+  const worn = profile as {
+    equipped_title: string | null;
+    equipped_flair: string | null;
+    equipped_theme: string | null;
+  } | null;
+
+  const equipped: Record<CosmeticSlot, string | null> = {
+    title: worn?.equipped_title ?? null,
+    flair: worn?.equipped_flair ?? null,
+    theme: worn?.equipped_theme ?? null,
+  };
 
   const earnedAt = new Map(
     ((mine ?? []) as { reward_id: string; earned_at: string }[]).map((r) => [
@@ -241,7 +281,7 @@ export async function getRewards(userId: string): Promise<{
   );
 
   const owned: OwnedReward[] = [];
-  const locked: (EarnedReward & { streakRequired: number | null })[] = [];
+  const locked: LockedReward[] = [];
   const forSale: ForSaleReward[] = [];
 
   for (const row of catalogueRows) {
@@ -250,10 +290,12 @@ export async function getRewards(userId: string): Promise<{
     if (when) {
       owned.push({
         id: row.id,
+        kind: row.kind,
+        styleKey: row.style_key,
         name: row.name,
         description: row.description,
         earnedAt: when,
-        equipped: equipped === row.id,
+        equipped: equipped[row.kind] === row.id,
       });
       continue;
     }
@@ -266,6 +308,8 @@ export async function getRewards(userId: string): Promise<{
     if (row.coin_price != null || row.plus_only) {
       forSale.push({
         id: row.id,
+        kind: row.kind,
+        styleKey: row.style_key,
         name: row.name,
         description: row.description,
         coinPrice: row.coin_price,
@@ -276,6 +320,7 @@ export async function getRewards(userId: string): Promise<{
 
     locked.push({
       id: row.id,
+      kind: row.kind,
       name: row.name,
       description: row.description,
       streakRequired: row.streak_required,
@@ -285,25 +330,58 @@ export async function getRewards(userId: string): Promise<{
   return { owned, locked, forSale, equipped };
 }
 
-export async function equipTitle(
+export async function equipCosmetic(
   userId: string,
-  rewardId: string | null
+  rewardId: string | null,
+  slot: CosmeticSlot
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!canWriteGame) return { ok: false, error: "Titles are not switched on yet." };
+  if (!canWriteGame) return { ok: false, error: "That is not switched on yet." };
 
   const admin = createAdminClient();
-  const { error } = await admin.rpc("equip_title", {
+  const { error } = await admin.rpc("equip_cosmetic", {
     p_user_id: userId,
     p_reward_id: rewardId,
+    p_slot: slot,
   });
 
   if (error) {
-    return error.message.includes("not earned")
-      ? { ok: false, error: "You have not earned that title yet." }
-      : { ok: false, error: "We could not change your title. Try again." };
+    const message = error.message ?? "";
+    if (message.includes("not earned")) {
+      return { ok: false, error: "You do not have that one yet." };
+    }
+    if (message.includes("does not go there")) {
+      return { ok: false, error: "That does not go in that slot." };
+    }
+    return { ok: false, error: "We could not change that. Try again." };
   }
 
   return { ok: true };
+}
+
+/** What somebody is wearing, for the pages that only need to draw it. */
+export async function getWorn(
+  userId: string
+): Promise<Record<CosmeticSlot, string | null>> {
+  if (!canWriteGame) return { ...NOTHING_WORN };
+
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("profiles")
+    .select("equipped_title, equipped_flair, equipped_theme")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const worn = data as {
+    equipped_title: string | null;
+    equipped_flair: string | null;
+    equipped_theme: string | null;
+  } | null;
+
+  return {
+    title: worn?.equipped_title ?? null,
+    flair: worn?.equipped_flair ?? null,
+    theme: worn?.equipped_theme ?? null,
+  };
 }
 
 /** Hands over a title that is not about streaks, such as a first trade. */

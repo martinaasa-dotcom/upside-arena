@@ -23,12 +23,25 @@ function migrationSql() {
     .join("\n");
 }
 
-/** Functions the app may call, meaning those granted to a client role. */
+/**
+ * Functions the app may call, meaning those granted to a client role and not
+ * since dropped.
+ *
+ * The migrations are read in order and a later one can take a function away.
+ * Without the second pass this insists the types keep describing something
+ * that no longer exists, which is the opposite of catching drift.
+ */
 function callableFunctions(sql: string) {
   const granted = new Set<string>();
-  const pattern = /grant execute on function public\.([a-z_]+)\s*\(/gi;
+
+  const grants = /grant execute on function public\.([a-z_]+)\s*\(/gi;
   let match: RegExpExecArray | null;
-  while ((match = pattern.exec(sql))) granted.add(match[1]);
+  while ((match = grants.exec(sql))) granted.add(match[1]);
+
+  // "drop function if exists" included: a conditional drop still removes it.
+  const drops = /drop function (?:if exists )?public\.([a-z_]+)\s*\(/gi;
+  while ((match = drops.exec(sql))) granted.delete(match[1]);
+
   return granted;
 }
 

@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ProfileForm } from "@/components/ProfileForm";
 import { AccountControls } from "@/components/AccountControls";
 import { ConsentControl } from "@/components/ConsentControl";
-import { Titles } from "@/components/Titles";
+import { Wardrobe } from "@/components/Wardrobe";
+import { flairRing } from "@/components/Flair";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { SharedCards } from "@/components/SharedCards";
 import { getSession } from "@/lib/profile";
@@ -15,6 +16,7 @@ import { getRewards } from "@/lib/game/streaks";
 import { getLeagues } from "@/lib/game/leagues";
 import { getMyCards } from "@/lib/game/share";
 import { getStanding, FREE_STANDING } from "@/lib/billing/entitlements";
+import { flairStyleKey } from "@/lib/game/cosmetics";
 import { getNotificationState, DEFAULT_SETTINGS } from "@/lib/notify/settings";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatDate, initials } from "@/lib/format";
@@ -27,7 +29,12 @@ export default async function ProfilePage() {
   const name = profile?.display_name ?? "Player";
   const rewards = user
     ? await getRewards(user.id)
-    : { owned: [], locked: [], forSale: [], equipped: null };
+    : {
+        owned: [],
+        locked: [],
+        forSale: [],
+        equipped: { title: null, flair: null, theme: null },
+      };
 
   const leagues = user ? await getLeagues(user.id) : [];
   const cards = user ? await getMyCards(user.id) : [];
@@ -42,7 +49,10 @@ export default async function ProfilePage() {
         emailAvailable: false,
       };
 
-  const wearing = rewards.owned.find((title) => title.equipped);
+  const wearing = rewards.owned.find(
+    (item) => item.kind === "title" && item.equipped
+  );
+  const ring = flairRing(await flairStyleKey(profile?.equipped_flair ?? null));
 
   return (
     <div className={`${PAGE} ${STACK}`}>
@@ -50,7 +60,7 @@ export default async function ProfilePage() {
 
       <Panel>
         <div className="flex items-center gap-4">
-          <Avatar className="size-14 rounded-xl">
+          <Avatar className={`size-14 rounded-xl ${ring}`}>
             {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt="" /> : null}
             <AvatarFallback className="rounded-xl text-base">
               {initials(name)}
@@ -108,14 +118,10 @@ export default async function ProfilePage() {
       </Panel>
 
       <Panel
-        title="Titles"
-        description="Decoration only. A title never changes your score, and none of them can be bought."
+        title="How you look"
+        description="Decoration only. None of it changes a score, and the bought ones say so."
       >
-        <Titles
-          owned={rewards.owned}
-          locked={rewards.locked}
-          equipped={rewards.equipped}
-        />
+        <Wardrobe wardrobe={rewards} />
       </Panel>
 
       <Panel title="Your details" description="Change how you appear to other players.">

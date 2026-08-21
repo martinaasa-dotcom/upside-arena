@@ -25,6 +25,8 @@ export type ProfileRow = {
   career_alpha_avg: string | null;
   longest_streak: number;
   equipped_title: string | null;
+  equipped_flair: string | null;
+  equipped_theme: string | null;
   onboarded_at: string | null;
   created_at: string;
   updated_at: string;
@@ -87,9 +89,11 @@ export type StreakRow = {
   updated_at: string;
 };
 
+export type CosmeticSlot = "title" | "flair" | "theme";
+
 export type RewardRow = {
   id: string;
-  kind: "title";
+  kind: CosmeticSlot;
   name: string;
   description: string;
   streak_required: number | null;
@@ -97,6 +101,12 @@ export type RewardRow = {
   /** What it costs in coins, or null when it is earned rather than bought. */
   coin_price: number | null;
   plus_only: boolean;
+  /*
+    What the app draws for a flair or a theme. A key rather than a colour:
+    letting the database hand the browser styling would be a way to smuggle a
+    second palette past the brand rules one row at a time.
+  */
+  style_key: string | null;
 };
 
 export type UserRewardRow = {
@@ -399,8 +409,12 @@ export type Database = {
         Args: { p_user_id: string; p_reward_id: string };
         Returns: boolean;
       };
-      equip_title: {
-        Args: { p_user_id: string; p_reward_id: string | null };
+      equip_cosmetic: {
+        Args: {
+          p_user_id: string;
+          p_reward_id: string | null;
+          p_slot: CosmeticSlot;
+        };
         Returns: undefined;
       };
       save_notification_settings: {
