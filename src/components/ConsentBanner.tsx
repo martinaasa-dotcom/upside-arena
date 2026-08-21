@@ -1,7 +1,9 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   getConsent,
   getServerConsent,
@@ -19,7 +21,15 @@ import { track } from "@/lib/analytics";
   weight. A banner where refusing is harder than accepting does not collect
   valid consent.
 */
+/* Rooms that carry the bottom dock. The notice has to sit above it there. */
+const DOCK_ROUTES = ["/home", "/trade", "/leagues", "/profile"];
+
 export function ConsentBanner() {
+  const pathname = usePathname();
+  const overDock = DOCK_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+
   const consent = useSyncExternalStore(
     subscribeToConsent,
     getConsent,
@@ -39,12 +49,20 @@ export function ConsentBanner() {
     <div
       role="dialog"
       aria-label="Optional measurement"
-      className="card-sheen glass fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-xl p-4 ring-1 ring-foreground/20 sm:right-6 sm:left-auto"
+      /*
+        Lifted above the bottom dock on the rooms that have one, and left at
+        the bottom edge where there is none. Fixed at bottom-28 everywhere it
+        sat on top of the sign-in button on a phone, which is a cookie notice
+        covering the one thing a new visitor came to do.
+      */
+      className={cn(
+        "card-sheen glass fixed inset-x-4 z-50 mx-auto max-w-md rounded-xl p-4 ring-1 ring-foreground/20 sm:right-6 sm:bottom-6 sm:left-auto",
+        overDock ? "bottom-28" : "bottom-4"
+      )}
     >
       <p className="text-sm text-muted-foreground">
-        Page views and load times help us keep the app fast. Sign-in cookies
-        always run. Measuring how the app is used is optional, and Arena works
-        the same either way.
+        Measuring page views and load times is optional. Sign-in cookies
+        always run.
       </p>
       <div className="mt-3 flex gap-2">
         <Button size="sm" onClick={() => choose("granted")}>

@@ -13,23 +13,41 @@ test.describe("landing", () => {
     await expect(page.getByRole("link", { name: "Privacy policy" })).toBeVisible();
   });
 
-  test("the age gate asks for 16, matching Upside Lab", async ({ page }) => {
+  test("states the 16 age rule where it is read, not behind a tick box", async ({
+    page,
+  }) => {
     await page.goto("/");
-    await expect(page.getByText("I am 16 or older.")).toBeVisible();
+
+    // Asserted in the same sentence as the terms, the way Upside Lab does it.
+    // A separate checkbox only puts a dead button in front of a new visitor.
+    await expect(
+      page.getByText(/By continuing you confirm you are 16 or older/)
+    ).toBeVisible();
+    await expect(page.getByRole("checkbox")).toHaveCount(0);
   });
 
-  test("sign-in stays locked until the age box is ticked", async ({ page }) => {
+  test("sign-in is usable the moment the page loads", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: /Email me a link/ })).toBeEnabled();
+  });
+
+  test("the sign-in button is not covered by the cookie notice", async ({ page }) => {
     await page.goto("/");
 
-    const emailButton = page.getByRole("button", { name: /Email me a sign-in link/ });
-    await expect(emailButton).toBeDisabled();
+    // A cookie notice sitting on top of the one thing a new visitor came to
+    // do is worse than no notice at all. This caught exactly that on a phone.
+    const clear = await page.evaluate(() => {
+      const button = [...document.querySelectorAll("button")].find((b) =>
+        /Email me a link/.test(b.textContent ?? "")
+      );
+      const notice = document.querySelector('[role="dialog"]');
+      if (!button || !notice) return true;
+      const a = button.getBoundingClientRect();
+      const b = notice.getBoundingClientRect();
+      return a.bottom < b.top || a.top > b.bottom || a.right < b.left || a.left > b.right;
+    });
 
-    await page.getByRole("checkbox").check();
-    await expect(emailButton).toBeEnabled();
-
-    // Unticking has to lock it again, not just on first paint.
-    await page.getByRole("checkbox").uncheck();
-    await expect(emailButton).toBeDisabled();
+    expect(clear).toBe(true);
   });
 });
 
@@ -350,16 +368,6 @@ test.describe("accessibility basics", () => {
     await page.goto("/");
     await expect(page.getByRole("link", { name: "Skip to content" })).toBeAttached();
     await expect(page.locator("h1")).toHaveCount(1);
-  });
-
-  test("the age checkbox is reachable and labelled", async ({ page }) => {
-    await page.goto("/");
-    const checkbox = page.getByRole("checkbox", { name: /I am 16 or older/ });
-    await expect(checkbox).toBeVisible();
-
-    await checkbox.focus();
-    await page.keyboard.press("Space");
-    await expect(checkbox).toBeChecked();
   });
 
   test("the email field is labelled and typed", async ({ page }) => {

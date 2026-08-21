@@ -11,9 +11,6 @@ export type AuthState = { error?: string; sent?: boolean };
 
 const signInSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter an email address we can reach you at."),
-  // The age gate is checked here as well as in the browser. A disabled button
-  // is a courtesy, not a control.
-  ageConfirmed: z.literal("on", { message: "You need to be 16 or older to play." }),
   next: z.string().optional(),
 });
 
@@ -27,7 +24,6 @@ export async function signInWithEmail(
 
   const parsed = signInSchema.safeParse({
     email: formData.get("email"),
-    ageConfirmed: formData.get("ageConfirmed"),
     next: formData.get("next") ?? undefined,
   });
 
@@ -61,10 +57,6 @@ export async function signInWithEmail(
 export async function signInWithGoogle(formData: FormData) {
   if (!isSupabaseConfigured) {
     redirect("/auth/error?reason=not-configured");
-  }
-
-  if (formData.get("ageConfirmed") !== "on") {
-    redirect("/?error=age");
   }
 
   const supabase = await createClient();

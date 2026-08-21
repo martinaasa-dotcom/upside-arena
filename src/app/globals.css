@@ -235,6 +235,30 @@
     box-shadow: inset 0 0 0 1px var(--border);
   }
 
+  /*
+    First paint on the signed-out page. A short stagger, so the page arrives
+    rather than appearing. Reduced-motion users get it instantly, handled by
+    the media query at the end of this file.
+  */
+  .rise {
+    animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .rise-1 { animation-delay: 0.04s; }
+  .rise-2 { animation-delay: 0.1s; }
+  .rise-3 { animation-delay: 0.18s; }
+  .rise-4 { animation-delay: 0.26s; }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   /* Money, percents, tickers, counts. */
   .figure {
     font-family: var(--font-mono);

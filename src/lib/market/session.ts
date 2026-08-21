@@ -188,3 +188,69 @@ export function hoursUntilClose(now = new Date()): number | null {
   const remaining = CLOSE_MINUTES - nyMinutes(now);
   return remaining > 0 ? remaining / 60 : null;
 }
+
+/*
+  Trading days, for the streak.
+
+  A streak counts days the market was open, not days on the calendar.
+
+  This is a deliberate departure from a plain daily counter. Arena cannot be
+  played at the weekend: nothing moves, no trade can be placed, and there is
+  no result to look at. Breaking someone's streak for not opening an app on a
+  day the game does not run would be manufactured anxiety, which section 3 of
+  the plan rules out as firmly as it rules out fake urgency. A streak that
+  only counts the days that mattered is also the honest claim: you showed up
+  when it counted.
+
+  Market holidays are not modelled. A holiday is treated as a trading day, so
+  the worst case is a streak that survives a day it might not have. Being
+  generous in the player's favour is the right direction for that error.
+*/
+
+function isoToUtcNoon(iso: string) {
+  return new Date(`${iso}T12:00:00Z`);
+}
+
+function utcToIso(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+/** Whether a New York calendar date fell on a weekday. */
+export function isTradingDay(isoDate: string): boolean {
+  const day = isoToUtcNoon(isoDate).getUTCDay();
+  return day !== 0 && day !== 6;
+}
+
+/** The trading day before the given date. */
+export function previousTradingDay(isoDate: string): string {
+  const date = isoToUtcNoon(isoDate);
+  do {
+    date.setUTCDate(date.getUTCDate() - 1);
+  } while (date.getUTCDay() === 0 || date.getUTCDay() === 6);
+  return utcToIso(date);
+}
+
+/**
+ * Trading days strictly between two dates.
+ *
+ * This is how many days were actually missed, which is what decides whether a
+ * streak survives on freezes or resets. Counting calendar days would end a
+ * streak over a normal weekend.
+ */
+export function tradingDaysBetween(fromIso: string, toIso: string): number {
+  if (fromIso >= toIso) return 0;
+
+  const cursor = isoToUtcNoon(fromIso);
+  const end = isoToUtcNoon(toIso);
+  let count = 0;
+
+  // Bounded so a corrupt date cannot spin here for ever.
+  for (let guard = 0; guard < 400; guard++) {
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+    if (cursor >= end) break;
+    const day = cursor.getUTCDay();
+    if (day !== 0 && day !== 6) count++;
+  }
+
+  return count;
+}

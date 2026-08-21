@@ -115,7 +115,7 @@ export function InstallPrompt({ weeksPlayed }: { weeksPlayed: number }) {
     <div
       role="dialog"
       aria-label="Add Upside Arena to your home screen"
-      className="card-sheen glass fixed inset-x-4 bottom-28 z-50 mx-auto max-w-md rounded-xl p-4 ring-1 ring-foreground/20 sm:inset-x-auto sm:right-6"
+      className="card-sheen glass fixed inset-x-4 bottom-28 z-50 mx-auto max-w-md rounded-xl p-4 ring-1 ring-foreground/20 sm:inset-x-auto sm:right-6 sm:bottom-6"
     >
       <div className="flex items-start gap-3">
         <div className="flex-1">

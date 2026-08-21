@@ -22,7 +22,6 @@ const schema = z.object({
       /^[a-z0-9_]{3,20}$/,
       "Use 3 to 20 letters, numbers or underscores, with no spaces."
     ),
-  ageConfirmed: z.literal("on", { message: "You need to be 16 or older to play." }),
 });
 
 export async function completeOnboarding(
@@ -32,7 +31,6 @@ export async function completeOnboarding(
   const parsed = schema.safeParse({
     displayName: formData.get("displayName"),
     handle: formData.get("handle"),
-    ageConfirmed: formData.get("ageConfirmed"),
   });
 
   if (!parsed.success) {

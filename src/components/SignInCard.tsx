@@ -1,14 +1,25 @@
 "use client";
 
-import { useActionState, useEffect, useId, useState } from "react";
+import { useActionState, useEffect, useId } from "react";
 import { Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signInWithEmail, signInWithGoogle, type AuthState } from "@/app/auth/actions";
-import { MINIMUM_AGE } from "@/lib/legal";
 import { track } from "@/lib/analytics";
+
+/*
+  Sign-in.
+
+  There is no age tick box. Age is asserted in the sentence under the button,
+  the way Upside Lab does it, and continuing is the affirmative act. A separate
+  checkbox is a thing to get past rather than a thing anyone reads, and it puts
+  a disabled button in front of every new person, which is the first thing they
+  see of the product.
+
+  The confirmation is still recorded against the account, so there is evidence
+  of it. It just is not a hurdle.
+*/
 
 function GoogleGlyph() {
   return (
@@ -21,10 +32,7 @@ function GoogleGlyph() {
         fill="#34A853"
         d="M12 22c2.7 0 5-.9 6.7-2.3l-3.2-2.5c-.9.6-2 1-3.5 1a6 6 0 0 1-5.7-4.1l-3.3 2.6A10 10 0 0 0 12 22z"
       />
-      <path
-        fill="#FBBC05"
-        d="M6.3 14.1a6 6 0 0 1 0-3.8L3 7.7a10 10 0 0 0 0 8.6z"
-      />
+      <path fill="#FBBC05" d="M6.3 14.1a6 6 0 0 1 0-3.8L3 7.7a10 10 0 0 0 0 8.6z" />
       <path
         fill="#4285F4"
         d="M12 6.1c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3 7.7l3.3 2.6A6 6 0 0 1 12 6.1z"
@@ -42,12 +50,10 @@ export function SignInCard({
   next?: string;
   initialError?: string;
 }) {
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [state, formAction, pending] = useActionState<AuthState, FormData>(
     signInWithEmail,
     {}
   );
-  const ageId = useId();
   const emailId = useId();
 
   useEffect(() => {
@@ -62,47 +68,25 @@ export function SignInCard({
 
   if (state.sent) {
     return (
-      <div className="flex flex-col gap-3" role="status">
+      <div className="flex flex-col gap-2 text-left" role="status">
         <h2 className="text-lg font-semibold tracking-tight">Check your email</h2>
-        <p className="text-sm text-muted-foreground">
-          We sent you a sign-in link. Open it on this device and you are in. The link
-          works once and lasts an hour.
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          We sent you a sign-in link. Open it on this device and you are in. The
+          link works once and lasts an hour.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/*
-        The age gate gates every sign-in route on the page, so it lives outside
-        both forms and is mirrored into each on submit.
-      */}
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id={ageId}
-          checked={ageConfirmed}
-          onCheckedChange={(value) => {
-            const checked = value === true;
-            setAgeConfirmed(checked);
-            if (!checked) track("age_gate_blocked");
-          }}
-          aria-describedby={error ? "signin-error" : undefined}
-        />
-        <Label htmlFor={ageId} className="text-sm font-normal text-muted-foreground">
-          I am {MINIMUM_AGE} or older.
-        </Label>
-      </div>
-
+    <div className="flex flex-col gap-3">
       {googleEnabled ? (
         <form action={signInWithGoogle}>
-          <input type="hidden" name="ageConfirmed" value={ageConfirmed ? "on" : ""} />
           {next ? <input type="hidden" name="next" value={next} /> : null}
           <Button
             type="submit"
             size="cta"
-            className="w-full"
-            disabled={!ageConfirmed}
+            className="w-full gap-2.5 text-base md:w-auto md:min-w-[17rem]"
             onClick={() => track("signin_google_started")}
           >
             <GoogleGlyph />
@@ -112,21 +96,23 @@ export function SignInCard({
       ) : null}
 
       {googleEnabled ? (
-        <div className="flex items-center gap-3" aria-hidden="true">
+        <div className="flex items-center gap-3 py-1" aria-hidden="true">
           <span className="h-px flex-1 bg-border" />
           <span className="text-xs text-muted-foreground">or</span>
           <span className="h-px flex-1 bg-border" />
         </div>
       ) : null}
 
-      <form action={formAction} className="flex flex-col gap-3">
-        <input type="hidden" name="ageConfirmed" value={ageConfirmed ? "on" : ""} />
-        {next ? <input type="hidden" name="next" value={next} /> : null}
+      {/*
+        Field and button on one row, so signing in is a single object rather
+        than a stack of form controls.
+      */}
+      <form action={formAction} className="flex flex-col gap-2">
+        <Label htmlFor={emailId} className="sr-only">
+          Email
+        </Label>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={emailId} className="text-sm font-normal text-muted-foreground">
-            Email
-          </Label>
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             id={emailId}
             name="email"
@@ -137,30 +123,24 @@ export function SignInCard({
             placeholder="you@example.com"
             aria-invalid={Boolean(error) || undefined}
             aria-describedby={error ? "signin-error" : undefined}
+            className="h-11 rounded-full px-4 sm:flex-1"
           />
+          <Button
+            type="submit"
+            size="cta"
+            variant={googleEnabled ? "outline" : "default"}
+            disabled={pending}
+            className="shrink-0"
+          >
+            <Mail />
+            {pending ? "Sending" : "Email me a link"}
+          </Button>
         </div>
-
-        <Button
-          type="submit"
-          size="cta"
-          variant={googleEnabled ? "outline" : "default"}
-          className="w-full"
-          disabled={!ageConfirmed || pending}
-        >
-          <Mail />
-          {pending ? "Sending a link" : "Email me a sign-in link"}
-        </Button>
       </form>
 
       {error ? (
         <p id="signin-error" role="alert" className="text-sm text-loss">
           {error}
-        </p>
-      ) : null}
-
-      {!ageConfirmed ? (
-        <p className="text-sm text-muted-foreground">
-          Tick the box above to sign in.
         </p>
       ) : null}
     </div>

@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   cycleMonday,
+  isTradingDay,
   isTradingOpen,
   isWeekend,
   nyDate,
+  previousTradingDay,
   sessionLabel,
   sessionMark,
+  tradingDaysBetween,
 } from "@/lib/market/session";
 
 /*
@@ -177,5 +180,46 @@ describe("sessionLabel", () => {
     expect(sessionLabel("POST")).toBe("After the close");
     expect(sessionLabel("CLOSED")).toBe("Market closed");
     expect(sessionLabel(null)).toBe("Market closed");
+  });
+});
+
+describe("trading days", () => {
+  it("knows a weekday from a weekend", () => {
+    expect(isTradingDay("2026-08-21")).toBe(true); // Friday
+    expect(isTradingDay("2026-08-22")).toBe(false); // Saturday
+    expect(isTradingDay("2026-08-23")).toBe(false); // Sunday
+    expect(isTradingDay("2026-08-24")).toBe(true); // Monday
+  });
+
+  it("steps back over a weekend to the previous trading day", () => {
+    expect(previousTradingDay("2026-08-24")).toBe("2026-08-21"); // Mon to Fri
+    expect(previousTradingDay("2026-08-21")).toBe("2026-08-20"); // Fri to Thu
+    expect(previousTradingDay("2026-08-22")).toBe("2026-08-21"); // Sat to Fri
+  });
+
+  it("counts nothing missed across a normal weekend", () => {
+    // Friday to Monday is a weekend, not a missed day. Counting it would end
+    // every streak every week.
+    expect(tradingDaysBetween("2026-08-21", "2026-08-24")).toBe(0);
+  });
+
+  it("counts nothing missed on consecutive weekdays", () => {
+    expect(tradingDaysBetween("2026-08-19", "2026-08-20")).toBe(0);
+  });
+
+  it("counts the weekdays actually skipped", () => {
+    // Monday to Thursday skips Tuesday and Wednesday.
+    expect(tradingDaysBetween("2026-08-17", "2026-08-20")).toBe(2);
+    // Friday to the following Wednesday skips Monday and Tuesday.
+    expect(tradingDaysBetween("2026-08-21", "2026-08-26")).toBe(2);
+  });
+
+  it("counts a fortnight away as ten missed days, not fourteen", () => {
+    expect(tradingDaysBetween("2026-08-03", "2026-08-18")).toBe(10);
+  });
+
+  it("treats a date at or before itself as nothing missed", () => {
+    expect(tradingDaysBetween("2026-08-20", "2026-08-20")).toBe(0);
+    expect(tradingDaysBetween("2026-08-21", "2026-08-20")).toBe(0);
   });
 });

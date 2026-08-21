@@ -31,7 +31,6 @@ export default async function OnboardingPage() {
           <OnboardingForm
             defaultName={suggestedName}
             defaultHandle={suggestedHandle.length >= 3 ? suggestedHandle : ""}
-            alreadyConfirmedAge={Boolean(profile?.age_confirmed_at)}
           />
         </div>
       </main>

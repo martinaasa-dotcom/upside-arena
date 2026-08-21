@@ -1,8 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useId, useState } from "react";
+import { useActionState, useEffect, useId } from "react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Panel } from "@/components/Panel";
@@ -13,20 +12,16 @@ import { track } from "@/lib/analytics";
 export function OnboardingForm({
   defaultName,
   defaultHandle,
-  alreadyConfirmedAge,
 }: {
   defaultName: string;
   defaultHandle: string;
-  alreadyConfirmedAge: boolean;
 }) {
   const [state, formAction, pending] = useActionState<OnboardingState, FormData>(
     completeOnboarding,
     {}
   );
-  const [ageConfirmed, setAgeConfirmed] = useState(alreadyConfirmedAge);
   const nameId = useId();
   const handleId = useId();
-  const ageId = useId();
 
   useEffect(() => {
     track("onboarding_viewed");
@@ -68,21 +63,6 @@ export function OnboardingForm({
           </p>
         </div>
 
-        {!alreadyConfirmedAge ? (
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id={ageId}
-              name="ageConfirmed"
-              checked={ageConfirmed}
-              onCheckedChange={(value) => setAgeConfirmed(value === true)}
-            />
-            <Label htmlFor={ageId} className="text-sm font-normal text-muted-foreground">
-              I am {MINIMUM_AGE} or older.
-            </Label>
-          </div>
-        ) : (
-          <input type="hidden" name="ageConfirmed" value="on" />
-        )}
 
 
         {state.error ? (
@@ -91,9 +71,17 @@ export function OnboardingForm({
           </p>
         ) : null}
 
-        <Button type="submit" disabled={pending || !ageConfirmed} size="lg">
+        <Button type="submit" disabled={pending} size="lg">
           {pending ? "Saving" : "Start playing"}
         </Button>
+
+        {/*
+          Stated, not ticked. Finishing this step is the affirmative act, and
+          it is what writes the confirmation to the account.
+        */}
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          By starting you confirm you are {MINIMUM_AGE} or older.
+        </p>
       </form>
     </Panel>
   );
