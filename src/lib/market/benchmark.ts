@@ -100,7 +100,66 @@ export async function getBenchmarkWeek(
   };
 }
 
+const closeCache = new Map<string, number>();
+
+/**
+ * Closing prices for a finished session.
+ *
+ * Used to settle a week, so it must land on the price that actually closed
+ * that day rather than whatever is current. A market holiday means no bar for
+ * the date, in which case the last session at or before it is the right
+ * answer: that is what a holding was genuinely worth when the week ended.
+ */
+export async function getClosingPrices(
+  symbols: string[],
+  isoDate: string
+): Promise<Record<string, number>> {
+  const wanted = [...new Set(symbols.map((s) => s.trim().toUpperCase()))].filter(Boolean);
+  const out: Record<string, number> = {};
+
+  await Promise.all(
+    wanted.map(async (symbol) => {
+      const key = `${symbol}:${isoDate}`;
+      const cached = closeCache.get(key);
+      if (cached != null) {
+        out[symbol] = cached;
+        return;
+      }
+
+      try {
+        const yahoo = await getYahoo();
+        // A window either side, so a holiday or a thin week still resolves.
+        const start = new Date(`${isoDate}T00:00:00Z`);
+        const result = (await (
+          yahoo as { chart: (s: string, o: Record<string, unknown>) => Promise<unknown> }
+        ).chart(symbol, {
+          period1: new Date(start.getTime() - 10 * 24 * 60 * 60 * 1000),
+          period2: new Date(start.getTime() + 2 * 24 * 60 * 60 * 1000),
+          interval: "1d",
+        })) as { quotes?: ChartBar[] };
+
+        const bars = (result.quotes ?? []).filter(
+          (bar) => bar.date && bar.date.toISOString().slice(0, 10) <= isoDate
+        );
+        const last = bars.at(-1);
+        const close = last?.close ?? last?.open ?? null;
+
+        if (close != null && Number.isFinite(close) && close > 0) {
+          closeCache.set(key, close);
+          out[symbol] = close;
+        }
+      } catch {
+        // A symbol we cannot price is left out. The caller decides whether
+        // that is fatal for the week.
+      }
+    })
+  );
+
+  return out;
+}
+
 /** Clears the cache. Tests only. */
 export function __resetBenchmarkCache() {
   openCache.clear();
+  closeCache.clear();
 }

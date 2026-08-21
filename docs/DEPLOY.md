@@ -67,16 +67,37 @@ Two things must be updated or sign-in silently breaks.
    Supabase refuses to redirect anywhere not on this list, which is what stops
    a sign-in link being redirected to somewhere it should not go.
 
+## Settling the week, without paying for a scheduler
+
+Vercel's Hobby plan runs a cron once a day at an hour it chooses, which cannot
+be relied on to fire after Friday's close. Arena does not need it to.
+
+**A finished week is settled by the first request that touches the game.**
+`getCurrentCycle` checks for a due week with one indexed query and, if it
+finds one, settles it in `after()`, so the work happens once the response has
+already been sent and nobody waits. A claim in the database means that however
+many requests notice at once, exactly one does the work, and a claim whose
+owner died is taken over after ten minutes.
+
+That makes correctness independent of any timer. The only thing a schedule
+adds is promptness on a quiet weekend when nobody has visited.
+
+For that, `.github/workflows/settle-week.yml` calls `/api/cron/settle` on
+Friday evening. GitHub Actions is free on a public repository, and its
+scheduler running late does not matter because scoring is idempotent: late,
+twice, or never all end in the same place.
+
+To switch the nudge on, add a repository secret named `CRON_SECRET` matching
+the environment variable of the same name, at Settings, Secrets and variables,
+Actions. Without it the workflow exits quietly and the app carries on settling
+by itself. The endpoint refuses every request when the secret is unset, so an
+unset variable can never be what makes it public.
+
 ## Plan limits worth knowing
 
-The team is on Vercel's **Hobby** plan today. Two consequences:
-
-- Hobby is for non-commercial use. Arena is free with no ads, so it fits for
-  now. Phase 8 adds payments, which does not, and will need Pro.
-- **Hobby cron jobs run once a day at an hour Vercel chooses.** Phase 3 needs
-  the week to roll over and score at Friday's close, at a known time. That
-  needs Pro. `score_cycle` is idempotent so a retry is always safe, but the
-  clean answer is the plan upgrade.
+The team is on Vercel's **Hobby** plan. Hobby is for non-commercial use. Arena
+is free with no ads, so it fits for now. Phase 8 adds payments, which does not,
+and will need Pro. Scheduling is no longer a reason to upgrade.
 
 ## Deploying
 

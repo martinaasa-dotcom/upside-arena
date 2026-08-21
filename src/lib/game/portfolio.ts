@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { after } from "next/server";
 import {
   BENCHMARK_SYMBOL,
   MAX_TRADES_PER_CYCLE,
@@ -12,6 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getQuotes, normaliseSymbol, type Quote } from "@/lib/market/quotes";
 import { getSessionOpen } from "@/lib/market/benchmark";
 import { cycleMonday, isTradingOpen } from "@/lib/market/session";
+import { hasDueCycle, settleDueCycles } from "@/lib/game/settle";
 
 /*
   Reading and valuing a player's week.
@@ -96,6 +98,23 @@ function num(value: string | number | null | undefined): number {
  */
 export const getCurrentCycle = cache(async (): Promise<Cycle | null> => {
   if (!canWriteGame) return null;
+
+  /*
+    Settle any week that has finished, in the background, so nobody waits for
+    it. This is what makes correctness independent of a scheduler: a finished
+    week is settled by the first person to look, not by a timer that may fire
+    at the wrong hour or not at all.
+  */
+  if (await hasDueCycle()) {
+    after(async () => {
+      try {
+        await settleDueCycles();
+      } catch {
+        // The next request tries again. A failed settle must never turn into
+        // a failed page.
+      }
+    });
+  }
 
   const monday = cycleMonday();
   const admin = createAdminClient();

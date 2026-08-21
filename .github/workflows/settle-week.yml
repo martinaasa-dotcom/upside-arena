@@ -1,0 +1,54 @@
+name: Settle the finished week
+
+# Nudges the app to settle a finished week shortly after Friday's close.
+#
+# This is not what makes settling correct. The app settles a due week by
+# itself on the first request that touches the game, so a week is never left
+# unscored because a schedule slipped. This only makes it prompt on a quiet
+# weekend when nobody has visited yet.
+#
+# GitHub's scheduler can run late when it is busy, and that is fine here:
+# scoring is idempotent, so arriving late, twice, or not at all all end in the
+# same place.
+
+on:
+  schedule:
+    # 21:10 UTC on Friday, shortly after the 16:00 close in New York during
+    # summer time. In winter New York is an hour further behind, so the second
+    # entry covers the same moment then. Both firing is harmless.
+    - cron: "10 21 * * 5"
+    - cron: "10 22 * * 5"
+  workflow_dispatch:
+
+concurrency:
+  group: settle-week
+  cancel-in-progress: false
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the app to settle
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://upsidearena.com' }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not set on this repository. Nothing to do."
+            echo "The app still settles finished weeks by itself on the next visit."
+            exit 0
+          fi
+
+          response=$(mktemp)
+          code=$(curl -sS --max-time 90 -o "$response" -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$SITE_URL/api/cron/settle")
+
+          echo "HTTP $code"
+          cat "$response"
+          echo
+
+          # A failure here is not an emergency. The next visitor settles it.
+          if [ "$code" != "200" ]; then
+            echo "::warning::Settle endpoint returned $code. The app will settle on the next request."
+          fi

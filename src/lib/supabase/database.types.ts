@@ -37,6 +37,7 @@ export type WeeklyCycleRow = {
   benchmark_open: string | null;
   benchmark_close: string | null;
   starting_balance: string;
+  scoring_started_at: string | null;
   created_at: string;
   closed_at: string | null;
 };
@@ -136,6 +137,18 @@ export type Database = {
       };
       delete_own_account: {
         Args: Record<never, never>;
+        Returns: undefined;
+      };
+      due_cycles: {
+        Args: { p_today: string };
+        Returns: WeeklyCycleRow[];
+      };
+      claim_cycle_for_scoring: {
+        Args: { p_cycle_id: string; p_stale_after: string };
+        Returns: boolean;
+      };
+      release_cycle_claim: {
+        Args: { p_cycle_id: string };
         Returns: undefined;
       };
     };

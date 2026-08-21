@@ -21,7 +21,11 @@ const PUBLIC_PATHS = [
   webhooks belong here when they arrive, since they authenticate by signature
   rather than by session.
 */
-const PUBLIC_API_PATHS: string[] = [];
+const PUBLIC_API_PATHS: string[] = [
+  // Authenticates with a shared secret rather than a session, and refuses
+  // the request itself when the secret is missing or wrong.
+  "/api/cron/settle",
+];
 
 function isPublic(pathname: string) {
   return (
