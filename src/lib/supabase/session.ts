@@ -34,6 +34,15 @@ function isPublic(pathname: string) {
     PUBLIC_API_PATHS.includes(pathname) ||
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/icons/") ||
+    /*
+      A shared week card, and the picture that goes with it.
+
+      Signed out on purpose. These links are posted into group chats, and a
+      page that asked for an account before showing anything would end the
+      share loop before it started. Each one shows a single frozen week and
+      offers no way to reach the player behind it.
+    */
+    pathname.startsWith("/w/") ||
     pathname === "/manifest.webmanifest" ||
     pathname === "/sw.js"
   );

@@ -129,6 +129,11 @@ somebody was asleep. Each pass decides for itself whether now is the right
 moment, so the schedule does not have to be clever. It uses the same
 `CRON_SECRET` as settling.
 
+The same endpoint records what every portfolio was worth at the day's close,
+which is what gives a shared week card its shape. That one cannot be caught up
+afterwards, since prices move on, so the app also writes it by itself on the
+first request after the close. A missed run costs nothing.
+
 Nothing is sent twice, ever. Every message is claimed in the database before
 it is sent, keyed on the event it describes, so a pass that runs twice or
 overlaps another sends nothing extra. The database also enforces the limit of

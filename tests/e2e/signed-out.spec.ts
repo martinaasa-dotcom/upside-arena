@@ -377,3 +377,63 @@ test.describe("accessibility basics", () => {
     await expect(email).toHaveAttribute("autocomplete", "email");
   });
 });
+
+test.describe("a shared week", () => {
+  /*
+    These links are posted into group chats. Everything below is about the one
+    way this feature can fail completely: a stranger following the link and
+    being asked to sign in instead of seeing the card. That turns the whole
+    growth loop into a dead end, and it is one line in the proxy away from
+    happening.
+  */
+
+  const link = "/w/0123456789abcdef0123456789abcdef";
+
+  test("opens for somebody with no account", async ({ page }) => {
+    const response = await page.goto(link);
+
+    expect(response?.status()).toBe(200);
+    await expect(page).toHaveURL(new RegExp(`${link}$`));
+  });
+
+  test("never bounces a visitor to sign in", async ({ page }) => {
+    await page.goto(link);
+
+    // A card that has gone is a card that has gone. It must not become a
+    // sign-in wall, which is what a missing public path rule would produce.
+    await expect(page.getByLabel("Email")).toHaveCount(0);
+  });
+
+  test("says plainly when a link no longer works, and blames nobody", async ({
+    page,
+  }) => {
+    await page.goto(link);
+
+    await expect(
+      page.getByRole("heading", { name: "This card is no longer shared" })
+    ).toBeVisible();
+    await expect(page.getByText("Nothing is wrong on your end")).toBeVisible();
+  });
+
+  test("offers the visitor a way into the game", async ({ page }) => {
+    // The only reason this page exists. A dead end here wastes the share.
+    await page.goto(link);
+    await expect(page.getByRole("link", { name: /Upside Arena/i })).toBeVisible();
+  });
+
+  test("asks not to be listed in search results", async ({ page }) => {
+    await page.goto(link);
+
+    const robots = page.locator('meta[name="robots"]');
+    await expect(robots).toHaveAttribute("content", /noindex/);
+  });
+
+  test("still produces a picture for a link that has gone", async ({ request }) => {
+    // A dead preview in a chat looks worse than a plain one, so the image
+    // route has to answer even when there is no card behind it.
+    const response = await request.get(`${link}/opengraph-image`);
+
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toContain("image/png");
+  });
+});

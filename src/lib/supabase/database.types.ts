@@ -162,6 +162,35 @@ export type NotificationRow = {
   created_at: string;
 };
 
+export type PortfolioMarkRow = {
+  portfolio_id: string;
+  on_date: string;
+  value: string;
+  return_percent: string;
+  recorded_at: string;
+};
+
+export type ShareCardRow = {
+  id: string;
+  user_id: string;
+  cycle_id: string;
+  token: string;
+  display_name: string;
+  title_name: string | null;
+  return_percent: string;
+  benchmark_return: string | null;
+  benchmark_diff: string | null;
+  league_name: string | null;
+  league_rank: number | null;
+  league_size: number | null;
+  streak_days: number;
+  /** Daily returns in percent, oldest first. Empty when the week has no marks. */
+  marks: number[];
+  monday: string;
+  created_at: string;
+  revoked_at: string | null;
+};
+
 export type TermsAcceptanceRow = {
   id: string;
   user_id: string;
@@ -194,6 +223,8 @@ export type Database = {
       push_subscriptions: Table<PushSubscriptionRow>;
       notification_settings: Table<NotificationSettingsRow>;
       notifications: Table<NotificationRow>;
+      portfolio_marks: Table<PortfolioMarkRow>;
+      share_cards: Table<ShareCardRow>;
     };
     Views: Record<never, never>;
     Functions: {
@@ -340,6 +371,37 @@ export type Database = {
       update_member_ranks: {
         Args: { p_league_id: string; p_ranks: Record<string, number> };
         Returns: undefined;
+      };
+      record_portfolio_mark: {
+        Args: {
+          p_portfolio_id: string;
+          p_date: string;
+          p_value: number;
+          p_return_percent: number;
+        };
+        Returns: boolean;
+      };
+      create_share_card: {
+        Args: {
+          p_user_id: string;
+          p_cycle_id: string;
+          p_monday: string;
+          p_display_name: string;
+          p_title_name: string | null;
+          p_return_percent: number;
+          p_benchmark_return: number | null;
+          p_benchmark_diff: number | null;
+          p_league_name: string | null;
+          p_league_rank: number | null;
+          p_league_size: number | null;
+          p_streak_days: number;
+          p_marks: number[];
+        };
+        Returns: ShareCardRow;
+      };
+      revoke_share_card: {
+        Args: { p_user_id: string; p_card_id: string };
+        Returns: boolean;
       };
     };
     Enums: Record<never, never>;

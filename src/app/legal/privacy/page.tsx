@@ -74,6 +74,19 @@ export default function PrivacyPage() {
           Arena works exactly the same if you say no.
         </li>
         <li>
+          <strong>Weeks you choose to share.</strong> When you press share on a
+          finished week, we save a copy of that result: your name, the title you
+          were wearing, how the week went, where you finished in a league, your
+          streak, and the daily figures behind it. That copy is what the link
+          shows. It is frozen, so it never reveals anything that happens
+          afterwards, and you can take it down whenever you like.
+        </li>
+        <li>
+          <strong>What your portfolio was worth each day.</strong> Recorded once
+          per trading day for everyone playing, so a shared week can show its
+          shape rather than a single number.
+        </li>
+        <li>
           <strong>Notifications, only if you turn them on.</strong> If you allow
           notifications in your browser, we store the address your browser&rsquo;s
           push service gives us, the keys needed to encrypt a message to it, a
@@ -124,6 +137,11 @@ export default function PrivacyPage() {
           consent, which you can take back at any time.
         </li>
         <li>
+          <strong>To let you share a week.</strong> We do this to do what you
+          asked us to do, which is make that one week postable. Nothing is
+          shared until you press the button, and taking it down ends it.
+        </li>
+        <li>
           <strong>To send you notifications.</strong> Only with your consent,
           which you can take back at any time from your profile page or in your
           browser&rsquo;s own settings. Every email we send carries a link that
@@ -166,6 +184,14 @@ export default function PrivacyPage() {
           <strong>Other players.</strong> Your name, player tag, picture and
           scores are visible to people in a league you have joined. Your email
           address is never shown to another player.
+        </li>
+        <li>
+          <strong>Anyone you send a share link to.</strong> A shared week is a
+          public web address: whoever holds the link can open it, without an
+          account, and can pass it on. It shows that one week and offers no way
+          to reach anything else about you. We ask search engines not to list
+          these pages, though we cannot force them to obey. Taking a card down
+          makes its link stop working.
         </li>
         <li>
           <strong>Companies that run parts of the service for us.</strong> They

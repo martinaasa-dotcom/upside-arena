@@ -7,9 +7,11 @@ import { AccountControls } from "@/components/AccountControls";
 import { ConsentControl } from "@/components/ConsentControl";
 import { Titles } from "@/components/Titles";
 import { NotificationSettings } from "@/components/NotificationSettings";
+import { SharedCards } from "@/components/SharedCards";
 import { getSession } from "@/lib/profile";
 import { getRewards } from "@/lib/game/streaks";
 import { getLeagues } from "@/lib/game/leagues";
+import { getMyCards } from "@/lib/game/share";
 import { getNotificationState, DEFAULT_SETTINGS } from "@/lib/notify/settings";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatDate, initials } from "@/lib/format";
@@ -25,6 +27,7 @@ export default async function ProfilePage() {
     : { owned: [], locked: [], equipped: null };
 
   const leagues = user ? await getLeagues(user.id) : [];
+  const cards = user ? await getMyCards(user.id) : [];
 
   const notifications = user
     ? await getNotificationState(user.id)
@@ -133,6 +136,20 @@ export default async function ProfilePage() {
           />
         </Panel>
       ) : null}
+
+      <Panel
+        title="Weeks you have shared"
+        description="Anyone holding one of these links can see that week, and nothing else about you."
+      >
+        <SharedCards
+          cards={cards.map((card) => ({
+            id: card.id,
+            url: card.url,
+            monday: card.recap.monday,
+            returnPercent: card.recap.returnPercent,
+          }))}
+        />
+      </Panel>
 
       <Panel
         title="Measuring how the app is used"

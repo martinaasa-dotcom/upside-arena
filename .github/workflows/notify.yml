@@ -1,6 +1,7 @@
-name: Notification pass
+name: Trading day pass
 
-# Asks the app to look for anything worth telling somebody about.
+# Records the day's close, and asks the app to look for anything worth
+# telling somebody about.
 #
 # Unlike settling, this genuinely needs an outside caller: nobody can be told
 # they were passed by a request they did not make. It is still safe to run as
@@ -10,9 +11,14 @@ name: Notification pass
 #
 # Each pass decides for itself whether now is the right moment, so this file
 # does not try to be clever about it. Standings only move while the market is
-# open, a week result only exists once the week has been scored, and a streak
-# reminder only goes out late in the New York afternoon. Every schedule below
-# calls the same endpoint and lets the app refuse.
+# open, a week result only exists once the week has been scored, a streak
+# reminder only goes out late in the New York afternoon, and the day's close
+# is only recorded once the market has shut. Every schedule below calls the
+# same endpoint and lets the app refuse.
+#
+# The daily mark is the one thing here that cannot be caught up afterwards,
+# because prices move on. The app also records it by itself on the first
+# request after the close, so a missed run costs nothing.
 
 on:
   schedule:
@@ -36,11 +42,11 @@ on:
         description: "Which pass to run. Empty runs all three."
         required: false
         type: choice
-        options: ["", "standings", "week", "streaks"]
+        options: ["", "marks", "standings", "week", "streaks"]
         default: ""
 
 concurrency:
-  group: notify
+  group: trading-day-pass
   cancel-in-progress: false
 
 jobs:

@@ -8,10 +8,12 @@ import { Holdings } from "@/components/Holdings";
 import { StreakCard } from "@/components/StreakCard";
 import { EarnedToast } from "@/components/EarnedToast";
 import { NotificationInvite } from "@/components/NotificationInvite";
+import { WeekRecap } from "@/components/WeekRecap";
 import { getSession } from "@/lib/profile";
 import { getPortfolioView } from "@/lib/game/portfolio";
 import { recordVisit } from "@/lib/game/streaks";
 import { getLeagues } from "@/lib/game/leagues";
+import { getLatestRecap } from "@/lib/game/share";
 import { plural } from "@/lib/format";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatGap, formatMoney, formatPercent } from "@/lib/format";
@@ -31,13 +33,14 @@ export default async function HomePage() {
     is the trigger the plan says to start with. Crediting it here and nowhere
     else keeps the streak meaning the one thing it claims to mean.
   */
-  const [view, activity, leagues] = user
+  const [view, activity, leagues, lastWeek] = user
     ? await Promise.all([
         getPortfolioView(user.id),
         recordVisit(user.id),
         getLeagues(user.id),
+        getLatestRecap(user.id),
       ])
-    : [null, null, []];
+    : [null, null, [], null];
 
   /*
     With no engine configured there is nothing true to show, so the screen says
@@ -190,6 +193,8 @@ export default async function HomePage() {
       ) : null}
 
       {activity ? <StreakCard streak={activity.streak} /> : null}
+
+      {lastWeek ? <WeekRecap recap={lastWeek.recap} /> : null}
 
       <Panel
         title="What you own"

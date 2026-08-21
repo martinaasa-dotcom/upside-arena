@@ -4,6 +4,7 @@ import {
   notifyStreaksAtRisk,
   notifyWeekResults,
 } from "@/lib/notify/events";
+import { recordDailyMarks } from "@/lib/game/marks";
 
 /*
   The outside nudge that runs a notification pass.
@@ -16,7 +17,12 @@ import {
   Each pass decides for itself whether now is the right time. Standings only
   move while the market is open, week results only exist once a week has been
   scored, and a streak reminder only goes out late in the New York day. Calling
-  with no job runs all three and lets each one refuse.
+  with no job runs all of them and lets each one refuse.
+
+  Recording the day's close rides along here rather than in a job of its own.
+  It has to happen once a day after the market shuts and it cannot be caught
+  up afterwards, since prices move on, so it belongs on the schedule that is
+  already running every hour through the trading day.
 */
 
 export const dynamic = "force-dynamic";
@@ -42,6 +48,8 @@ function authorised(request: NextRequest) {
 }
 
 const JOBS = {
+  // First, so a mark is written before anything is sent about the day.
+  marks: recordDailyMarks,
   standings: notifyStandingChanges,
   week: notifyWeekResults,
   streaks: notifyStreaksAtRisk,
@@ -62,12 +70,12 @@ export async function GET(request: NextRequest) {
   const jobs: Record<string, unknown> = {};
   let sent = 0;
 
-  // One after another rather than at once. A pass is not urgent, and three
+  // One after another rather than at once. A pass is not urgent, and several
   // sets of push requests in parallel is a good way to be rate limited.
   for (const name of names) {
     const result = await JOBS[name]();
     jobs[name] = result;
-    sent += result.sent;
+    if ("sent" in result) sent += result.sent;
   }
 
   return NextResponse.json({ sent, jobs }, { headers: { "cache-control": "no-store" } });
