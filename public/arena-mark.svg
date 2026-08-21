@@ -1,23 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-  <linearGradient id="arena-bright" x1="0" y1="0" x2="0.6" y2="1">
-    <stop offset="0%" stop-color="#f7e8bb"/><stop offset="100%" stop-color="#d9c184"/>
+  <linearGradient id="arena-rim" x1="0" y1="0" x2="0.6" y2="1">
+    <stop offset="0%" stop-color="#d9f7ff"/><stop offset="100%" stop-color="#a6e4f2"/>
   </linearGradient>
-  <linearGradient id="arena-warm" x1="0" y1="0" x2="0.7" y2="1">
-    <stop offset="0%" stop-color="#e4cf94"/><stop offset="100%" stop-color="#c2a45f"/>
+  <linearGradient id="arena-lit" x1="0" y1="0" x2="0.6" y2="1">
+    <stop offset="0%" stop-color="#4fd0e0"/><stop offset="100%" stop-color="#2a9fb5"/>
   </linearGradient>
-  <linearGradient id="arena-mid" x1="0.2" y1="0" x2="1" y2="1">
-    <stop offset="0%" stop-color="#c9a659"/><stop offset="100%" stop-color="#a8813a"/>
+  <linearGradient id="arena-body" x1="0.2" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#17879c"/><stop offset="100%" stop-color="#0d6070"/>
   </linearGradient>
-  <linearGradient id="arena-deep" x1="0.2" y1="0" x2="1" y2="1">
-    <stop offset="0%" stop-color="#a87c33"/><stop offset="100%" stop-color="#7d551d"/>
+  <linearGradient id="arena-shadow" x1="0.2" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#0b4a58"/><stop offset="100%" stop-color="#052e36"/>
   </linearGradient></defs>
-  <polygon points="2,38 16,21 2,58" fill="url(#arena-deep)" transform="translate(6.67 39) scale(0.93) translate(-6.67 -39)"/>
-  <polygon points="16,21 16,41 2,58" fill="url(#arena-mid)" transform="translate(11.33 40) scale(0.93) translate(-11.33 -40)"/>
-  <polygon points="16,21 30,4 16,41" fill="url(#arena-warm)" transform="translate(20.67 22) scale(0.93) translate(-20.67 -22)"/>
-  <polygon points="30,4 30,24 16,41" fill="url(#arena-bright)" transform="translate(25.33 23) scale(0.93) translate(-25.33 -23)"/>
-  <polygon points="62,38 48,21 62,58" fill="url(#arena-mid)" transform="translate(57.33 39) scale(0.93) translate(-57.33 -39)"/>
-  <polygon points="48,21 48,41 62,58" fill="url(#arena-deep)" transform="translate(52.67 40) scale(0.93) translate(-52.67 -40)"/>
-  <polygon points="48,21 34,4 48,41" fill="url(#arena-bright)" transform="translate(43.33 22) scale(0.93) translate(-43.33 -22)"/>
-  <polygon points="34,4 34,24 48,41" fill="url(#arena-warm)" transform="translate(38.67 23) scale(0.93) translate(-38.67 -23)"/>
+  <polygon points="23.55,6.48 43.45,6.48 57.52,20.55" fill="url(#arena-rim)" transform="translate(41.51 11.17) scale(0.93) translate(-41.51 -11.17)"/>
+  <polygon points="23.55,6.48 57.52,20.55 57.52,40.45 43.45,54.52" fill="url(#arena-lit)" transform="translate(45.51 30.5) scale(0.93) translate(-45.51 -30.5)"/>
+  <polygon points="40.45,57.52 20.55,57.52 6.48,43.45" fill="url(#arena-body)" transform="translate(22.49 52.83) scale(0.93) translate(-22.49 -52.83)"/>
+  <polygon points="40.45,57.52 6.48,43.45 6.48,23.55 20.55,9.48" fill="url(#arena-shadow)" transform="translate(18.49 33.5) scale(0.93) translate(-18.49 -33.5)"/>
 </svg>

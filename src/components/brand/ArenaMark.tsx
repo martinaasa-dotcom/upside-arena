@@ -1,11 +1,19 @@
 /*
-  Arena's own mark. Related to Lab's by construction, not identical.
+  Arena's own mark. Related to Lab's by construction, not by colour.
 
-  Shared family DNA: precision-cut triangular facets, warm-gold hue family,
-  metallic light-to-dark facet shading.
-  Different silhouette: Lab is a solid standing "A". Arena is an open chevron,
-  notched at the apex into two opposing facet clusters, so it reads as upward
-  motion and a head-to-head matchup rather than a letterform standing still.
+  Shared family DNA: precision-cut facets, flat fills with no strokes, and
+  metallic light-to-dark facet shading on the same 64 grid.
+  Different silhouette and different stone: Lab is a solid standing "A" in
+  warm gold. Arena is a single eight-sided stone parted along its diagonal,
+  cut from aqua, so the two marks are unmistakably siblings and unmistakably
+  not the same product.
+
+  The parting is what carries the meaning. One stone, cleanly split, with the
+  lit half in front and the shadowed half falling back behind it.
+
+  The geometry itself lives in src/lib/brand/mark.ts, because the share card
+  has to draw the same stone into a PNG and a second copy would drift. The
+  reasoning is in docs/brand/ARENA_MARK.md.
 */
 
 import { MARK_FACETS, MARK_GRADIENTS, facetTransform } from "@/lib/brand/mark";
@@ -47,7 +55,7 @@ export function ArenaMark({ className, size = 20, title }: ArenaMarkProps) {
         <polygon
           key={i}
           points={facet.points}
-          fill={facet.fill}
+          fill={`url(#${facet.fill})`}
           transform={facetTransform(facet)}
         />
       ))}

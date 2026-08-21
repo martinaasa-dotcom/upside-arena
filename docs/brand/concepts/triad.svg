@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+  <linearGradient id="teal-1" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0%" stop-color="#d4f4f2"/><stop offset="100%" stop-color="#a2ddd9"/></linearGradient>
+  <linearGradient id="teal-2" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0%" stop-color="#5fc9c4"/><stop offset="100%" stop-color="#34998f"/></linearGradient>
+  <linearGradient id="teal-3" x1="0.2" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1f8b86"/><stop offset="100%" stop-color="#12615f"/></linearGradient>
+  <linearGradient id="teal-4" x1="0.2" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0f4d4c"/><stop offset="100%" stop-color="#07302f"/></linearGradient></defs>
+  <polygon points="21,10 32.26,16.5 32.26,29.5 21,36 9.74,29.5 9.74,16.5" fill="url(#teal-1)" transform="translate(21 23) scale(0.93) translate(-21 -23)"/>
+  <polygon points="43,10 54.26,16.5 54.26,29.5 43,36 31.74,29.5 31.74,16.5" fill="url(#teal-3)" transform="translate(43 23) scale(0.93) translate(-43 -23)"/>
+  <polygon points="32,29 43.26,35.5 43.26,48.5 32,55 20.74,48.5 20.74,35.5" fill="url(#teal-4)" transform="translate(32 42) scale(0.93) translate(-32 -42)"/>
+</svg>
