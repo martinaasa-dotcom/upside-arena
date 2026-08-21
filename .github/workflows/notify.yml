@@ -1,0 +1,82 @@
+name: Notification pass
+
+# Asks the app to look for anything worth telling somebody about.
+#
+# Unlike settling, this genuinely needs an outside caller: nobody can be told
+# they were passed by a request they did not make. It is still safe to run as
+# often as it likes. Every message is claimed in the database before it is
+# sent, so a run that fires twice, late, or on top of another sends nothing
+# twice.
+#
+# Each pass decides for itself whether now is the right moment, so this file
+# does not try to be clever about it. Standings only move while the market is
+# open, a week result only exists once the week has been scored, and a streak
+# reminder only goes out late in the New York afternoon. Every schedule below
+# calls the same endpoint and lets the app refuse.
+
+on:
+  schedule:
+    # Hourly through the New York trading day, wide enough to cover both
+    # summer and winter time. The passes that are out of hours cost one HTTP
+    # request and send nothing.
+    - cron: "0 13-22 * * 1-5"
+
+    # Friday evening, after the week has been settled, for a result that
+    # landed too late for the last weekday run in winter.
+    - cron: "0 23 * * 5"
+
+    # Saturday, for anyone who was asleep when their week was scored. Nothing
+    # else can fire at a weekend: the market is shut and it is not a trading
+    # day, so both other passes refuse.
+    - cron: "0 9 * * 6"
+    - cron: "0 14 * * 6"
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Which pass to run. Empty runs all three."
+        required: false
+        type: choice
+        options: ["", "standings", "week", "streaks"]
+        default: ""
+
+concurrency:
+  group: notify
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the app to look
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://upsidearena.com' }}
+          JOB: ${{ inputs.job }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not set on this repository. Nothing to do."
+            echo "Notifications are the only thing that needs this; the rest of"
+            echo "the app is unaffected."
+            exit 0
+          fi
+
+          url="$SITE_URL/api/cron/notify"
+          if [ -n "$JOB" ]; then
+            url="$url?job=$JOB"
+          fi
+
+          response=$(mktemp)
+          code=$(curl -sS --max-time 90 -o "$response" -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$url")
+
+          echo "HTTP $code"
+          cat "$response"
+          echo
+
+          # A missed pass is not an emergency. The next one picks up anything
+          # still worth saying, and anything no longer worth saying is better
+          # left unsent.
+          if [ "$code" != "200" ]; then
+            echo "::warning::Notify endpoint returned $code. The next pass will try again."
+          fi

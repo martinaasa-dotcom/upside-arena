@@ -120,6 +120,46 @@ export type LeagueMemberRow = {
   user_id: string;
   role: "owner" | "member";
   joined_at: string;
+  /** Where they stood at the previous notification pass. Null until the first. */
+  last_rank: number | null;
+  last_rank_at: string | null;
+};
+
+export type PushSubscriptionRow = {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  user_agent: string | null;
+  created_at: string;
+  last_used_at: string | null;
+  failures: number;
+};
+
+export type NotificationSettingsRow = {
+  user_id: string;
+  push_enabled: boolean;
+  email_enabled: boolean;
+  rival_alerts: boolean;
+  week_result: boolean;
+  streak_reminder: boolean;
+  timezone: string;
+  updated_at: string;
+};
+
+export type NotificationKind = "rival_passed" | "week_result" | "streak_reminder";
+
+export type NotificationRow = {
+  id: string;
+  user_id: string;
+  kind: NotificationKind;
+  dedupe_key: string;
+  title: string;
+  body: string;
+  url: string | null;
+  channel: "push" | "email" | "none";
+  created_at: string;
 };
 
 export type TermsAcceptanceRow = {
@@ -151,6 +191,9 @@ export type Database = {
       streaks: Table<StreakRow>;
       rewards: Table<RewardRow>;
       user_rewards: Table<UserRewardRow>;
+      push_subscriptions: Table<PushSubscriptionRow>;
+      notification_settings: Table<NotificationSettingsRow>;
+      notifications: Table<NotificationRow>;
     };
     Views: Record<never, never>;
     Functions: {
@@ -253,6 +296,49 @@ export type Database = {
       };
       equip_title: {
         Args: { p_user_id: string; p_reward_id: string | null };
+        Returns: undefined;
+      };
+      save_notification_settings: {
+        Args: {
+          p_user_id: string;
+          p_push_enabled: boolean | null;
+          p_email_enabled: boolean | null;
+          p_rival_alerts: boolean | null;
+          p_week_result: boolean | null;
+          p_streak_reminder: boolean | null;
+          p_timezone?: string | null;
+        };
+        Returns: NotificationSettingsRow;
+      };
+      save_push_subscription: {
+        Args: {
+          p_user_id: string;
+          p_endpoint: string;
+          p_p256dh: string;
+          p_auth: string;
+          p_user_agent?: string | null;
+        };
+        Returns: undefined;
+      };
+      delete_push_subscription: {
+        Args: { p_endpoint: string };
+        Returns: undefined;
+      };
+      record_notification: {
+        Args: {
+          p_user_id: string;
+          p_kind: NotificationKind;
+          p_dedupe_key: string;
+          p_title: string;
+          p_body: string;
+          p_url: string | null;
+          p_channel: "push" | "email" | "none";
+          p_daily_cap?: number;
+        };
+        Returns: boolean;
+      };
+      update_member_ranks: {
+        Args: { p_league_id: string; p_ranks: Record<string, number> };
         Returns: undefined;
       };
     };

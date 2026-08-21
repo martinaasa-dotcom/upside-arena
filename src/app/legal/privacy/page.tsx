@@ -73,6 +73,15 @@ export default function PrivacyPage() {
           screens are opened and how quickly pages load. We ask you first, and
           Arena works exactly the same if you say no.
         </li>
+        <li>
+          <strong>Notifications, only if you turn them on.</strong> If you allow
+          notifications in your browser, we store the address your browser&rsquo;s
+          push service gives us, the keys needed to encrypt a message to it, a
+          description of the browser, and the time zone your device reports so
+          nothing arrives in the middle of your night. We also keep a record of
+          what we sent you and when, which is what stops the same thing being
+          sent twice and keeps us to our own daily limit.
+        </li>
       </ul>
       <p>
         We do not collect anything about your health, your beliefs, your
@@ -113,6 +122,13 @@ export default function PrivacyPage() {
         <li>
           <strong>To measure how the app is used.</strong> Only with your
           consent, which you can take back at any time.
+        </li>
+        <li>
+          <strong>To send you notifications.</strong> Only with your consent,
+          which you can take back at any time from your profile page or in your
+          browser&rsquo;s own settings. Every email we send carries a link that
+          turns them off. We only send things that describe something that has
+          actually happened in your game, never marketing.
         </li>
         <li>
           <strong>To record that you agreed to our terms, and to meet other
@@ -163,8 +179,8 @@ export default function PrivacyPage() {
               </li>
             ))}
           </ul>
-          We keep this list current. When we add a market data provider, an
-          email sender or a measurement tool, they will be named here first.
+          We keep this list current. Anyone we add later will be named here
+          first.
         </li>
         <li>
           <strong>Anyone the law requires.</strong> If we are legally obliged to

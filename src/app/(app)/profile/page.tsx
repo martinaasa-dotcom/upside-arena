@@ -6,8 +6,11 @@ import { ProfileForm } from "@/components/ProfileForm";
 import { AccountControls } from "@/components/AccountControls";
 import { ConsentControl } from "@/components/ConsentControl";
 import { Titles } from "@/components/Titles";
+import { NotificationSettings } from "@/components/NotificationSettings";
 import { getSession } from "@/lib/profile";
 import { getRewards } from "@/lib/game/streaks";
+import { getLeagues } from "@/lib/game/leagues";
+import { getNotificationState, DEFAULT_SETTINGS } from "@/lib/notify/settings";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatDate, initials } from "@/lib/format";
 import { signOut } from "@/app/auth/actions";
@@ -20,6 +23,17 @@ export default async function ProfilePage() {
   const rewards = user
     ? await getRewards(user.id)
     : { owned: [], locked: [], equipped: null };
+
+  const leagues = user ? await getLeagues(user.id) : [];
+
+  const notifications = user
+    ? await getNotificationState(user.id)
+    : {
+        settings: DEFAULT_SETTINGS,
+        devices: 0,
+        pushAvailable: false,
+        emailAvailable: false,
+      };
 
   const wearing = rewards.owned.find((title) => title.equipped);
 
@@ -81,7 +95,7 @@ export default async function ProfilePage() {
           </HairlineCell>
           <HairlineCell>
             <span className="text-sm text-muted-foreground">Leagues</span>
-            <span className="figure text-lg font-semibold">0</span>
+            <span className="figure text-lg font-semibold">{leagues.length}</span>
           </HairlineCell>
         </HairlineGrid>
       </Panel>
@@ -104,6 +118,21 @@ export default async function ProfilePage() {
           email={user?.email ?? ""}
         />
       </Panel>
+
+      {notifications.pushAvailable || notifications.emailAvailable ? (
+        <Panel
+          title="Being told things"
+          description="Every one of these is something that actually happened. Turn off any of them and it stops immediately."
+        >
+          <NotificationSettings
+            initial={notifications.settings}
+            devices={notifications.devices}
+            pushAvailable={notifications.pushAvailable}
+            emailAvailable={notifications.emailAvailable}
+            publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
+          />
+        </Panel>
+      ) : null}
 
       <Panel
         title="Measuring how the app is used"

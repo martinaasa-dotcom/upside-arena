@@ -3,9 +3,14 @@
 import { useEffect } from "react";
 
 /*
-  Registers the service worker that makes Arena installable. Installability is
-  a day-one requirement: iOS Safari only delivers web push to a site added to
-  the home screen, so a plain browser tab gets no notifications at all.
+  Registers the service worker, which makes Arena installable and is what
+  receives push. Installability is not a nicety: iOS Safari only delivers web
+  push to a site added to the home screen, so a plain browser tab gets no
+  notifications at all.
+
+  Not the only place it is registered. Turning notifications on registers it
+  too, because that is a moment where waiting for a worker that never arrived
+  would look like a broken switch.
 */
 export function ServiceWorker() {
   useEffect(() => {

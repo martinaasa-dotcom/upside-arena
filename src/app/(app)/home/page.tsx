@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Holdings } from "@/components/Holdings";
 import { StreakCard } from "@/components/StreakCard";
 import { EarnedToast } from "@/components/EarnedToast";
+import { NotificationInvite } from "@/components/NotificationInvite";
 import { getSession } from "@/lib/profile";
 import { getPortfolioView } from "@/lib/game/portfolio";
 import { recordVisit } from "@/lib/game/streaks";
+import { getLeagues } from "@/lib/game/leagues";
+import { plural } from "@/lib/format";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatGap, formatMoney, formatPercent } from "@/lib/format";
 import { sessionLabel } from "@/lib/market/session";
@@ -28,9 +31,13 @@ export default async function HomePage() {
     is the trigger the plan says to start with. Crediting it here and nowhere
     else keeps the streak meaning the one thing it claims to mean.
   */
-  const [view, activity] = user
-    ? await Promise.all([getPortfolioView(user.id), recordVisit(user.id)])
-    : [null, null];
+  const [view, activity, leagues] = user
+    ? await Promise.all([
+        getPortfolioView(user.id),
+        recordVisit(user.id),
+        getLeagues(user.id),
+      ])
+    : [null, null, []];
 
   /*
     With no engine configured there is nothing true to show, so the screen says
@@ -49,7 +56,7 @@ export default async function HomePage() {
           <Score label="Weeks played" value={profile?.weeks_played ?? 0} />
           <Score label="Best week" value="Not yet" as="text" />
           <Score label="Longest streak" value={profile?.longest_streak ?? 0} hint="days" />
-          <Score label="Leagues" value={0} />
+          <Score label="Leagues" value={leagues.length} />
         </Scoreboard>
 
         <Panel
@@ -78,6 +85,18 @@ export default async function HomePage() {
   }
 
   const up = view.returnPercent >= 0;
+
+  /*
+    Whether there is anything worth asking to interrupt them for, said in the
+    words of the thing itself. With nobody to be passed by and nothing owned,
+    the honest answer is that there is not, and nothing is asked.
+  */
+  const rival = leagues.find((league) => league.memberCount > 1);
+  const inviteReason = rival
+    ? `Want to know when somebody in ${rival.name} passes you?`
+    : activity && activity.streak.current >= 2
+      ? `You are ${plural(activity.streak.current, "day")} into a streak. Want a nudge on a day you have not opened Arena?`
+      : "";
 
   return (
     <div className={`${PAGE} ${STACK}`}>
@@ -161,6 +180,13 @@ export default async function HomePage() {
             </span>
           </p>
         </Panel>
+      ) : null}
+
+      {inviteReason ? (
+        <NotificationInvite
+          reason={inviteReason}
+          publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
+        />
       ) : null}
 
       {activity ? <StreakCard streak={activity.streak} /> : null}

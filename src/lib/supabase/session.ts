@@ -25,6 +25,7 @@ const PUBLIC_API_PATHS: string[] = [
   // Authenticates with a shared secret rather than a session, and refuses
   // the request itself when the secret is missing or wrong.
   "/api/cron/settle",
+  "/api/cron/notify",
 ];
 
 function isPublic(pathname: string) {

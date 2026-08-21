@@ -23,6 +23,15 @@ Production and Preview both. None of them belongs in the repository.
 | `SUPABASE_SERVICE_ROLE_KEY` | the secret key | **Server only.** Bypasses row level security. Never prefix it with `NEXT_PUBLIC_`. |
 | `NEXT_PUBLIC_SITE_URL` | `https://upsidearena.com` | Used to build sign-in links. Wrong value means sign-in emails point somewhere useless. |
 | `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH` | `false` | Turn to `true` only once the Google provider is enabled in Supabase. |
+| `CRON_SECRET` | a long random string | **Server only.** Shared with the GitHub workflows below. |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | the VAPID public key | Public. It is handed to the browser to subscribe with. |
+| `VAPID_PRIVATE_KEY` | the VAPID private key | **Server only.** Signs every push. |
+| `RESEND_API_KEY` | a Resend API key | **Server only.** Only used for the email fallback. |
+| `RESEND_FROM` | `Upside Arena <arena@upsidearena.com>` | Optional. Must be a verified sender in Resend. |
+
+Everything to do with notifications is optional. With no VAPID keys the panel
+on the profile page hides itself and nothing is ever sent; with no Resend key
+the email fallback is skipped. Neither absence breaks anything else.
 
 The service role key is what lets the server write cash, holdings and trades
 while a player can write none of them. If it leaks, rotate it in Supabase and
@@ -92,6 +101,38 @@ the environment variable of the same name, at Settings, Secrets and variables,
 Actions. Without it the workflow exits quietly and the app carries on settling
 by itself. The endpoint refuses every request when the secret is unset, so an
 unset variable can never be what makes it public.
+
+## Notifications
+
+Two pieces, and both are optional.
+
+**Push** needs a VAPID key pair, which identifies the sender to every
+browser's push service. Generate one with:
+
+```
+npx web-push generate-vapid-keys
+```
+
+Put the public half in `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and the private half in
+`VAPID_PRIVATE_KEY`. Changing the pair later invalidates every existing
+subscription: those players are simply never sent anything again, silently, so
+treat the pair as permanent once anyone has subscribed.
+
+**Email** is the fallback, and it matters more than it sounds. iOS only
+delivers web push to a site added to the home screen, so a large share of
+players can never receive a push at all. Email reaches them. It is only used
+when no browser of theirs is listening, so nobody gets both.
+
+`.github/workflows/notify.yml` calls `/api/cron/notify` hourly through the
+trading day, plus twice at the weekend for a week result that landed while
+somebody was asleep. Each pass decides for itself whether now is the right
+moment, so the schedule does not have to be clever. It uses the same
+`CRON_SECRET` as settling.
+
+Nothing is sent twice, ever. Every message is claimed in the database before
+it is sent, keyed on the event it describes, so a pass that runs twice or
+overlaps another sends nothing extra. The database also enforces the limit of
+three a day, so a bug in the application cannot spam anyone.
 
 ## Plan limits worth knowing
 
