@@ -58,12 +58,23 @@ Docker Hub.
 
 ```bash
 npm run check      # types, lint, unit tests
+npm run test:db    # the migration, its triggers and row level security
 npm run test:e2e   # Playwright, signed out flows
 ```
 
 `npm run test:e2e` builds and serves the app on port 3100 by itself. On a
 machine whose Chromium does not match the pinned Playwright version, point at
 the local one: `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chromium npm run test:e2e`.
+
+`npm run test:db` needs a local Postgres and nothing else. It rebuilds a
+scratch database, applies `supabase/tests/shim.sql` (which recreates only the
+parts of a Supabase project the migration leans on: the auth schema, the three
+PostgREST roles and `auth.uid()`), runs the migrations, then asserts the
+security rules actually hold: that a player reads only their own row, cannot
+write to anyone else's, cannot raise their own rating or invent a lifetime
+record, cannot clear a recorded age confirmation, and that closing an account
+erases it and nothing else. Point it at a non-default psql with
+`PSQL="sudo -u postgres psql" npm run test:db`.
 
 The end-to-end suite covers what a signed-out visitor can reach, which is
 everything that runs without credentials: the landing page, the age gate,

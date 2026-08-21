@@ -13,7 +13,8 @@
     "test:e2e": "playwright test",
     "icons": "node scripts/generate-icons.mjs",
     "db:reset": "supabase db reset",
-    "check": "npm run typecheck && npm run lint && npm run test"
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "test:db": "./scripts/test-db.sh"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.23",
