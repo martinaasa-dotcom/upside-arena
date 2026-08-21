@@ -8,28 +8,24 @@ import path from "node:path";
 import sharp from "sharp";
 
 const FACETS = [
-  { points: "2,38 16,21 2,58", centroid: [6.67, 39.0], fill: "arena-deep" },
-  { points: "16,21 16,41 2,58", centroid: [11.33, 40.0], fill: "arena-mid" },
-  { points: "16,21 30,4 16,41", centroid: [20.67, 22.0], fill: "arena-warm" },
-  { points: "30,4 30,24 16,41", centroid: [25.33, 23.0], fill: "arena-bright" },
-  { points: "62,38 48,21 62,58", centroid: [57.33, 39.0], fill: "arena-mid" },
-  { points: "48,21 48,41 62,58", centroid: [52.67, 40.0], fill: "arena-deep" },
-  { points: "48,21 34,4 48,41", centroid: [43.33, 22.0], fill: "arena-bright" },
-  { points: "34,4 34,24 48,41", centroid: [38.67, 23.0], fill: "arena-warm" },
+  { points: "23.55,6.48 43.45,6.48 57.52,20.55", centroid: [41.51, 11.17], fill: "arena-rim" },
+  { points: "23.55,6.48 57.52,20.55 57.52,40.45 43.45,54.52", centroid: [45.51, 30.5], fill: "arena-lit" },
+  { points: "40.45,57.52 20.55,57.52 6.48,43.45", centroid: [22.49, 52.83], fill: "arena-body" },
+  { points: "40.45,57.52 6.48,43.45 6.48,23.55 20.55,9.48", centroid: [18.49, 33.5], fill: "arena-shadow" },
 ];
 
 const GRADIENTS = `
-  <linearGradient id="arena-bright" x1="0" y1="0" x2="0.6" y2="1">
-    <stop offset="0%" stop-color="#f7e8bb"/><stop offset="100%" stop-color="#d9c184"/>
+  <linearGradient id="arena-rim" x1="0" y1="0" x2="0.6" y2="1">
+    <stop offset="0%" stop-color="#d9f7ff"/><stop offset="100%" stop-color="#a6e4f2"/>
   </linearGradient>
-  <linearGradient id="arena-warm" x1="0" y1="0" x2="0.7" y2="1">
-    <stop offset="0%" stop-color="#e4cf94"/><stop offset="100%" stop-color="#c2a45f"/>
+  <linearGradient id="arena-lit" x1="0" y1="0" x2="0.6" y2="1">
+    <stop offset="0%" stop-color="#4fd0e0"/><stop offset="100%" stop-color="#2a9fb5"/>
   </linearGradient>
-  <linearGradient id="arena-mid" x1="0.2" y1="0" x2="1" y2="1">
-    <stop offset="0%" stop-color="#c9a659"/><stop offset="100%" stop-color="#a8813a"/>
+  <linearGradient id="arena-body" x1="0.2" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#17879c"/><stop offset="100%" stop-color="#0d6070"/>
   </linearGradient>
-  <linearGradient id="arena-deep" x1="0.2" y1="0" x2="1" y2="1">
-    <stop offset="0%" stop-color="#a87c33"/><stop offset="100%" stop-color="#7d551d"/>
+  <linearGradient id="arena-shadow" x1="0.2" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#0b4a58"/><stop offset="100%" stop-color="#052e36"/>
   </linearGradient>`;
 
 function facetMarkup(scale = 0.93) {
@@ -56,32 +52,42 @@ const maskableSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"
   </g>
 </svg>`;
 
+/*
+  The social card is product chrome, so its ambient glow follows --primary,
+  the warm amber, while the mark stays aqua. Headline is set on two lines:
+  the card is rendered with whatever sans the build host has, and one long
+  line overflowed 1200px under the fallback metrics.
+*/
 const ogSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
   <defs>
     ${GRADIENTS}
     <radialGradient id="glow-a" cx="0" cy="0" r="1">
-      <stop offset="0%" stop-color="#d4bc79" stop-opacity="0.5"/>
-      <stop offset="66%" stop-color="#d4bc79" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#efb970" stop-opacity="0.5"/>
+      <stop offset="66%" stop-color="#efb970" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="glow-b" cx="1" cy="1" r="1">
-      <stop offset="0%" stop-color="#d4bc79" stop-opacity="0.14"/>
-      <stop offset="72%" stop-color="#d4bc79" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#efb970" stop-opacity="0.14"/>
+      <stop offset="72%" stop-color="#efb970" stop-opacity="0"/>
     </radialGradient>
   </defs>
   <rect width="1200" height="630" fill="#000000"/>
   <rect width="1200" height="630" fill="url(#glow-a)"/>
   <rect width="1200" height="630" fill="url(#glow-b)"/>
-  <g transform="translate(96 232) scale(1.75)">${facetMarkup()}</g>
-  <text x="222" y="300" font-family="Geist, ui-sans-serif, system-ui, sans-serif"
-        font-size="44" letter-spacing="3" fill="#fafafa">
-    <tspan font-weight="700">UPSIDE</tspan><tspan font-weight="400"> ARENA</tspan>
+  <g transform="translate(96 214) scale(1.55)">${facetMarkup()}</g>
+  <text x="212" y="278" font-family="Geist, ui-sans-serif, system-ui, sans-serif"
+        font-size="38" letter-spacing="2.5" fill="#fafafa">
+    <tspan font-weight="700">UPSIDE</tspan><tspan font-weight="400" dx="14">ARENA</tspan>
   </text>
   <text x="98" y="392" font-family="Geist, ui-sans-serif, system-ui, sans-serif"
-        font-size="52" font-weight="600" letter-spacing="-1.3" fill="#fafafa">
-    Pick stocks with friends. Play money only.
+        font-size="50" font-weight="600" letter-spacing="-1.3" fill="#fafafa">
+    Pick stocks with friends.
   </text>
-  <text x="98" y="452" font-family="Geist, ui-sans-serif, system-ui, sans-serif"
-        font-size="30" fill="#a1a1a1">
+  <text x="98" y="450" font-family="Geist, ui-sans-serif, system-ui, sans-serif"
+        font-size="50" font-weight="600" letter-spacing="-1.3" fill="#fafafa">
+    Play money only.
+  </text>
+  <text x="98" y="512" font-family="Geist, ui-sans-serif, system-ui, sans-serif"
+        font-size="28" fill="#a1a1a1">
     A free weekly stock-picking game. Nothing real is ever at stake.
   </text>
 </svg>`;

@@ -24,10 +24,14 @@
   --border: oklch(1 0 0 / 16%);
   --input: oklch(1 0 0 / 18%);
 
-  /* Brand accent, one only. Quiet warm yellow. */
-  --primary: oklch(0.8 0.09 90);
+  /*
+    Brand accent, one only. Warm amber, tuned to sit against the aqua mark:
+    pushed off Lab's hue 90 toward 74 so gold and aqua read as a deliberate
+    warm-against-cool pair rather than two accents competing.
+  */
+  --primary: oklch(0.82 0.11 74);
   --primary-foreground: oklch(0.145 0 0);
-  --ring: oklch(0.8 0.09 90);
+  --ring: oklch(0.82 0.11 74);
 
   /* Semantic, never decorative */
   --gain: oklch(0.696 0.17 162.48);
