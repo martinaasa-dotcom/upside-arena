@@ -11,6 +11,10 @@ Supabase project. Nothing here is shared with Lab except the company behind it.
 | Project | `upside-arena` |
 | Repository | `martinaasa-dotcom/upside-arena`, branch `main` |
 
+> Setting all of this up for the first time? `docs/SWITCH_ON.md` is the same
+> ground as a click-by-click walkthrough, in the order to do it. This file is
+> the reference.
+
 ## Environment variables
 
 Set these in the Vercel project under Settings, Environment Variables, for

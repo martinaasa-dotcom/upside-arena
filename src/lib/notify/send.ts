@@ -131,8 +131,24 @@ export async function sendEmail(
       },
     });
 
-    return !error;
-  } catch {
+    if (error) {
+      /*
+        Logged rather than swallowed. The notification is already recorded as
+        having gone out, which is what stops a retry sending it twice, so a
+        silent failure here would mean somebody's mail quietly disappearing
+        with nothing anywhere to say why.
+
+        The usual cause is a from address on a domain that has not been
+        verified in Resend, which is a setup mistake rather than a bug, and
+        one nobody can find without this line.
+      */
+      console.error("email refused by the provider", RESEND_FROM, error.message);
+      return false;
+    }
+
+    return true;
+  } catch (thrown) {
+    console.error("email failed to send", thrown);
     return false;
   }
 }
