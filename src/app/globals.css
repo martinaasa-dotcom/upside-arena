@@ -25,28 +25,66 @@
   --input: oklch(1 0 0 / 18%);
 
   /*
-    Brand accent, one only. Warm amber, tuned to sit against the aqua mark:
-    pushed off Lab's hue 90 toward 74 so gold and aqua read as a deliberate
-    warm-against-cool pair rather than two accents competing.
-  */
-  --primary: oklch(0.82 0.11 74);
-  --primary-foreground: oklch(0.145 0 0);
-  --ring: oklch(0.82 0.11 74);
+    Brand accent. This is the mark's own lit face, oklch(0.7933 0.1132 206.7)
+    rounded, so the chrome and the logo are literally the same aqua rather
+    than two colours chosen to sit near each other.
 
-  /* Semantic, never decorative */
-  --gain: oklch(0.696 0.17 162.48);
-  --loss: oklch(0.645 0.21 16.439);
-  --warning: oklch(0.63 0.22 45);
-  --destructive: oklch(0.704 0.191 22.216);
+    --primary-foreground stays near-black: the accent is light, and black on
+    it clears 10.7:1.
+  */
+  --primary: oklch(0.74 0.125 207);
+  --primary-foreground: oklch(0.145 0 0);
+  --ring: oklch(0.74 0.125 207);
+
+  /*
+    The counter-accent. Lights the far lobe of the ambient field, so the page
+    is lit from two directions in two hues rather than one colour twice.
+
+    Chosen rather than picked. The true complement of the accent is hue 27,
+    a coral, which would give the most chromatic contrast; it is unusable
+    here because it lands 5 degrees from --destructive and 11 from --loss,
+    and in a money game an ambient coral wash reads as "you are down" before
+    it reads as decoration. Yellow is Lab's, and Arena should not borrow it.
+    That leaves the violet to magenta band, where 328 sits 121 degrees from
+    the accent, so it still reads as an opposite, while clearing every
+    semantic hue by at least 44 degrees.
+  */
+  --glow-secondary: oklch(0.74 0.17 328);
+
+  /*
+    Semantic, never decorative.
+
+    Every accent in the app, brand and semantic alike, sits at L 0.74. They
+    used to run from 0.63 to 0.79, which is a visible sixth of the lightness
+    range: the accent shouted over the semantics and the loss red sank into
+    the field. One lightness means a green, a red and the brand aqua carry the
+    same weight on the page and differ only in hue, which is the job hue is
+    supposed to do. Chroma is set per hue to just inside the sRGB gamut, since
+    the reds and the cyan reach their limits at different points.
+
+    It is an accessibility gain too: loss went from 5.74:1 on black to 8.8:1.
+  */
+  --gain: oklch(0.74 0.155 162.5);
+  --loss: oklch(0.74 0.155 16.4);
+  --warning: oklch(0.74 0.16 45);
+  --destructive: oklch(0.74 0.15 22.2);
   --destructive-foreground: oklch(0.985 0 0);
 
-  /* Categorical, charts only. Never chrome, never good/bad. */
-  --cat-1: oklch(0.78 0.1 195);
+  /*
+    Categorical, charts only. Never chrome, never good/bad.
+
+    Every hue clears each semantic hue by at least 18 degrees so a series can
+    never be mistaken for gain, loss, caution or the brand. cat-1 and cat-6
+    moved from 195 to 182 when --primary became aqua at 207: at 195 they sat
+    12 degrees off the accent, and --chart-1 is --primary, so a chart could
+    have drawn the brand and a category in near enough the same colour.
+  */
+  --cat-1: oklch(0.78 0.1 182);
   --cat-2: oklch(0.62 0.11 230);
   --cat-3: oklch(0.78 0.1 125);
   --cat-4: oklch(0.62 0.11 340);
   --cat-5: oklch(0.78 0.09 260);
-  --cat-6: oklch(0.62 0.11 195);
+  --cat-6: oklch(0.62 0.11 182);
   --cat-7: oklch(0.78 0.1 340);
   --cat-8: oklch(0.62 0.1 125);
   --cat-9: oklch(0.78 0.09 230);
@@ -163,7 +201,9 @@
 
 @layer components {
   /*
-    Page field: true black plus two ambient lobes, both in --primary.
+    Page field: true black, lit by two ambient lobes. The near lobe is
+    --primary, the far one --glow-secondary, so the field has a temperature
+    gradient across it rather than one accent repeated at two opacities.
     Never gain-green in ambient chrome.
   */
   .page-frame {
@@ -186,7 +226,7 @@
       ),
       radial-gradient(
         1300px 1000px at 100% 100%,
-        oklch(from var(--primary) l c h / 14%),
+        oklch(from var(--glow-secondary) l c h / 18%),
         transparent 72%
       );
   }
@@ -206,7 +246,7 @@
         ),
         radial-gradient(
           82vw 48vh at 100% 100%,
-          oklch(from var(--primary) l c h / 10%),
+          oklch(from var(--glow-secondary) l c h / 13%),
           transparent 72%
         );
     }
@@ -216,27 +256,57 @@
     Top-level panel treatment. The glow has to read through the pane,
     so never paint an opaque bg-card here.
   */
+  /*
+    Two specular edges, not one: a bright hairline along the top where a pane
+    catches light, and a fainter one along the bottom where light wraps under
+    it. On a near-black field the edge is what sells glass, more than the blur
+    does, so these are brighter than they look like they should be.
+  */
   .card-sheen {
     position: relative;
     box-shadow:
-      inset 0 1px 0 0 oklch(1 0 0 / 24%),
-      inset 0 -1px 0 0 oklch(1 0 0 / 7%),
+      inset 0 1px 0 0 oklch(1 0 0 / 30%),
+      inset 0 -1px 0 0 oklch(1 0 0 / 12%),
       inset 0 0 0 1px var(--border),
-      0 14px 36px -18px oklch(0.05 0 0 / 90%);
+      0 14px 36px -18px oklch(0.05 0 0 / 88%);
   }
 
+  /*
+    Glass surface for every top-level panel.
+
+    Prefixed property FIRST, standard LAST, and never the other way round.
+    Written in the other order the CSS transform can collapse the pair and
+    emit only -webkit-backdrop-filter, which Blink does not honour, so
+    backdrop-filter computes to none and every glass surface silently renders
+    as a flat tint with no blur in Chrome, Edge and Android. Verify against
+    the compiled bundle rather than this file: the bug is invisible in source.
+  */
   .glass {
-    background-color: color-mix(in oklch, var(--card), transparent 38%);
-    -webkit-backdrop-filter: blur(28px) saturate(1.6);
-    backdrop-filter: blur(28px) saturate(1.6);
+    /* 66%, well past Lab's 55%. Arena's field carries two hues, and the
+       panels should let that through rather than sit on top of it. */
+    background-color: color-mix(in oklch, var(--card), transparent 66%);
+    -webkit-backdrop-filter: blur(40px) saturate(1.9);
+    backdrop-filter: blur(40px) saturate(1.9);
   }
 
   /* Nested well. No second card-in-card. */
   .glass-well {
-    background-color: color-mix(in oklch, var(--muted), transparent 50%);
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
+    background-color: color-mix(in oklch, var(--muted), transparent 62%);
+    -webkit-backdrop-filter: blur(24px) saturate(1.7);
+    backdrop-filter: blur(24px) saturate(1.7);
     box-shadow: inset 0 0 0 1px var(--border);
+  }
+
+  /*
+    Chrome that spans the viewport: the header bar and the dock shell. Same
+    material as .glass but keyed to the field rather than the card, because a
+    bar sits directly on the page rather than on top of a panel, and a
+    card-toned fill reads as a floating slab instead of a pane.
+  */
+  .glass-bar {
+    background-color: color-mix(in oklch, var(--background), transparent 42%);
+    -webkit-backdrop-filter: blur(40px) saturate(1.9);
+    backdrop-filter: blur(40px) saturate(1.9);
   }
 
   /*

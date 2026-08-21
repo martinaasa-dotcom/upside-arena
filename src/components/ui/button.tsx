@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 /*
-  Lab's shipped button: h-8, rounded-lg, gold fill with near-black type,
+  Lab's shipped button: h-8, rounded-lg, aqua fill with near-black type,
   hover mixes 10% white into the accent plus a small scale lift.
   Coarse pointers get a 2.75rem target, desktop stays dense.
 */

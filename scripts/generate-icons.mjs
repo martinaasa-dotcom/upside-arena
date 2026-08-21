@@ -8,24 +8,24 @@ import path from "node:path";
 import sharp from "sharp";
 
 const FACETS = [
-  { points: "23.55,6.48 43.45,6.48 57.52,20.55", centroid: [41.51, 11.17], fill: "arena-rim" },
-  { points: "23.55,6.48 57.52,20.55 57.52,40.45 43.45,54.52", centroid: [45.51, 30.5], fill: "arena-lit" },
-  { points: "40.45,57.52 20.55,57.52 6.48,43.45", centroid: [22.49, 52.83], fill: "arena-body" },
-  { points: "40.45,57.52 6.48,43.45 6.48,23.55 20.55,9.48", centroid: [18.49, 33.5], fill: "arena-shadow" },
+  { points: "7.8,18 32,4 32,12 7.8,30", centroid: [19.9, 16], fill: "arena-lit" },
+  { points: "32,4 56.2,18 56.2,30 32,12", centroid: [44.1, 16], fill: "arena-body" },
+  { points: "7.8,40 32,22 32,60 7.8,46", centroid: [19.9, 42], fill: "arena-rim" },
+  { points: "32,22 56.2,40 56.2,46 32,60", centroid: [44.1, 42], fill: "arena-shadow" },
 ];
 
 const GRADIENTS = `
   <linearGradient id="arena-rim" x1="0" y1="0" x2="0.6" y2="1">
-    <stop offset="0%" stop-color="#d9f7ff"/><stop offset="100%" stop-color="#a6e4f2"/>
+    <stop offset="0%" stop-color="#cdf8fe"/><stop offset="100%" stop-color="#60ebfc"/>
   </linearGradient>
   <linearGradient id="arena-lit" x1="0" y1="0" x2="0.6" y2="1">
-    <stop offset="0%" stop-color="#4fd0e0"/><stop offset="100%" stop-color="#2a9fb5"/>
+    <stop offset="0%" stop-color="#2cd1e4"/><stop offset="100%" stop-color="#25b5c6"/>
   </linearGradient>
   <linearGradient id="arena-body" x1="0.2" y1="0" x2="1" y2="1">
-    <stop offset="0%" stop-color="#17879c"/><stop offset="100%" stop-color="#0d6070"/>
+    <stop offset="0%" stop-color="#198d9a"/><stop offset="100%" stop-color="#106d77"/>
   </linearGradient>
   <linearGradient id="arena-shadow" x1="0.2" y1="0" x2="1" y2="1">
-    <stop offset="0%" stop-color="#0b4a58"/><stop offset="100%" stop-color="#052e36"/>
+    <stop offset="0%" stop-color="#07545d"/><stop offset="100%" stop-color="#00383e"/>
   </linearGradient>`;
 
 function facetMarkup(scale = 0.93) {
@@ -53,8 +53,9 @@ const maskableSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"
 </svg>`;
 
 /*
-  The social card is product chrome, so its ambient glow follows --primary,
-  the warm amber, while the mark stays aqua. Headline is set on two lines:
+  The social card is product chrome, so its ambient field follows the app:
+  the near lobe in --primary aqua, the far one in the magenta counter-accent.
+  Headline is set on two lines:
   the card is rendered with whatever sans the build host has, and one long
   line overflowed 1200px under the fallback metrics.
 */
@@ -62,12 +63,12 @@ const ogSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
   <defs>
     ${GRADIENTS}
     <radialGradient id="glow-a" cx="0" cy="0" r="1">
-      <stop offset="0%" stop-color="#efb970" stop-opacity="0.5"/>
-      <stop offset="66%" stop-color="#efb970" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#11c0d3" stop-opacity="0.34"/>
+      <stop offset="66%" stop-color="#11c0d3" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="glow-b" cx="1" cy="1" r="1">
-      <stop offset="0%" stop-color="#efb970" stop-opacity="0.14"/>
-      <stop offset="72%" stop-color="#efb970" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#e380e0" stop-opacity="0.20"/>
+      <stop offset="72%" stop-color="#e380e0" stop-opacity="0"/>
     </radialGradient>
   </defs>
   <rect width="1200" height="630" fill="#000000"/>
