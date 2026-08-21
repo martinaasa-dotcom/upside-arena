@@ -365,7 +365,11 @@ Nested wells use `.glass-well` (`CARD`):
 No second card-in-card.
 
 The saturation lift is what makes it refract rather than tint. Do not put opaque
-`bg-card` on a top-level panel — the field has to read through the pane.
+`bg-card` on a top-level panel — the field has to read through the pane. The
+same holds one level down inside chrome: the bottom dock's own well is
+`.glass-well` rather than `bg-muted` for exactly this reason (§7), and it sits
+over the brightest corner of the field, so an opaque fill there showed more than
+anywhere else.
 
 ### Chrome is glass too, and its alpha is the glow's alpha
 
@@ -412,10 +416,98 @@ Desktop header, left to right:
 4. Workspace rooms: Portfolio / Fund / Circle (active = `bg-primary text-primary-foreground`)
 5. Account avatar (`size-8 rounded-md`)
 
-Bottom dock (desktop and phone): Overview · Pulse · Lab · Compound · Circle. Active tab is the warm-yellow pill, black type. Sheets sit to the right of the dock.
+Lab itself is a meta-tab with sub-tabs: Allocation, Risk, Trends, Seasonality.
 
-**Anything floating above the dock must clear it at every width** (New
-2026-08-21). Lab's assistant button carried `lg:bottom-8` — a flat 2rem offset —
+Icons: lucide, thin stroke. In buttons, `data-icon`, default `size-4`.
+
+### The dock: one well, one cell per destination — **New 2026-08-21**
+
+Home · Pulse · Lab · Growth · Circle — and on desktop, **one more cell per
+portfolio the reader owns** — all drawn as the same cell in the same
+`.glass-well`. Active cell is the warm-yellow pill, black type. The phone shows
+the five sections only, and reaches portfolios through a picker in its header
+title — which is where the desktop dock borrowed its answer for a long book.
+
+It used to be two controls sharing a row: a fixed `42rem` well of app sections
+on the left, and on the right — taking every remaining pixel — a heading reading
+"Sheets" over a scrolling text rail of portfolio tabs, an inline name field for
+creating one, and a `+ New` button. Nothing matched across the seam: 48px against
+44px, a filled chip against a 2px underline, and a section label printed into
+chrome that no other control needed.
+
+The measurement that settled it: at 1440px with an **empty** book, 464px of the
+page column — 40% — was held open for a list with nothing in it.
+
+The rules worth porting, none of which depend on Lab's figures:
+
+- **Never reserve chrome for a list whose length is the reader's data.** One
+  item costs one cell; none costs nothing. Anything sized for the largest case
+  is wrong for the common one, and the common case here is a single portfolio.
+- **Content-sized and centred, not stretched.** Lab tried the full page column
+  first: five cells across 1152px left each label adrift in a 230px chip and
+  turned the active one into a slab of accent the width of a paragraph. `w-fit`,
+  `mx-auto`, fixed cell width — the row then grows by exactly one cell.
+- **Every cell the same shape, without a repeated glyph.** Five identical wallet
+  icons would be noise, so the user-named cells spend their glyph slot on data:
+  a dot in the day's direction (`--gain` / `--loss`, `currentColor` at 40% when
+  there is no quote yet). Same 16px slot, so the grid stays uniform.
+- **Short labels in a dock.** Lab's desktop dock used to spell out "Overview"
+  and "Compound"; the phone had always said Home and Growth. The long forms cost
+  ~30px a cell for meaning the page header already carries, and they were what
+  pushed a four-portfolio row into truncating on a small laptop.
+- **Creating a thing is a glyph cell, not a control cluster.** A narrow `+` cell
+  sitting with the items it makes, opening the same dialog the phone opens. That
+  one cell retired a labelled button, a section heading, and an inline name
+  field — a third code path for creating a portfolio that only desktop had.
+- **The well is glass, like the bar around it.** An opaque `bg-muted` well
+  inside a translucent chrome bar is a hole punched in the field, and it shows
+  precisely because the dock sits over the brightest corner of it. Both of Lab's
+  docks moved to `.glass-well` (§6).
+
+On the phone the cells stack icon over label, and the labels are always on —
+there is no icons-only breakpoint any more.
+
+### Folding is measured, not guessed
+
+**Two different limits run out, at different widths, and a design that checks
+only one of them is wrong half the time.**
+
+- **Count.** Past a cell count the row outgrows the page column.
+- **Width.** A row can fit the count and still squeeze every cell too narrow to
+  read. Ten cells inside a 768px column is 74px each, and `Growth` truncates.
+
+So Lab's rule takes both, and **the row measures its own container with a
+`ResizeObserver` rather than reading a breakpoint**: what decides the fit is the
+column's width, which is the same number at 1024px with a wide gutter as at
+900px with a narrow one. Past either limit the portfolios fold into a single
+cell that opens a list, with **New portfolio** at its foot.
+
+The minimum cell width is *derived from the longest fixed label*, not picked. A
+section label is a word the reader cannot infer from a stub, so it must never
+truncate; a user-named cell may. Re-derive it for your own labels and font.
+
+Lab's current figures, all of which are the part to re-measure rather than port
+(`src/lib/dock-cells.ts`, `BookModeDock.tsx`):
+
+| | |
+|---|---|
+| Cell width / add cell | `7.5rem` / `2.5rem` |
+| `MAX_DOCK_CELLS` | 9 |
+| `MIN_CELL_PX` | 96 (`Growth` ≈ 90px with glyph, 6px gap, `px-2`) |
+| Dock height, page bottom clearance | 73px, 105px (was 95 / 127) |
+| Well surface, contrast | `rgb(18,21,25)` — foreground 17.54, muted 7.09 |
+
+Verified at 768 / 900 / 1024 / 1280 / 1440 against 1, 4 and 6 portfolios, with
+truncation checked per cell (`scrollWidth > clientWidth`) rather than by eye. No
+section label clips at any of them; four portfolios stay inline from 1024 up.
+
+**Check any lowered cap against a real book before shipping it.** Lab's seed
+household has four portfolios, so a cap of 8 would have folded the dock for the
+person who asked for the redesign.
+
+### Anything floating above the dock must clear it at every width
+
+(New 2026-08-21.) Lab's assistant button carried `lg:bottom-8` — a flat 2rem offset —
 while the dock is `fixed inset-x-0 bottom-0` at all widths, so on desktop the
 button sat *underneath* it. Two consequences, both invisible while the dock was
 near-opaque and both exposed the moment it became translucent: the dock's
@@ -424,12 +516,6 @@ a yellow haze, and clicks in that corner hit the dock, so the button was
 unreachable on desktop. Use the live measured dock height (`--dock-pad`, written
 by `useDockPad`) as the offset, and give anything else anchored to the same
 corner — a consent banner, a toast — clearance above it too.
-
-Lab itself is a meta-tab with sub-tabs: Allocation, Risk, Trends, Seasonality.
-
-Phone: icon+label dock. Labels from `xs` (30rem) up in the header; icons-only on very small screens.
-
-Icons: lucide, thin stroke. In buttons, `data-icon`, default `size-4`.
 
 ---
 
@@ -517,6 +603,12 @@ keep that from repeating.
 **Re-read it whenever Lab's `DESIGN_TOKENS.md` gains a section.** That file is
 where Lab records a change and why; this one is the copy Arena reads. They drift
 in one direction only.
+
+**It drifted again the same day, which is the point.** This file was refreshed
+against Lab at `f8b0435` plus the chrome work in flight, and Lab redesigned its
+bottom dock hours later — so §7 was already one round behind before the refresh
+had been merged. Nothing failed; nothing could. Treat "Lab shipped today" as the
+trigger, not "Lab finished".
 
 **Prefer the mechanism to the number.** Lab's `170vw 112vh` will move again;
 "sized in viewport units, anchored off-screen, peak alpha held while the tail
