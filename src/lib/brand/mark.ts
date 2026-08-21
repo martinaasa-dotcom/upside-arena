@@ -7,9 +7,13 @@
   different logos.
 
   What the mark is, and why, is recorded in docs/brand/ARENA_MARK.md. In
-  short: one eight-sided stone parted along its diagonal, cut from aqua, with
-  the lit half in front and the shadowed half falling away behind the cut.
-  Related to Lab's mark by construction rather than by colour.
+  short: one six-sided stone with a chevron channel cut clean through it, in
+  aqua. The channel is the mark; the stone is only there to hold it, which is
+  why the two masses are shaded as one object rather than as a pair.
+
+  Related to Lab's mark by construction rather than by colour: same flat
+  facets, same 64 grid, same centroid-scaled cuts, different silhouette and
+  different metal.
 */
 
 export type Facet = {
@@ -20,31 +24,35 @@ export type Facet = {
 };
 
 /*
-  An octagon of radius 26 about (32, 32), rotated 22.5deg so the stone sits
-  flat, then parted along the diagonal by 1.5 in each direction. Kept in step
-  with scripts/generate-icons.mjs, which rasterises the same shape.
+  A pointy-top hexagon of radius 28 about (32, 32), with an upward chevron
+  channel cut through it: the channel's upper edge runs (7.8,30) to (32,12) to
+  (56.2,30), its lower edge (7.8,40) to (32,22) to (56.2,40). That leaves an
+  upper band notched from beneath and a lower mass peaked on top. Each is split
+  at the centre line so the cut-stone shading has something to work with.
+
+  Kept in step with scripts/generate-icons.mjs, which rasterises the same shape.
 */
 export const MARK_FACETS: Facet[] = [
-  // Upper half: the rim catches the light, the lit face carries the stone.
+  // Upper band, lit from the left.
   {
-    points: "23.55,6.48 43.45,6.48 57.52,20.55",
-    centroid: [41.51, 11.17],
+    points: "7.8,18 32,4 32,12 7.8,30",
+    centroid: [19.9, 16],
+    fill: "arena-lit",
+  },
+  {
+    points: "32,4 56.2,18 56.2,30 32,12",
+    centroid: [44.1, 16],
+    fill: "arena-body",
+  },
+  // Lower mass. The rim catches the light along its left flank.
+  {
+    points: "7.8,40 32,22 32,60 7.8,46",
+    centroid: [19.9, 42],
     fill: "arena-rim",
   },
   {
-    points: "23.55,6.48 57.52,20.55 57.52,40.45 43.45,54.52",
-    centroid: [45.51, 30.5],
-    fill: "arena-lit",
-  },
-  // Lower half: falls away behind the cut.
-  {
-    points: "40.45,57.52 20.55,57.52 6.48,43.45",
-    centroid: [22.49, 52.83],
-    fill: "arena-body",
-  },
-  {
-    points: "40.45,57.52 6.48,43.45 6.48,23.55 20.55,9.48",
-    centroid: [18.49, 33.5],
+    points: "32,22 56.2,40 56.2,46 32,60",
+    centroid: [44.1, 42],
     fill: "arena-shadow",
   },
 ];
@@ -58,12 +66,16 @@ export const MARK_GRADIENTS: {
   from: string;
   to: string;
 }[] = [
-  // The rim step is deliberately desaturated: a jewel only reads as cut stone
-  // if something on it catches light like metal.
-  { id: "arena-rim", x1: "0", y1: "0", x2: "0.6", y2: "1", from: "#d9f7ff", to: "#a6e4f2" },
-  { id: "arena-lit", x1: "0", y1: "0", x2: "0.6", y2: "1", from: "#4fd0e0", to: "#2a9fb5" },
-  { id: "arena-body", x1: "0.2", y1: "0", x2: "1", y2: "1", from: "#17879c", to: "#0d6070" },
-  { id: "arena-shadow", x1: "0.2", y1: "0", x2: "1", y2: "1", from: "#0b4a58", to: "#052e36" },
+  /*
+    One aqua ramp at hue 207, four steps. The lit step is the accent's own
+    lightness, so the mark and --primary read as the same colour rather than
+    two neighbours. The rim is deliberately desaturated: a stone reads as cut
+    only if something on it catches light like metal.
+  */
+  { id: "arena-rim", x1: "0", y1: "0", x2: "0.6", y2: "1", from: "#cdf8fe", to: "#60ebfc" },
+  { id: "arena-lit", x1: "0", y1: "0", x2: "0.6", y2: "1", from: "#2cd1e4", to: "#25b5c6" },
+  { id: "arena-body", x1: "0.2", y1: "0", x2: "1", y2: "1", from: "#198d9a", to: "#106d77" },
+  { id: "arena-shadow", x1: "0.2", y1: "0", x2: "1", y2: "1", from: "#07545d", to: "#00383e" },
 ];
 
 /** The transform that scales a facet toward its own centroid, for the cuts. */
@@ -118,24 +130,23 @@ export const HEX = {
   foreground: "#fafafa",
   muted: "#a1a1a1",
   /*
-    The accent, oklch(0.79 0.113 207). This is the mark's own lit face, so
-    the chrome and the logo are the same aqua rather than two colours chosen
-    to sit near each other. See docs/brand/ARENA_MARK.md.
+    The accent, oklch(0.74 0.125 207). The mark's aqua, held at the one
+    lightness every accent in the app shares. See docs/brand/ARENA_MARK.md.
   */
-  primary: "#4ad0dd",
+  primary: "#11c0d3",
   /*
     The counter-accent, oklch(0.68 0.19 328). Lights the far side of the
     ambient field. 121 degrees off the accent, so it still reads as an
     opposite, and clear of every semantic hue by at least 44 degrees.
   */
-  glowSecondary: "#d466d2",
+  glowSecondary: "#e380e0",
   primaryForeground: "#0a0a0a",
-  gain: "#00bc7d",
-  loss: "#f2435f",
+  gain: "#20c88d",
+  loss: "#fd7e88",
 } as const;
 
 /** The accent as rgb components, for the ambient field's near lobe. */
-export const PRIMARY_RGB = "74, 208, 221";
+export const PRIMARY_RGB = "17, 192, 211";
 
 /** The counter-accent, for the ambient field's far lobe. */
-export const SECONDARY_RGB = "212, 102, 210";
+export const SECONDARY_RGB = "227, 128, 224";

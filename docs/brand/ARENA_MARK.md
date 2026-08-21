@@ -10,18 +10,20 @@ have to reconstruct it from the branch history.
 
 ## What it is
 
-An octagon of radius 26 about (32, 32) on the 64 grid, rotated 22.5 degrees so
-the stone sits flat, then parted along the diagonal from vertex 5 to vertex 1
-by 1.5 units in each direction. Four facets: a lit rim and a lit face on the
-upper half, a body and a shadow on the lower half, so the lit half reads as
-being in front and the shadowed half as falling away behind the cut.
+One six-sided stone with an upward chevron channel cut clean through it. It is
+called Rift.
 
-The parting is the whole idea. One stone, cleanly split, rather than two
-shapes arranged next to each other.
+The channel is the mark. The stone is only there to hold it, which is why the
+two masses are shaded as one object rather than as a matched pair: the upper
+band is lit from the left and notched from beneath, the lower mass peaks into
+the gap and carries the brightest facet on its left flank.
+
+It says upside without drawing an arrow, a chart line or a mountain, and the
+thing a reader actually remembers is the empty shape between two solids.
 
 ### Construction, shared with Lab
 
-This part is deliberately identical to Lab's mark, and must stay that way:
+This part is deliberately identical to Lab's mark and must stay that way:
 
 - flat facets, no strokes, transparent ground
 - the 64 grid
@@ -29,41 +31,44 @@ This part is deliberately identical to Lab's mark, and must stay that way:
   is what produces the even hairline cuts
 
 Only the silhouette and the metal differ. Lab is a solid standing "A" in warm
-gold; Arena is a parted stone in aqua. Siblings, not twins.
+gold; Arena is a channelled stone in aqua. Siblings, not twins.
 
-### The gap
+### Geometry
 
-`1.5`. This was chosen by generating the mark at 0.75, 1.5, 2.25 and 3 and
-comparing them. At 3 the halves stop reading as one parted stone and start
-reading as two stones side by side. At 0.75 the cut nearly closes and takes
-the sense of depth with it.
+A pointy-top hexagon of radius 28 about (32, 32). The channel's upper edge runs
+(7.8, 30) to (32, 12) to (56.2, 30); its lower edge runs (7.8, 40) to (32, 22)
+to (56.2, 40). Each of the two resulting masses is split at the centre line, so
+the cut-stone shading has something to work with. Four facets in total.
 
----
+### The mark: one aqua ramp
 
-## Colour
+Four steps at hue 207, from a near-white rim down to a near-black shadow.
 
-### The mark: aqua
+| Step | From | To |
+|---|---|---|
+| `arena-rim` | `#cdf8fe` | `#60ebfc` |
+| `arena-lit` | `#2cd1e4` | `#25b5c6` |
+| `arena-body` | `#198d9a` | `#106d77` |
+| `arena-shadow` | `#07545d` | `#00383e` |
 
-| Step | From | To | Role |
-|---|---|---|---|
-| `arena-rim` | `#d9f7ff` | `#a6e4f2` | Polished rim, catches the light |
-| `arena-lit` | `#4fd0e0` | `#2a9fb5` | Lit face, carries the stone |
-| `arena-body` | `#17879c` | `#0d6070` | Body, past the cut |
-| `arena-shadow` | `#0b4a58` | `#052e36` | Shadow, falling away |
-
-The rim step is deliberately desaturated. A jewel only reads as cut stone if
-something on it catches light like metal.
-
-The shadow step is close to the true-black field on purpose. It was checked at
-16px magnified: the silhouette still holds, so it was left dark rather than
-lifted.
+The lit step sits at the accent's own lightness, so the mark and `--primary`
+read as the same colour rather than as two neighbours. The rim is deliberately
+desaturated: a stone reads as cut only if something on it catches light like
+metal.
 
 ### The product accent: the mark's own aqua
 
-`--primary` is **`oklch(0.79 0.113 207)`** (`#4ad0dd`), which is the mark's lit
-face rounded. The chrome and the logo are literally the same colour rather than
-two colours chosen to sit near each other. Black on it clears 10.7:1, so
-`--primary-foreground` stays near-black.
+`--primary` is **`oklch(0.74 0.125 207)`** (`#11c0d3`), the mark's aqua.
+
+**Every accent in the app sits at L 0.74** — the brand aqua, the counter-accent,
+gain, loss, warning and destructive alike. They used to run from 0.63 to 0.79,
+a visible sixth of the lightness range, and it showed: the brand shouted over
+the semantics and the loss red sank into the field. One lightness means a
+green, a red and the brand carry the same weight and differ only in hue, which
+is the job hue is supposed to do. Chroma is set per hue to just inside the sRGB
+gamut, because the reds and the cyan reach their limits at different points.
+
+It is an accessibility gain too: loss went from 5.74:1 on black to 8.8:1.
 
 Everything derives from this one token via `oklch(from var(--primary) ...)`, so
 there is exactly one value to change in `src/app/globals.css`.
@@ -135,17 +140,22 @@ long line overflowed 1200px under the fallback metrics.
 
 ## How it was chosen
 
-Four rounds, all in the branch history of the pull request that introduced this
-mark.
+Five rounds, all in the branch history of the pull requests that introduced and
+then replaced the first mark.
 
 1. Ten silhouettes in Lab's gold. All rejected. Every motif was a stock victory
    symbol, and one shared palette made ten ideas look like one.
-2. Ten in a jewel palette, each about a relationship between two parts. Two
-   survived: Field, a grid with one stone lit, and Split, one solid cut and
-   offset. Both systematic rather than symbolic.
-3. Ten developed from those. Two survived: Quorum, a honeycomb, and Cleave.
-4. Ten in teal working that family as one, with Cleave's gap tightened.
-   Cleave in aqua was picked.
+2. Ten in a jewel palette, each about a relationship between two parts. Field
+   and Split survived, both systematic rather than symbolic.
+3. Ten developed from those. Quorum and Cleave survived.
+4. Ten in teal working that family as one. Cleave in aqua shipped.
+5. Cleave was then rejected in use: correct in isolation, unremarkable in the
+   header. Rift replaced it, keeping the construction and the aqua and throwing
+   out the silhouette.
+
+The lesson worth keeping is from round five rather than round one. A mark that
+reviews well as a specimen can still fail in the lockup, so judge the next one
+in the header at 20px and on the landing page at hero size before deciding.
 
 The exploration is kept in `docs/brand/concepts/`, generated by
 `scripts/logo-concepts.mjs`. It is a record, not a dependency: nothing in the

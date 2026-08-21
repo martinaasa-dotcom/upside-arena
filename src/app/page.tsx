@@ -50,7 +50,7 @@ export default async function LandingPage({
       >
         <div className="grid items-center gap-10 md:grid-cols-[minmax(0,1fr)_20rem] md:gap-14 lg:gap-20">
           <div className="flex flex-col items-center text-center md:items-start md:text-left">
-            <ArenaWordmark className="rise rise-1" />
+            <ArenaWordmark className="rise rise-1" size={44} />
 
             <div className="rise rise-2 mt-8 flex max-w-lg flex-col gap-4 md:mt-10 md:gap-5">
               <h1 className="text-2xl leading-tight font-semibold tracking-tight text-balance">
@@ -65,13 +65,23 @@ export default async function LandingPage({
             <ul className="rise rise-2 mt-7 flex max-w-md flex-col gap-4 text-left text-sm leading-relaxed text-muted-foreground md:mt-9">
               {POINTS.map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-start gap-3.5">
+                  {/*
+                    The badge is centred on the first line rather than nudged
+                    with margins. The wrapper is exactly one line box tall
+                    (1.625em at this text size), so centring the larger badge
+                    inside it lets it overhang evenly above and below. Two
+                    hand-tuned offsets used to do this job and left the badge
+                    sitting low against the text.
+                  */}
                   <span
-                    className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15"
+                    className="flex h-[1.625em] shrink-0 items-center"
                     aria-hidden="true"
                   >
-                    <Icon className="size-4" />
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
+                      <Icon className="size-4" />
+                    </span>
                   </span>
-                  <span className="pt-1.5">{text}</span>
+                  <span>{text}</span>
                 </li>
               ))}
             </ul>

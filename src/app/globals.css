@@ -32,9 +32,9 @@
     --primary-foreground stays near-black: the accent is light, and black on
     it clears 10.7:1.
   */
-  --primary: oklch(0.79 0.113 207);
+  --primary: oklch(0.74 0.125 207);
   --primary-foreground: oklch(0.145 0 0);
-  --ring: oklch(0.79 0.113 207);
+  --ring: oklch(0.74 0.125 207);
 
   /*
     The counter-accent. Lights the far lobe of the ambient field, so the page
@@ -49,13 +49,25 @@
     the accent, so it still reads as an opposite, while clearing every
     semantic hue by at least 44 degrees.
   */
-  --glow-secondary: oklch(0.68 0.16 328);
+  --glow-secondary: oklch(0.74 0.17 328);
 
-  /* Semantic, never decorative */
-  --gain: oklch(0.696 0.17 162.48);
-  --loss: oklch(0.645 0.21 16.439);
-  --warning: oklch(0.63 0.22 45);
-  --destructive: oklch(0.704 0.191 22.216);
+  /*
+    Semantic, never decorative.
+
+    Every accent in the app, brand and semantic alike, sits at L 0.74. They
+    used to run from 0.63 to 0.79, which is a visible sixth of the lightness
+    range: the accent shouted over the semantics and the loss red sank into
+    the field. One lightness means a green, a red and the brand aqua carry the
+    same weight on the page and differ only in hue, which is the job hue is
+    supposed to do. Chroma is set per hue to just inside the sRGB gamut, since
+    the reds and the cyan reach their limits at different points.
+
+    It is an accessibility gain too: loss went from 5.74:1 on black to 8.8:1.
+  */
+  --gain: oklch(0.74 0.155 162.5);
+  --loss: oklch(0.74 0.155 16.4);
+  --warning: oklch(0.74 0.16 45);
+  --destructive: oklch(0.74 0.15 22.2);
   --destructive-foreground: oklch(0.985 0 0);
 
   /*
