@@ -35,10 +35,39 @@ gold; Arena is a channelled stone in aqua. Siblings, not twins.
 
 ### Geometry
 
-A pointy-top hexagon of radius 28 about (32, 32). The channel's upper edge runs
-(7.8, 30) to (32, 12) to (56.2, 30); its lower edge runs (7.8, 40) to (32, 22)
-to (56.2, 40). Each of the two resulting masses is split at the centre line, so
-the cut-stone shading has something to work with. Four facets in total.
+A pointy-top hexagon of radius 28 about (32, 32). The channel's centre line
+runs (7.8, 35) to (32, 17) to (56.2, 35), opened to a **half-width of 7**:
+upper edge (7.8, 28) to (32, 10), lower edge (7.8, 42) to (32, 24). Each of the
+two resulting masses is split at the centre line so the shading has something
+to work with. Four facets in total.
+
+### The cut follows the size
+
+`cutForSize()` in `src/lib/brand/mark.ts` decides how hard to cut, and every
+drawing of the mark uses it: the React component from its `size` prop, the
+share-image SVG from its requested size, and each raster from the size it is
+about to be written at.
+
+| Drawn at | Cut |
+|---|---|
+| 96px and up | `0.93` |
+| 40 to 95px | `0.96` |
+| under 40px | `0.99` |
+
+The cut is an optical-size decision, not a constant. At `0.93` the gaps are the
+hairlines the cut-stone treatment depends on when the mark is large. At 16 or
+20px those same gaps are a pixel of mud: the lower mass splits down its centre
+line and reads as a crack rather than as two facets, which is exactly how the
+favicon failed. Small sizes get a nearly closed cut, leaving only the channel,
+which is meant to be there.
+
+The channel's half-width went from 5 to 7 for the same reason. At 5 it was
+thinner than a pixel at 16px once anti-aliasing had its way with it, and the
+band fused into the mass. 7 survives the range and reads bolder large.
+
+`MARK_ZOOM` lifts the whole drawing to 1.08. The mark is 56 units tall in a 64
+grid, and a browser tab or bookmark tile adds padding of its own on top of
+that, which left it looking lost in the tile.
 
 ### The mark: one aqua ramp
 

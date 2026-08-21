@@ -12,8 +12,10 @@
   <linearGradient id="arena-shadow" x1="0.2" y1="0" x2="1" y2="1">
     <stop offset="0%" stop-color="#07545d"/><stop offset="100%" stop-color="#00383e"/>
   </linearGradient></defs>
-  <polygon points="7.8,18 32,4 32,12 7.8,30" fill="url(#arena-lit)" transform="translate(19.9 16) scale(0.93) translate(-19.9 -16)"/>
-  <polygon points="32,4 56.2,18 56.2,30 32,12" fill="url(#arena-body)" transform="translate(44.1 16) scale(0.93) translate(-44.1 -16)"/>
-  <polygon points="7.8,40 32,22 32,60 7.8,46" fill="url(#arena-rim)" transform="translate(19.9 42) scale(0.93) translate(-19.9 -42)"/>
-  <polygon points="32,22 56.2,40 56.2,46 32,60" fill="url(#arena-shadow)" transform="translate(44.1 42) scale(0.93) translate(-44.1 -42)"/>
+  <g transform="translate(32 32) scale(1.08) translate(-32 -32)">
+    <polygon points="7.8,18 32,4 32,10 7.8,28" fill="url(#arena-lit)" transform="translate(19.9 15) scale(0.93) translate(-19.9 -15)"/>
+  <polygon points="32,4 56.2,18 56.2,28 32,10" fill="url(#arena-body)" transform="translate(44.1 15) scale(0.93) translate(-44.1 -15)"/>
+  <polygon points="7.8,42 32,24 32,60 7.8,46" fill="url(#arena-rim)" transform="translate(19.9 43) scale(0.93) translate(-19.9 -43)"/>
+  <polygon points="32,24 56.2,42 56.2,46 32,60" fill="url(#arena-shadow)" transform="translate(44.1 43) scale(0.93) translate(-44.1 -43)"/>
+  </g>
 </svg>

@@ -8,11 +8,25 @@ import path from "node:path";
 import sharp from "sharp";
 
 const FACETS = [
-  { points: "7.8,18 32,4 32,12 7.8,30", centroid: [19.9, 16], fill: "arena-lit" },
-  { points: "32,4 56.2,18 56.2,30 32,12", centroid: [44.1, 16], fill: "arena-body" },
-  { points: "7.8,40 32,22 32,60 7.8,46", centroid: [19.9, 42], fill: "arena-rim" },
-  { points: "32,22 56.2,40 56.2,46 32,60", centroid: [44.1, 42], fill: "arena-shadow" },
+  { points: "7.8,18 32,4 32,10 7.8,28", centroid: [19.9, 15], fill: "arena-lit" },
+  { points: "32,4 56.2,18 56.2,28 32,10", centroid: [44.1, 15], fill: "arena-body" },
+  { points: "7.8,42 32,24 32,60 7.8,46", centroid: [19.9, 43], fill: "arena-rim" },
+  { points: "32,24 56.2,42 56.2,46 32,60", centroid: [44.1, 43], fill: "arena-shadow" },
 ];
+
+/*
+  Kept in step with src/lib/brand/mark.ts, including its rules: the cut follows
+  the size the mark is drawn at, because a hairline that reads as a facet edge
+  at 512px is a pixel of mud at 16, and the whole drawing is lifted slightly so
+  it fills the tile rather than floating in it.
+*/
+const MARK_ZOOM = 1.08;
+
+function cutForSize(size) {
+  if (size >= 96) return 0.93;
+  if (size >= 40) return 0.96;
+  return 0.99;
+}
 
 const GRADIENTS = `
   <linearGradient id="arena-rim" x1="0" y1="0" x2="0.6" y2="1">
@@ -28,27 +42,32 @@ const GRADIENTS = `
     <stop offset="0%" stop-color="#07545d"/><stop offset="100%" stop-color="#00383e"/>
   </linearGradient>`;
 
-function facetMarkup(scale = 0.93) {
+function facetMarkup(cut) {
   return FACETS.map(({ points, centroid: [cx, cy], fill }) =>
-    `<polygon points="${points}" fill="url(#${fill})" transform="translate(${cx} ${cy}) scale(${scale}) translate(${-cx} ${-cy})"/>`
+    `<polygon points="${points}" fill="url(#${fill})" transform="translate(${cx} ${cy}) scale(${cut}) translate(${-cx} ${-cy})"/>`
   ).join("\n  ");
 }
 
-// Transparent mark, for favicons and any-purpose icons.
-const markSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+const markSvgAt = (size) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>${GRADIENTS}</defs>
-  ${facetMarkup()}
+  <g transform="translate(32 32) scale(${MARK_ZOOM}) translate(-32 -32)">
+    ${facetMarkup(cutForSize(size))}
+  </g>
 </svg>`;
+
+// Transparent mark, for favicons and any-purpose icons. The source SVG is
+// authored at the large-size cut, since it scales rather than rasterises.
+const markSvg = markSvgAt(512);
 
 /*
   Maskable icons get a true-black plate and the mark pulled into the safe
   zone, so Android's circular crop never clips a facet.
 */
-const maskableSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+const maskableSvgAt = (size) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>${GRADIENTS}</defs>
   <rect width="64" height="64" fill="#000000"/>
   <g transform="translate(32 32) scale(0.62) translate(-32 -32)">
-    ${facetMarkup()}
+    ${facetMarkup(cutForSize(size * 0.62))}
   </g>
 </svg>`;
 
@@ -74,7 +93,7 @@ const ogSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
   <rect width="1200" height="630" fill="#000000"/>
   <rect width="1200" height="630" fill="url(#glow-a)"/>
   <rect width="1200" height="630" fill="url(#glow-b)"/>
-  <g transform="translate(96 214) scale(1.55)">${facetMarkup()}</g>
+  <g transform="translate(96 214) scale(1.55)">${facetMarkup(cutForSize(512))}</g>
   <text x="212" y="278" font-family="Geist, ui-sans-serif, system-ui, sans-serif"
         font-size="38" letter-spacing="2.5" fill="#fafafa">
     <tspan font-weight="700">UPSIDE</tspan><tspan font-weight="400" dx="14">ARENA</tspan>
@@ -99,20 +118,20 @@ await mkdir(path.join(outDir, "icons"), { recursive: true });
 await writeFile(path.join(outDir, "arena-mark.svg"), markSvg);
 
 for (const size of [16, 32, 48, 180, 192, 512]) {
-  await sharp(Buffer.from(markSvg), { density: 512 })
+  await sharp(Buffer.from(markSvgAt(size)), { density: 512 })
     .resize(size, size)
     .png()
     .toFile(path.join(outDir, "icons", `icon-${size}.png`));
 }
 
 for (const size of [192, 512]) {
-  await sharp(Buffer.from(maskableSvg), { density: 512 })
+  await sharp(Buffer.from(maskableSvgAt(size)), { density: 512 })
     .resize(size, size)
     .png()
     .toFile(path.join(outDir, "icons", `maskable-${size}.png`));
 }
 
-await sharp(Buffer.from(markSvg), { density: 512 })
+await sharp(Buffer.from(markSvgAt(32)), { density: 512 })
   .resize(32, 32)
   .toFormat("png")
   .toFile(path.join(outDir, "favicon.png"));
