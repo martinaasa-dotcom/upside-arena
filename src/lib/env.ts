@@ -62,12 +62,39 @@ export function isAdmin(email: string | null | undefined): boolean {
   return ADMIN_EMAILS.includes(email.trim().toLowerCase());
 }
 
+/*
+  Where this deployment thinks it lives.
+
+  Sign-in links, notification emails and share URLs are all built from this,
+  so a wrong answer is not cosmetic: it emails somebody a link to a machine
+  they do not have, and Supabase refuses any redirect that is not on its allow
+  list.
+
+  The order matters.
+
+  NEXT_PUBLIC_SITE_URL wins, always. It is the explicit answer and the only one
+  a person controls.
+
+  On production, the project's production domain comes next. VERCEL_URL is
+  deliberately NOT used there: it names this exact deployment
+  (upside-arena-abc123-team.vercel.app), which changes on every push, is not
+  where somebody clicking a link tomorrow should land, and is not on Supabase's
+  redirect allow list. Falling through to it would produce links that look
+  plausible and fail.
+
+  VERCEL_URL is right for a preview deployment, where the deployment really is
+  the site.
+
+  Localhost is last, and only correct when nothing else is set, which means
+  somebody is running it on their own machine.
+*/
 export function siteUrl() {
+  const onProduction = process.env.VERCEL_ENV === "production";
+
   const candidates = [
     process.env.NEXT_PUBLIC_SITE_URL?.trim(),
-    process.env.VERCEL_URL?.trim()
-      ? `https://${process.env.VERCEL_URL.trim()}`
-      : "",
+    onProduction ? process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim() : "",
+    onProduction ? "" : process.env.VERCEL_URL?.trim(),
   ];
 
   for (const candidate of candidates) {

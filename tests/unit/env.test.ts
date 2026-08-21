@@ -45,6 +45,42 @@ describe("siteUrl", () => {
     expect(await siteUrl()).toBe("https://upside-arena.vercel.app");
   });
 
+  it("prefers the production domain over the deployment url on production", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "upsidearena.com");
+    vi.stubEnv("VERCEL_URL", "upside-arena-abc123-team.vercel.app");
+    expect(await siteUrl()).toBe("https://upsidearena.com");
+  });
+
+  /*
+    The deployment url names one deployment and changes on every push. A
+    sign-in link built from it would still be in somebody's inbox after the
+    next deploy, and it is not on Supabase's redirect allow list either, so
+    production must never fall through to it.
+  */
+  it("does not fall back to the deployment url on production", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "");
+    vi.stubEnv("VERCEL_URL", "upside-arena-abc123-team.vercel.app");
+    expect(await siteUrl()).toBe("http://localhost:3000");
+  });
+
+  it("still lets an explicit site url win on production", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://upsidearena.com");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "something-else.vercel.app");
+    expect(await siteUrl()).toBe("https://upsidearena.com");
+  });
+
+  it("uses the deployment url on a preview, where it is the site", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_URL", "upside-arena-git-branch.vercel.app");
+    expect(await siteUrl()).toBe("https://upside-arena-git-branch.vercel.app");
+  });
+
   it("adds a scheme when the value has none", async () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "upsidearena.com");
     expect(await siteUrl()).toBe("https://upsidearena.com");
