@@ -325,13 +325,20 @@ test.describe("the numbers page", () => {
 
 test.describe("brand shell", () => {
   /*
-    Arena shares Lab's system and diverges from it in exactly two places, both
-    by explicit decision recorded in docs/brand/ARENA_MARK.md: the mark is a
-    parted aqua stone, and the accent is a warmer amber so the two read as a
-    warm-against-cool pair rather than as two accents competing.
+    Arena shares Lab's system and diverges from it by explicit decision,
+    recorded in docs/brand/ARENA_MARK.md, which wins wherever it and the
+    inherited brand doc disagree. Two divergences:
+
+      the mark is a parted aqua stone rather than Lab's gold letterform, and
+      the accent is that same aqua, so the accent and the mark are one colour
+      rather than two competing ones;
+
+      every accent sits at the same lightness, so gain, loss and warning read
+      as three meanings at one volume rather than as a hierarchy nobody
+      intended.
 
     Everything else is still Lab's, and the point of this test is that it
-    stays that way. Two deliberate exceptions are a divergence; a third that
+    stays that way. Divergences somebody wrote down are divergences; one
     nobody wrote down is the second palette the brand doc forbids.
   */
   test("paints the locked tokens, not a second palette", async ({ page }) => {
@@ -355,12 +362,17 @@ test.describe("brand shell", () => {
           ["--foreground", "oklch(0.985 0 0)"],
           ["--card", "oklch(0.205 0 0)"],
           ["--muted", "oklch(0.269 0 0)"],
-          // Arena's own accent, not Lab's. oklch(0.82 0.11 74), #efb970.
-          ["--primary", "oklch(0.82 0.11 74)"],
-          ["--ring", "oklch(0.82 0.11 74)"],
-          ["--gain", "oklch(0.696 0.17 162.48)"],
-          ["--loss", "oklch(0.645 0.21 16.439)"],
-          ["--warning", "oklch(0.63 0.22 45)"],
+          // Arena's own accent, not Lab's. The mark's aqua, #11c0d3.
+          ["--primary", "oklch(0.74 0.125 207)"],
+          ["--ring", "oklch(0.74 0.125 207)"],
+          /*
+            All three at the accent's lightness. Lab's originals sat at three
+            different ones, which made a loss read louder than a gain for a
+            reason nobody chose.
+          */
+          ["--gain", "oklch(0.74 0.155 162.5)"],
+          ["--loss", "oklch(0.74 0.155 16.4)"],
+          ["--warning", "oklch(0.74 0.16 45)"],
         ] as [string, string][],
       }
     );
@@ -370,7 +382,7 @@ test.describe("brand shell", () => {
     }
   });
 
-  test("keeps the accent clear of the banned hues and of Lab's own gold", async ({
+  test("keeps the accent on the mark's aqua and off Lab's gold", async ({
     page,
   }) => {
     await page.goto("/");
@@ -383,10 +395,10 @@ test.describe("brand shell", () => {
 
     const [r, g, b] = primary;
 
-    // Warm: red leads, blue trails. A cool accent would fight the aqua mark
-    // instead of pairing with it.
-    expect(r).toBeGreaterThan(g);
-    expect(g).toBeGreaterThan(b);
+    // Cool: blue leads, red trails. The accent is the mark's own colour, so
+    // an accent that drifted warm would be a second one.
+    expect(b).toBeGreaterThan(g);
+    expect(g).toBeGreaterThan(r);
 
     // And distinct from Lab's gold, which is the whole reason it moved.
     expect(primary.slice(0, 3)).not.toEqual([212, 188, 121]);
