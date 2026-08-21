@@ -24,6 +24,7 @@ export type ProfileRow = {
   best_week_return: string | null;
   career_alpha_avg: string | null;
   longest_streak: number;
+  equipped_title: string | null;
   onboarded_at: string | null;
   created_at: string;
   updated_at: string;
@@ -75,6 +76,33 @@ export type TradeRow = {
   executed_at: string;
 };
 
+export type StreakRow = {
+  user_id: string;
+  current_streak: number;
+  longest_streak: number;
+  last_active_date: string | null;
+  freezes_available: number;
+  freezes_used: number;
+  freeze_granted_week: string | null;
+  updated_at: string;
+};
+
+export type RewardRow = {
+  id: string;
+  kind: "title";
+  name: string;
+  description: string;
+  streak_required: number | null;
+  sort_order: number;
+};
+
+export type UserRewardRow = {
+  id: string;
+  user_id: string;
+  reward_id: string;
+  earned_at: string;
+};
+
 export type LeagueRow = {
   id: string;
   name: string;
@@ -120,6 +148,9 @@ export type Database = {
       trades: Table<TradeRow>;
       leagues: Table<LeagueRow>;
       league_members: Table<LeagueMemberRow>;
+      streaks: Table<StreakRow>;
+      rewards: Table<RewardRow>;
+      user_rewards: Table<UserRewardRow>;
     };
     Views: Record<never, never>;
     Functions: {
@@ -206,6 +237,23 @@ export type Database = {
       generate_invite_code: {
         Args: Record<never, never>;
         Returns: string;
+      };
+      record_activity: {
+        Args: {
+          p_user_id: string;
+          p_today: string;
+          p_missed_days: number;
+          p_week_monday: string;
+        };
+        Returns: StreakRow;
+      };
+      grant_reward: {
+        Args: { p_user_id: string; p_reward_id: string };
+        Returns: boolean;
+      };
+      equip_title: {
+        Args: { p_user_id: string; p_reward_id: string | null };
+        Returns: undefined;
       };
     };
     Enums: Record<never, never>;

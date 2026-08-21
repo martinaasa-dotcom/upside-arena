@@ -56,8 +56,11 @@ export function ConsentBanner() {
         covering the one thing a new visitor came to do.
       */
       className={cn(
-        "card-sheen glass fixed inset-x-4 z-50 mx-auto max-w-md rounded-xl p-4 ring-1 ring-foreground/20 sm:right-6 sm:bottom-6 sm:left-auto",
-        overDock ? "bottom-28" : "bottom-4"
+        "card-sheen glass fixed inset-x-4 z-50 mx-auto max-w-md rounded-xl p-4 ring-1 ring-foreground/20 sm:right-6 sm:left-auto",
+        // The dock is centred and wide, so on a desktop it reaches the
+        // right-hand edge where this sits. Clearing it needs the lift at
+        // every width, not just on a phone.
+        overDock ? "bottom-28 sm:bottom-28" : "bottom-4 sm:bottom-6"
       )}
     >
       <p className="text-sm text-muted-foreground">

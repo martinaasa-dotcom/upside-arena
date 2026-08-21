@@ -14,6 +14,7 @@ function profile(overrides: Partial<Profile> = {}): Profile {
     best_week_return: null,
     career_alpha_avg: null,
     longest_streak: 0,
+    equipped_title: null,
     onboarded_at: "2026-08-21T10:00:00Z",
     created_at: "2026-08-21T10:00:00Z",
     updated_at: "2026-08-21T10:00:00Z",

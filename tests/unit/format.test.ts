@@ -5,6 +5,7 @@ import {
   formatPercent,
   formatTime,
   initials,
+  plural,
 } from "@/lib/format";
 
 describe("formatTime", () => {
@@ -50,5 +51,15 @@ describe("formatGap", () => {
     expect(formatGap(1.7)).toBe("1.7%");
     expect(formatGap(-1.7)).toBe("1.7%");
     expect(formatGap(0)).toBe("0.0%");
+  });
+});
+
+describe("plural", () => {
+  it("does not say one days", () => {
+    expect(plural(1, "day")).toBe("1 day");
+    expect(plural(2, "day")).toBe("2 days");
+    expect(plural(0, "day")).toBe("0 days");
+    expect(plural(1, "freeze")).toBe("1 freeze");
+    expect(plural(3, "freeze")).toBe("3 freezes");
   });
 });

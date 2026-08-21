@@ -51,3 +51,8 @@ export function initials(name: string | null | undefined) {
   const parts = name.trim().split(/\s+/).slice(0, 2);
   return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
 }
+
+/** "1 day", "2 days". Written down once so it cannot be got wrong twice. */
+export function plural(count: number, one: string, many = `${one}s`) {
+  return `${count} ${count === 1 ? one : many}`;
+}

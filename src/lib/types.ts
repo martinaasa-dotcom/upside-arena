@@ -9,6 +9,7 @@ export type Profile = {
   best_week_return: number | null;
   career_alpha_avg: number | null;
   longest_streak: number;
+  equipped_title: string | null;
   onboarded_at: string | null;
   created_at: string;
   updated_at: string;

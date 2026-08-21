@@ -5,8 +5,11 @@ import { Score, Scoreboard } from "@/components/Scoreboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Holdings } from "@/components/Holdings";
+import { StreakCard } from "@/components/StreakCard";
+import { EarnedToast } from "@/components/EarnedToast";
 import { getSession } from "@/lib/profile";
 import { getPortfolioView } from "@/lib/game/portfolio";
+import { recordVisit } from "@/lib/game/streaks";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatGap, formatMoney, formatPercent } from "@/lib/format";
 import { sessionLabel } from "@/lib/market/session";
@@ -19,7 +22,15 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const { user, profile } = await getSession();
   const name = profile?.display_name ?? "there";
-  const view = user ? await getPortfolioView(user.id) : null;
+
+  /*
+    Opening Home and looking at your portfolio is what a streak counts, which
+    is the trigger the plan says to start with. Crediting it here and nowhere
+    else keeps the streak meaning the one thing it claims to mean.
+  */
+  const [view, activity] = user
+    ? await Promise.all([getPortfolioView(user.id), recordVisit(user.id)])
+    : [null, null];
 
   /*
     With no engine configured there is nothing true to show, so the screen says
@@ -70,6 +81,8 @@ export default async function HomePage() {
 
   return (
     <div className={`${PAGE} ${STACK}`}>
+      {activity ? <EarnedToast earned={activity.earned} /> : null}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1>Hi {name}</h1>
         <div className="flex items-center gap-2">
@@ -149,6 +162,8 @@ export default async function HomePage() {
           </p>
         </Panel>
       ) : null}
+
+      {activity ? <StreakCard streak={activity.streak} /> : null}
 
       <Panel
         title="What you own"

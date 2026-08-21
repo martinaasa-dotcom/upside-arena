@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { ProfileForm } from "@/components/ProfileForm";
 import { AccountControls } from "@/components/AccountControls";
 import { ConsentControl } from "@/components/ConsentControl";
+import { Titles } from "@/components/Titles";
 import { getSession } from "@/lib/profile";
+import { getRewards } from "@/lib/game/streaks";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatDate, initials } from "@/lib/format";
 import { signOut } from "@/app/auth/actions";
@@ -15,6 +17,11 @@ export const metadata = { title: "Profile" };
 export default async function ProfilePage() {
   const { user, profile } = await getSession();
   const name = profile?.display_name ?? "Player";
+  const rewards = user
+    ? await getRewards(user.id)
+    : { owned: [], locked: [], equipped: null };
+
+  const wearing = rewards.owned.find((title) => title.equipped);
 
   return (
     <div className={`${PAGE} ${STACK}`}>
@@ -34,6 +41,9 @@ export default async function ProfilePage() {
               <p className="figure truncate text-sm text-muted-foreground">
                 @{profile.handle}
               </p>
+            ) : null}
+            {wearing ? (
+              <p className="mt-1 text-sm text-primary">{wearing.name}</p>
             ) : null}
             <p className="mt-1 text-sm text-muted-foreground">
               Playing since {profile ? formatDate(profile.created_at) : "today"}
@@ -74,6 +84,17 @@ export default async function ProfilePage() {
             <span className="figure text-lg font-semibold">0</span>
           </HairlineCell>
         </HairlineGrid>
+      </Panel>
+
+      <Panel
+        title="Titles"
+        description="Decoration only. A title never changes your score, and none of them can be bought."
+      >
+        <Titles
+          owned={rewards.owned}
+          locked={rewards.locked}
+          equipped={rewards.equipped}
+        />
       </Panel>
 
       <Panel title="Your details" description="Change how you appear to other players.">

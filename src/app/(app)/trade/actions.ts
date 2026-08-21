@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { placeTrade } from "@/lib/game/portfolio";
+import { grantReward } from "@/lib/game/streaks";
 import { searchSymbols, type SymbolMatch } from "@/lib/market/quotes";
 
 export type TradeState = {
@@ -51,6 +52,9 @@ export async function submitTrade(
   const result = await placeTrade(user.id, parsed.data);
 
   if (!result.ok) return { error: result.error };
+
+  // Earned by playing, which is the only way anything here is earned.
+  await grantReward(user.id, "title.off_the_mark");
 
   revalidatePath("/home");
   revalidatePath("/trade");
