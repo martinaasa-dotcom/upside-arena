@@ -50,6 +50,7 @@ export type AnalyticsEvent =
   // Coming back
   | "streak_viewed"
   | "reward_earned"
+  | "streak_bonus_paid"
   | "title_equipped"
   // Being told things
   | "notification_invite_shown"

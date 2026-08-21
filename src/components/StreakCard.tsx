@@ -1,4 +1,4 @@
-import { Check, Flame, Snowflake } from "lucide-react";
+import { Check, Coins, Flame, Snowflake } from "lucide-react";
 import { Panel, Well } from "@/components/Panel";
 import { cn } from "@/lib/utils";
 import { plural } from "@/lib/format";
@@ -94,6 +94,24 @@ export function StreakCard({ streak }: { streak: Streak }) {
             </div>
           </div>
         ) : null}
+
+        <Well className="flex items-center gap-3 py-3">
+          <Coins className="size-4 shrink-0 text-primary" aria-hidden="true" />
+          <p className="text-sm text-muted-foreground">
+            {/*
+              A day count, never an amount. How much a milestone pays is not
+              worked out until it is reached, and quoting a figure we have not
+              decided would be the one fabricated part of an otherwise honest
+              mechanic.
+            */}
+            {streak.toNextBonus === 1
+              ? "One more day and there are coins in it"
+              : `${streak.toNextBonus} more days and there are coins in it`}
+            {streak.nextBonusHasDrop
+              ? ", and something to wear with them."
+              : "."}
+          </p>
+        </Well>
 
         <Well className="flex items-center gap-3 py-3">
           <Snowflake className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />

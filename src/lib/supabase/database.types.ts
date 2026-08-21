@@ -406,6 +406,19 @@ export type Database = {
         };
         Returns: number;
       };
+      grant_streak_bonuses: {
+        Args: {
+          p_user_id: string;
+          p_streak: number;
+          p_every?: number;
+          p_drop_every?: number;
+        };
+        Returns: { day: number; coins: number; reward: string | null }[];
+      };
+      streak_bonus_amount: {
+        Args: { p_user_id: string; p_day: number };
+        Returns: number;
+      };
       due_seasons: {
         Args: { p_today: string };
         Returns: SeasonRow[];

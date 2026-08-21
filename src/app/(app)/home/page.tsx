@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Holdings } from "@/components/Holdings";
 import { StreakCard } from "@/components/StreakCard";
 import { EarnedToast } from "@/components/EarnedToast";
+import { BonusToast } from "@/components/BonusToast";
 import { NotificationInvite } from "@/components/NotificationInvite";
 import { FirstRun } from "@/components/FirstRun";
 import { Ticker } from "@/components/Ticker";
@@ -121,6 +122,7 @@ export default async function HomePage() {
   return (
     <div className={`${PAGE} ${STACK}`}>
       {activity ? <EarnedToast earned={activity.earned} /> : null}
+      {activity ? <BonusToast bonuses={activity.bonuses} /> : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1>Hi {name}</h1>

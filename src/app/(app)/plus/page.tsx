@@ -107,7 +107,7 @@ export default async function PlusPage() {
 
       <Panel
         title="Coins"
-        description="For buying titles outright. Every bundle is a fixed number of coins for a fixed price, and you see what you are getting before you pay."
+        description="You earn coins by turning up: every streak milestone pays some, and the longer ones hand over something to wear. Buying them is the shortcut. Every bundle is a fixed number of coins for a fixed price, and you see what you are getting before you pay."
         action={
           <span className="figure flex items-center gap-2 text-lg font-semibold">
             <Coins className="size-4 text-primary" aria-hidden="true" />

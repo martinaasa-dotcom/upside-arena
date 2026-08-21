@@ -29,6 +29,14 @@ import type {
   ran, and losing it costs you the streak and nothing else.
 */
 
+/*
+  How often a milestone pays, in trading days. These mirror the defaults in
+  grant_streak_bonuses; the database is what decides, and these are what the
+  screen says while it waits.
+*/
+export const BONUS_EVERY = 5;
+export const DROP_EVERY = 20;
+
 export type Streak = {
   current: number;
   longest: number;
@@ -40,12 +48,36 @@ export type Streak = {
   /** Trading days to the next title, or null when they are all earned. */
   toNextMilestone: number | null;
   nextMilestone: { id: string; name: string; at: number } | null;
+  /*
+    Trading days to the next payout, and whether a cosmetic comes with it.
+    Said as a day count and never as an amount, because how much a milestone
+    pays is not known until it is reached and promising a figure we have not
+    worked out would be the fabricated part of an otherwise honest mechanic.
+  */
+  toNextBonus: number;
+  nextBonusHasDrop: boolean;
 };
 
 export type EarnedReward = {
   id: string;
   name: string;
   description: string;
+};
+
+/**
+ * A milestone that paid out, on the visit it paid out.
+ *
+ * Section 3 permits variable rewards and permits them earned only. The
+ * variable part here is how much a milestone is worth, never whether turning
+ * up was worth anything: every milestone pays, and none of them can be bought
+ * at any price.
+ */
+export type StreakBonus = {
+  /** The trading day reached. */
+  day: number;
+  coins: number;
+  /** Something handed over at the longer milestones, when there is one left. */
+  drop: EarnedReward | null;
 };
 
 export type { CosmeticSlot } from "@/lib/supabase/database.types";
@@ -67,6 +99,8 @@ function toStreak(
     .filter((m) => m.streak_required != null && m.streak_required > current)
     .sort((a, b) => (a.streak_required ?? 0) - (b.streak_required ?? 0))[0];
 
+  const nextBonusAt = (Math.floor(current / BONUS_EVERY) + 1) * BONUS_EVERY;
+
   return {
     current,
     longest: row.longest_streak,
@@ -78,6 +112,8 @@ function toStreak(
     nextMilestone: next
       ? { id: next.id, name: next.name, at: next.streak_required ?? 0 }
       : null,
+    toNextBonus: nextBonusAt - current,
+    nextBonusHasDrop: nextBonusAt % DROP_EVERY === 0,
   };
 }
 
@@ -87,10 +123,13 @@ function toStreak(
  * Safe to call on every home screen render: the database counts a day once,
  * however many times it is told about it.
  */
-export async function recordVisit(userId: string): Promise<{
+export type VisitResult = {
   streak: Streak;
   earned: EarnedReward[];
-} | null> {
+  bonuses: StreakBonus[];
+};
+
+export async function recordVisit(userId: string): Promise<VisitResult | null> {
   if (!canWriteGame) return null;
 
   const admin = createAdminClient();
@@ -148,23 +187,52 @@ export async function recordVisit(userId: string): Promise<{
 
   if (error || !data) return readStreak(userId);
 
+  const streakRow = data as unknown as StreakRow;
+
+  /*
+    The milestone payouts, which are separate from the titles above because
+    they are not a thing you keep: a bonus is coins and, at the longer
+    milestones, one cosmetic. Called on every visit and paying only on the
+    ones not already paid, so the home screen can announce it exactly once.
+  */
+  const { data: paid } = await admin.rpc("grant_streak_bonuses", {
+    p_user_id: userId,
+    p_streak: streakRow.current_streak,
+  });
+
   const milestones = await getCatalogue();
   const after = await ownedRewardIds(userId);
   const fresh = [...after].filter((id) => !before.has(id));
 
+  const describe = (id: string | null): EarnedReward | null => {
+    const item = id ? milestones.find((m) => m.id === id) : null;
+    return item
+      ? { id: item.id, name: item.name, description: item.description }
+      : null;
+  };
+
+  const bonuses: StreakBonus[] = (
+    (paid ?? []) as { day: number; coins: number; reward: string | null }[]
+  ).map((row) => ({
+    day: row.day,
+    coins: row.coins,
+    drop: describe(row.reward),
+  }));
+
+  // A dropped cosmetic is announced as a drop, not twice over as a title.
+  const dropped = new Set(bonuses.flatMap((b) => (b.drop ? [b.drop.id] : [])));
+
   return {
-    streak: toStreak(data as unknown as StreakRow, today, milestones),
+    streak: toStreak(streakRow, today, milestones),
     earned: milestones
-      .filter((m) => fresh.includes(m.id))
+      .filter((m) => fresh.includes(m.id) && !dropped.has(m.id))
       .map((m) => ({ id: m.id, name: m.name, description: m.description })),
+    bonuses,
   };
 }
 
 /** The streak as it stands, without crediting anything. */
-export async function readStreak(userId: string): Promise<{
-  streak: Streak;
-  earned: EarnedReward[];
-} | null> {
+export async function readStreak(userId: string): Promise<VisitResult | null> {
   if (!canWriteGame) return null;
 
   const admin = createAdminClient();
@@ -189,7 +257,7 @@ export async function readStreak(userId: string): Promise<{
     updated_at: new Date().toISOString(),
   };
 
-  return { streak: toStreak(row, today, milestones), earned: [] };
+  return { streak: toStreak(row, today, milestones), earned: [], bonuses: [] };
 }
 
 let catalogue: RewardRow[] | null = null;
