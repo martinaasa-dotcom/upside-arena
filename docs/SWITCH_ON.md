@@ -203,11 +203,27 @@ wrong and the fastest route to a chargeback.
 
 - Name: `Arena Plus`
 - Description: `More streak freezes, bigger leagues, your full history, and two member titles. Nothing that changes a score.`
-- Price: whatever you decide, **Recurring**, **Monthly**
+- Price: `2.99`, **Recurring**, **Monthly**
 - Tax behaviour: **Inclusive**
 
 Save, then click into the price and copy its id. It starts `price_`. That is
 `STRIPE_PLUS_PRICE_ID`.
+
+**Then add a second price to the same product**, for people who would rather
+pay once a year. On the product page, **Add another price**:
+
+- Price: `29.90`, **Recurring**, **Yearly**
+- Tax behaviour: **Inclusive**
+
+Its id is `STRIPE_PLUS_YEARLY_PRICE_ID`. That works out at 2.49 a month, which
+is what `/plus` says next to it. Leave this out and the page simply shows the
+monthly price on its own, with no picker.
+
+Both amounts are written down in `src/lib/billing/plan.ts` as well, because
+the page has to be able to say what something costs without asking Stripe on
+every render. They have to match: before checkout opens, Arena retrieves the
+price and refuses if the amount, the currency or the interval is not what it
+just advertised. If you change a price in the dashboard, change it there too.
 
 Do not put a price for coins here. Coin bundles are priced in the code, in
 `src/lib/billing/plan.ts`, because the bundle a browser asks for must be checked
@@ -223,12 +239,11 @@ against a list the server controls.
 3. Turn on **Customers can update payment methods**.
 4. Save.
 
-**If this Stripe account is shared with Upside Lab, do not make Arena's
-configuration the default.** An account has exactly one default, and claiming
-it rewrites Lab's portal: its heading, where it returns to, and when a
-cancellation takes effect. Instead, copy Arena's configuration id, which
-starts `bpc_`, and set it in Vercel as `STRIPE_PORTAL_CONFIGURATION_ID`. Arena
-then asks for its own by name and leaves the default alone.
+**This account is shared with Upside Lab, so Arena names its own
+configuration rather than relying on the account default.** Set the
+configuration id, which starts `bpc_`, in Vercel as
+`STRIPE_PORTAL_CONFIGURATION_ID`. See the section below for what is already
+in place.
 
 This is not optional. Cancelling has to be as easy as subscribing, and Arena has
 no other cancel path anywhere on purpose.
@@ -265,6 +280,7 @@ Add all three together, sensitive, Production and Preview:
 | `STRIPE_SECRET_KEY` | `sk_...` |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` |
 | `STRIPE_PLUS_PRICE_ID` | `price_...` |
+| `STRIPE_PLUS_YEARLY_PRICE_ID` | `price_...`, if you made the yearly one |
 
 Redeploy.
 
@@ -309,3 +325,48 @@ parameter and store it. Until it does, the link still works, the click is still
 recorded on Arena's side, and nothing is lost.
 
 ---
+
+---
+
+## What is already set up in live
+
+Recorded so nobody has to reconstruct it from the dashboard.
+
+### Arena
+
+| | |
+|---|---|
+| Product | `prod_V7DVO5SBjpEe8W`, Upside Arena Plus |
+| Price, monthly | `price_1U6z460X9LyRmQJ8fJ1hM9zv`, EUR 2.99 a month |
+| Price, yearly | not made yet. Add it in the dashboard per 5c, then set `STRIPE_PLUS_YEARLY_PRICE_ID` |
+| Webhook | `https://upsidearena.com/api/stripe/webhook`, five events |
+| Portal | `bpc_1U6zpm0X9LyRmQJ8WC43tQkK`, named by `STRIPE_PORTAL_CONFIGURATION_ID` |
+
+Coin bundle prices are not in Stripe. They are in `src/lib/billing/plan.ts`,
+because the bundle a browser asks for has to be checked against a list the
+server controls.
+
+### The account is shared with Upside Lab
+
+Both products bill through one Stripe account, which is correct: they are one
+company. Three things are shared, and each is handled so that changing one
+product cannot disturb the other.
+
+**The default tax behaviour** is `inferred_by_currency`, which for euro means
+inclusive. Arena's coin bundles set `tax_behavior` to inclusive explicitly in
+code, so they do not depend on it. The subscription price still relies on the
+inference. Pinning that price to inclusive in the dashboard would remove the
+last dependency on an account-wide setting Lab shares. It is a one-way change
+on that price, and until it is made, anyone changing the account default
+silently changes what Arena's subscribers are charged.
+
+**The customer portal** has one default configuration per account, and
+whichever product does not name its own inherits it. Arena names its own.
+There is also a Lab-branded configuration, `bpc_1U6zpT0X9LyRmQJ8XwgF2VJL`,
+which is not in use: Lab still falls through to the account default. Adopting
+it is a one-line change on Lab's side, passing `configuration` when it opens a
+portal session. The account default allows cancellation at the end of the
+period, so Lab's cancel flow is compliant either way; adopting the
+configuration would only make it say Upside Lab and return to the right place.
+
+**Webhooks** are per URL and do not overlap.

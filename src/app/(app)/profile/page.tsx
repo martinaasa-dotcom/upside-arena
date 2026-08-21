@@ -7,17 +7,20 @@ import { Button } from "@/components/ui/button";
 import { ProfileForm } from "@/components/ProfileForm";
 import { AccountControls } from "@/components/AccountControls";
 import { ConsentControl } from "@/components/ConsentControl";
-import { Titles } from "@/components/Titles";
+import { Wardrobe } from "@/components/Wardrobe";
+import { flairRing } from "@/components/Flair";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { SharedCards } from "@/components/SharedCards";
 import { getSession } from "@/lib/profile";
 import { getRewards } from "@/lib/game/streaks";
 import { getLeagues } from "@/lib/game/leagues";
+import { getSeasonHistory } from "@/lib/game/seasons";
 import { getMyCards } from "@/lib/game/share";
 import { getStanding, FREE_STANDING } from "@/lib/billing/entitlements";
+import { flairStyleKey } from "@/lib/game/cosmetics";
 import { getNotificationState, DEFAULT_SETTINGS } from "@/lib/notify/settings";
 import { PAGE, STACK } from "@/lib/page-shell";
-import { formatDate, initials } from "@/lib/format";
+import { formatDate, initials, ordinal, plural } from "@/lib/format";
 import { signOut } from "@/app/auth/actions";
 
 export const metadata = { title: "Profile" };
@@ -27,9 +30,15 @@ export default async function ProfilePage() {
   const name = profile?.display_name ?? "Player";
   const rewards = user
     ? await getRewards(user.id)
-    : { owned: [], locked: [], forSale: [], equipped: null };
+    : {
+        owned: [],
+        locked: [],
+        forSale: [],
+        equipped: { title: null, flair: null, theme: null },
+      };
 
   const leagues = user ? await getLeagues(user.id) : [];
+  const seasons = user ? await getSeasonHistory(user.id) : [];
   const cards = user ? await getMyCards(user.id) : [];
   const standing = user ? await getStanding(user.id) : FREE_STANDING;
 
@@ -42,7 +51,10 @@ export default async function ProfilePage() {
         emailAvailable: false,
       };
 
-  const wearing = rewards.owned.find((title) => title.equipped);
+  const wearing = rewards.owned.find(
+    (item) => item.kind === "title" && item.equipped
+  );
+  const ring = flairRing(await flairStyleKey(profile?.equipped_flair ?? null));
 
   return (
     <div className={`${PAGE} ${STACK}`}>
@@ -50,7 +62,7 @@ export default async function ProfilePage() {
 
       <Panel>
         <div className="flex items-center gap-4">
-          <Avatar className="size-14 rounded-xl">
+          <Avatar className={`size-14 rounded-xl ${ring}`}>
             {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt="" /> : null}
             <AvatarFallback className="rounded-xl text-base">
               {initials(name)}
@@ -107,15 +119,42 @@ export default async function ProfilePage() {
         </HairlineGrid>
       </Panel>
 
+      {seasons.length > 0 ? (
+        <Panel
+          title="Your seasons"
+          description="A quarter of weeks at a time. A finished season keeps the place you finished in; a running one has none yet."
+        >
+          <div className="flex flex-col gap-2">
+            {seasons.map(({ season, rank, weeksPlayed }) => (
+              <Link
+                key={season.id}
+                href="/season"
+                className="glass-well flex h-14 items-center gap-3 rounded-lg px-4 transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              >
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {season.name}
+                </span>
+                <span className="figure shrink-0 text-sm text-muted-foreground">
+                  {plural(weeksPlayed, "week")}
+                </span>
+                <span className="figure w-20 shrink-0 text-right text-sm font-semibold">
+                  {rank != null
+                    ? ordinal(rank)
+                    : season.status === "closed"
+                      ? "Unranked"
+                      : "Running"}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </Panel>
+      ) : null}
+
       <Panel
-        title="Titles"
-        description="Decoration only. A title never changes your score, and none of them can be bought."
+        title="How you look"
+        description="Decoration only. None of it changes a score, and the bought ones say so."
       >
-        <Titles
-          owned={rewards.owned}
-          locked={rewards.locked}
-          equipped={rewards.equipped}
-        />
+        <Wardrobe wardrobe={rewards} />
       </Panel>
 
       <Panel title="Your details" description="Change how you appear to other players.">

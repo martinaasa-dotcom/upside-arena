@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createLeague, joinLeague, leaveLeague } from "@/lib/game/leagues";
+import { declareGoal, withdrawGoal } from "@/lib/game/goals";
+import { isGoalKind } from "@/lib/game/goal-kinds";
+import { getCurrentCycle } from "@/lib/game/portfolio";
 import { LEAGUE_ICONS } from "@/lib/game";
 
 export type LeagueState = { error?: string };
@@ -97,4 +100,40 @@ export async function submitLeaveLeague(formData: FormData) {
   await leaveLeague(user.id, leagueId);
   revalidatePath("/leagues");
   redirect("/leagues");
+}
+
+/*
+  Saying what you are doing this week, and taking it back.
+
+  The cycle is resolved here rather than passed in from the browser. A goal is
+  for the week in progress, and letting a form name the week it applies to
+  would be letting somebody declare a goal for a week that has already been
+  settled.
+*/
+export async function submitGoal(
+  leagueId: string,
+  kind: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireUser();
+
+  if (!isGoalKind(kind)) return { ok: false, error: "Pick one of the four." };
+
+  const cycle = await getCurrentCycle();
+  if (!cycle) return { ok: false, error: "There is no week running right now." };
+
+  const result = await declareGoal(user.id, leagueId, cycle.id, kind);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  revalidatePath(`/leagues/${leagueId}`);
+  return { ok: true };
+}
+
+export async function submitWithdrawGoal(leagueId: string): Promise<void> {
+  const user = await requireUser();
+
+  const cycle = await getCurrentCycle();
+  if (!cycle) return;
+
+  await withdrawGoal(user.id, leagueId, cycle.id);
+  revalidatePath(`/leagues/${leagueId}`);
 }

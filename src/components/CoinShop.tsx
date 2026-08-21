@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Well } from "@/components/Panel";
 import { purchaseReward, startCoinPurchase } from "@/app/(app)/plus/actions";
 import { formatPrice, type CoinBundle } from "@/lib/billing/plan";
+import { FlairSwatch } from "@/components/Flair";
 import { track } from "@/lib/analytics";
 import type { ForSaleReward } from "@/lib/game/streaks";
 
@@ -21,6 +22,12 @@ import type { ForSaleReward } from "@/lib/game/streaks";
   Nothing here is dressed up as a bargain that expires. No countdown, no
   "limited", no strike-through price that was never charged.
 */
+const GROUPS = [
+  { kind: "title" as const, label: "Titles" },
+  { kind: "flair" as const, label: "Picture rings" },
+  { kind: "theme" as const, label: "How your screens are lit" },
+];
+
 export function CoinShop({
   bundles,
   onSale,
@@ -65,18 +72,24 @@ export function CoinShop({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <p className="text-sm text-muted-foreground">Titles you can buy</p>
+      {onSale.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Nothing is for sale at the moment.
+        </p>
+      ) : null}
 
-        {onSale.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Nothing is for sale at the moment.
-          </p>
-        ) : (
-          onSale.map((item) => {
+      {GROUPS.map(({ kind, label }) => {
+        const items = onSale.filter((item) => item.kind === kind);
+        if (items.length === 0) return null;
+
+        return (
+          <div key={kind} className="flex flex-col gap-2">
+            <p className="text-sm text-muted-foreground">{label}</p>
+            {items.map((item) => {
             const affordable = item.coinPrice != null && coins >= item.coinPrice;
             return (
               <Well key={item.id} className="flex flex-wrap items-center gap-3 py-3">
+                {item.kind === "flair" ? <FlairSwatch styleKey={item.styleKey} /> : null}
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-sm font-medium">{item.name}</span>
                   <span className="truncate text-xs text-muted-foreground">
@@ -99,9 +112,10 @@ export function CoinShop({
                 </Button>
               </Well>
             );
-          })
-        )}
-      </div>
+            })}
+          </div>
+        );
+      })}
 
       {memberOnly.length > 0 ? (
         <div className="flex flex-col gap-2">
@@ -116,6 +130,7 @@ export function CoinShop({
                   aria-hidden="true"
                 />
               )}
+              {item.kind === "flair" ? <FlairSwatch styleKey={item.styleKey} /> : null}
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate text-sm">{item.name}</span>
                 <span className="truncate text-xs text-muted-foreground">

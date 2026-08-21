@@ -35,7 +35,8 @@ Production and Preview both. None of them belongs in the repository.
 | `ARENA_ADMIN_EMAILS` | your email address | **Server only.** Comma separated. Who may open `/metrics`. Unset means nobody. |
 | `STRIPE_SECRET_KEY` | from the Stripe dashboard | **Server only.** Without it nothing is on sale. |
 | `STRIPE_WEBHOOK_SECRET` | from the Stripe webhook endpoint | **Server only.** Without it the webhook refuses everything. |
-| `STRIPE_PLUS_PRICE_ID` | the recurring price's id | The subscription only appears once this is set. |
+| `STRIPE_PLUS_PRICE_ID` | the monthly price's id | The subscription only appears once this is set. |
+| `STRIPE_PLUS_YEARLY_PRICE_ID` | the yearly price's id | Optional. Without it there is no yearly choice, only the monthly one. |
 | `STRIPE_PORTAL_CONFIGURATION_ID` | Arena's own portal configuration | Only needed when the Stripe account is shared with another product. |
 | `NEXT_PUBLIC_LAB_URL` | `https://upsidelab.app` | Optional. Where the handoff points. |
 
@@ -219,8 +220,18 @@ half of it configured:
    chargeback rather than a second purchase. The coin bundles set this
    explicitly in code; the subscription price takes it from the dashboard.
 2. Make a **recurring price** for Arena Plus, with tax behaviour inclusive.
-   Its id goes in `STRIPE_PLUS_PRICE_ID`. The price lives in Stripe, not in
-   this repository, so changing it never needs a deploy.
+   Its id goes in `STRIPE_PLUS_PRICE_ID`. Optionally make a second, yearly
+   price on the same product for `STRIPE_PLUS_YEARLY_PRICE_ID`; with it set,
+   `/plus` shows a choice between the two, and without it it shows the
+   monthly one alone.
+
+   Both amounts are also written in `src/lib/billing/plan.ts`, because a page
+   has to be able to say what something costs before Stripe is asked. Those
+   two must agree: checkout retrieves the price and refuses to open if the
+   amount, currency or interval differ from what was advertised. So changing
+   a price is a dashboard edit **and** a one-line code change, in either
+   order, and the worst case in between is a subscribe button that says the
+   price is being corrected.
 3. Turn on the **Customer Portal** (Settings, Billing, Customer portal) with
    cancellation enabled. That is what satisfies the click-to-cancel rule, and
    Arena has no other cancel path on purpose.

@@ -25,6 +25,8 @@ export type ProfileRow = {
   career_alpha_avg: string | null;
   longest_streak: number;
   equipped_title: string | null;
+  equipped_flair: string | null;
+  equipped_theme: string | null;
   onboarded_at: string | null;
   created_at: string;
   updated_at: string;
@@ -39,8 +41,41 @@ export type WeeklyCycleRow = {
   benchmark_close: string | null;
   starting_balance: string;
   scoring_started_at: string | null;
+  season_id: string | null;
   created_at: string;
   closed_at: string | null;
+};
+
+export type WeeklyGoalRow = {
+  id: string;
+  user_id: string;
+  league_id: string;
+  cycle_id: string;
+  kind: "beat_market" | "finish_up" | "top_three" | "every_day";
+  declared_at: string;
+};
+
+export type SeasonRow = {
+  id: string;
+  starts_on: string;
+  ends_on: string;
+  name: string;
+  status: "open" | "closed";
+  created_at: string;
+  closed_at: string | null;
+};
+
+export type SeasonResultRow = {
+  id: string;
+  season_id: string;
+  user_id: string;
+  weeks_played: number;
+  weeks_ahead: number;
+  sum_return_percent: string;
+  sum_benchmark_diff: string;
+  best_week_return: string | null;
+  final_rank: number | null;
+  updated_at: string;
 };
 
 export type PortfolioRow = {
@@ -87,9 +122,11 @@ export type StreakRow = {
   updated_at: string;
 };
 
+export type CosmeticSlot = "title" | "flair" | "theme";
+
 export type RewardRow = {
   id: string;
-  kind: "title";
+  kind: CosmeticSlot;
   name: string;
   description: string;
   streak_required: number | null;
@@ -97,6 +134,12 @@ export type RewardRow = {
   /** What it costs in coins, or null when it is earned rather than bought. */
   coin_price: number | null;
   plus_only: boolean;
+  /*
+    What the app draws for a flair or a theme. A key rather than a colour:
+    letting the database hand the browser styling would be a way to smuggle a
+    second palette past the brand rules one row at a time.
+  */
+  style_key: string | null;
 };
 
 export type UserRewardRow = {
@@ -277,6 +320,9 @@ export type Database = {
       profiles: Table<ProfileRow>;
       terms_acceptances: Table<TermsAcceptanceRow>;
       weekly_cycles: Table<WeeklyCycleRow>;
+      weekly_goals: Table<WeeklyGoalRow>;
+      seasons: Table<SeasonRow>;
+      season_results: Table<SeasonResultRow>;
       portfolios: Table<PortfolioRow>;
       holdings: Table<HoldingRow>;
       trades: Table<TradeRow>;
@@ -349,6 +395,53 @@ export type Database = {
         Args: { p_cycle_id: string };
         Returns: undefined;
       };
+      declare_goal: {
+        Args: {
+          p_user_id: string;
+          p_league_id: string;
+          p_cycle_id: string;
+          p_kind: string;
+        };
+        Returns: WeeklyGoalRow;
+      };
+      season_for: {
+        Args: { p_monday: string };
+        Returns: SeasonRow;
+      };
+      record_season_week: {
+        Args: {
+          p_season_id: string;
+          p_user_id: string;
+          p_return_percent: number;
+          p_benchmark_diff: number;
+        };
+        Returns: undefined;
+      };
+      close_season: {
+        Args: {
+          p_season_id: string;
+          p_min_weeks?: number;
+          p_regular_weeks?: number;
+        };
+        Returns: number;
+      };
+      grant_streak_bonuses: {
+        Args: {
+          p_user_id: string;
+          p_streak: number;
+          p_every?: number;
+          p_drop_every?: number;
+        };
+        Returns: { day: number; coins: number; reward: string | null }[];
+      };
+      streak_bonus_amount: {
+        Args: { p_user_id: string; p_day: number };
+        Returns: number;
+      };
+      due_seasons: {
+        Args: { p_today: string };
+        Returns: SeasonRow[];
+      };
       is_league_member: {
         Args: { p_league_id: string; p_user_id: string };
         Returns: boolean;
@@ -399,8 +492,12 @@ export type Database = {
         Args: { p_user_id: string; p_reward_id: string };
         Returns: boolean;
       };
-      equip_title: {
-        Args: { p_user_id: string; p_reward_id: string | null };
+      equip_cosmetic: {
+        Args: {
+          p_user_id: string;
+          p_reward_id: string | null;
+          p_slot: CosmeticSlot;
+        };
         Returns: undefined;
       };
       save_notification_settings: {

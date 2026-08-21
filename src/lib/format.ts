@@ -53,6 +53,21 @@ export function initials(name: string | null | undefined) {
 }
 
 /** "1 day", "2 days". Written down once so it cannot be got wrong twice. */
+/**
+ * A place, written the way it is said: 1st, 2nd, 3rd, 11th.
+ *
+ * The teens are the whole reason this is a function. Eleventh, twelfth and
+ * thirteenth all take "th" despite ending in 1, 2 and 3.
+ */
+export function ordinal(place: number): string {
+  const n = Math.abs(Math.trunc(place));
+  const tens = n % 100;
+  if (tens >= 11 && tens <= 13) return `${place}th`;
+
+  const suffix = { 1: "st", 2: "nd", 3: "rd" }[n % 10] ?? "th";
+  return `${place}${suffix}`;
+}
+
 export function plural(count: number, one: string, many = `${one}s`) {
   return `${count} ${count === 1 ? one : many}`;
 }

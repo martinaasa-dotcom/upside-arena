@@ -237,6 +237,23 @@ export function previousTradingDay(isoDate: string): string {
  * streak survives on freezes or resets. Counting calendar days would end a
  * streak over a normal weekend.
  */
+/**
+ * How many trading days of this week have happened, today included.
+ *
+ * Monday is one, Friday is five, and the weekend is five because the week is
+ * over. Used to tell a goal that is still open from one that can no longer be
+ * met: on a Tuesday, somebody who has shown up once has missed a day, and
+ * somebody who has shown up twice has not.
+ */
+export function tradingDaysSoFarThisWeek(now = new Date()): number {
+  const { weekday } = nyParts(now);
+  const index = WEEKDAY_INDEX[weekday] ?? 1;
+
+  // Saturday and Sunday sit after a finished week, not inside the next one.
+  if (index === 0 || index === 6) return 5;
+  return index;
+}
+
 export function tradingDaysBetween(fromIso: string, toIso: string): number {
   if (fromIso >= toIso) return 0;
 

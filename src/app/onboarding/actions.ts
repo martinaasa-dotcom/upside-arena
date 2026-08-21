@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { createLeague } from "@/lib/game/leagues";
+import { starterLeagueName } from "@/lib/game/starter-league";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -63,6 +65,25 @@ export async function completeOnboarding(
   }
 
   await recordAcceptance();
+
+  /*
+    A league of their own, made for them.
+
+    Section 4 wants somebody to land in a league rather than arrive at an
+    empty screen, and every step between signing up and the first live number
+    is somewhere to lose them. Making it here costs them nothing and hands
+    them an invite code on their first visit, which is the only thing they
+    have to give a friend.
+
+    Failing is not fatal. They can make one themselves on the leagues screen,
+    and a league that did not get created must never be the reason somebody
+    cannot finish signing up.
+  */
+  try {
+    await createLeague(user.id, starterLeagueName(parsed.data.displayName), null);
+  } catch {
+    // Nothing to recover. They are onboarded either way.
+  }
 
   revalidatePath("/", "layout");
   redirect("/home");

@@ -236,7 +236,42 @@
     lobe covers the whole viewport and the field stops reading as black, so
     below the desktop breakpoint they scale down with it.
   */
-  @media (max-width: 1023px) {
+  /*
+  Themes.
+
+  Section 2.5 lists profile themes as a cosmetic. The brand doc allows exactly
+  one accent and bans a second palette, so a theme cannot be a colour swap.
+  Each of these changes only how the field is lit: where the glow sits, how
+  strong it is, and how many lobes there are. Every one still resolves to
+  var(--primary).
+
+  Unset, or an unknown value, leaves the shipped look alone.
+*/
+[data-arena-theme="quiet"] .page-frame::before {
+  background:
+    radial-gradient(1100px 900px at -6% -10%, oklch(from var(--primary) l c h / 22%), transparent 64%),
+    radial-gradient(1200px 900px at 104% 104%, oklch(from var(--primary) l c h / 6%), transparent 70%);
+}
+
+[data-arena-theme="deep"] .page-frame::before {
+  background:
+    radial-gradient(900px 760px at 108% -6%, oklch(from var(--primary) l c h / 60%), transparent 58%);
+}
+
+[data-arena-theme="even"] .page-frame::before {
+  background:
+    radial-gradient(1000px 820px at 0% 50%, oklch(from var(--primary) l c h / 34%), transparent 66%),
+    radial-gradient(1000px 820px at 100% 50%, oklch(from var(--primary) l c h / 34%), transparent 66%);
+}
+
+[data-arena-theme="house"] .page-frame::before {
+  background:
+    radial-gradient(1250px 1000px at -4% -8%, oklch(from var(--primary) l c h / 52%), transparent 66%),
+    radial-gradient(900px 700px at 50% 120%, oklch(from var(--primary) l c h / 20%), transparent 70%),
+    radial-gradient(1300px 1000px at 100% 100%, oklch(from var(--primary) l c h / 14%), transparent 72%);
+}
+
+@media (max-width: 1023px) {
     .page-frame::before {
       background-image:
         radial-gradient(

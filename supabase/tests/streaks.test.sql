@@ -191,20 +191,34 @@ select public.assert(
   'a milestone not yet reached is not handed over'
 );
 
--- Running it again must not duplicate anything.
+-- Running it again must not duplicate anything. Counted against what was
+-- already held rather than against a fixed number, so that adding a reward to
+-- the catalogue does not make this fail for a reason that has nothing to do
+-- with duplication.
+create temporary table held_before as
+  select count(*) as n from public.user_rewards
+  where user_id = '33334444-0000-0000-0000-000000000002';
+
 select public.record_activity('33334444-0000-0000-0000-000000000002', '2026-10-16', 0, '2026-10-12');
 
 select public.assert(
   (select count(*) from public.user_rewards
-   where user_id = '33334444-0000-0000-0000-000000000002') = 2,
-  'a title is only ever handed over once'
+   where user_id = '33334444-0000-0000-0000-000000000002')
+  = (select n from held_before),
+  'a reward is only ever handed over once'
+);
+
+select public.assert(
+  (select count(*) = count(distinct reward_id) from public.user_rewards
+   where user_id = '33334444-0000-0000-0000-000000000002'),
+  'and never appears twice'
 );
 
 -- ---------------------------------------------------------------------------
 -- Wearing a title
 -- ---------------------------------------------------------------------------
 
-select public.equip_title('33334444-0000-0000-0000-000000000002', 'title.full_week');
+select public.equip_cosmetic('33334444-0000-0000-0000-000000000002', 'title.full_week', 'title');
 
 select public.assert(
   (select equipped_title from public.profiles
@@ -215,7 +229,7 @@ select public.assert(
 do $$
 begin
   begin
-    perform public.equip_title('33334444-0000-0000-0000-000000000002', 'title.two_months');
+    perform public.equip_cosmetic('33334444-0000-0000-0000-000000000002', 'title.two_months', 'title');
     raise exception 'FAILED: a player wore a title they had not earned';
   exception when others then
     if sqlerrm like '%not earned%' then
@@ -239,7 +253,7 @@ begin
   end;
 end $$;
 
-select public.equip_title('33334444-0000-0000-0000-000000000002', null);
+select public.equip_cosmetic('33334444-0000-0000-0000-000000000002', null, 'title');
 
 select public.assert(
   (select equipped_title is null from public.profiles

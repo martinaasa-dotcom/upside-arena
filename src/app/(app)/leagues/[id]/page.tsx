@@ -6,8 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InviteCode } from "@/components/InviteCode";
 import { StandingsTable } from "@/components/StandingsTable";
+import { WeeklyGoal } from "@/components/WeeklyGoal";
 import { getSession } from "@/lib/profile";
 import { getLeagueStandings } from "@/lib/game/leagues";
+import { getGoals } from "@/lib/game/goals";
+import { goalLabel, goalMet } from "@/lib/game/goal-kinds";
+import { getWeekStreaks } from "@/lib/game/streaks";
+import { tradingDaysSoFarThisWeek } from "@/lib/market/session";
 import { submitLeaveLeague } from "@/app/(app)/leagues/actions";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { TrackView } from "@/components/TrackView";
@@ -41,8 +46,36 @@ export default async function LeaguePage({
   // telling them apart would confirm a league exists to someone guessing.
   if (!data) notFound();
 
-  const { league, standings, benchmarkReturnPercent, rival } = data;
+  const { league, cycle, standings, benchmarkReturnPercent, rival } = data;
   const you = standings.find((s) => s.isYou);
+
+  /*
+    What everybody said they would do this week, and how it is going. Worked
+    out here from the standings that were just computed rather than stored,
+    so a goal is never a second opinion about a result.
+  */
+  const [goals, weekStreaks] = await Promise.all([
+    getGoals(league.id, cycle.id),
+    getWeekStreaks(standings.map((row) => row.userId)),
+  ]);
+
+  const tradingDaysSoFar = tradingDaysSoFarThisWeek();
+
+  const goalFor = (userId: string) => {
+    const goal = goals.get(userId);
+    if (!goal) return null;
+
+    const standing = standings.find((row) => row.userId === userId);
+    if (!standing) return null;
+
+    return {
+      label: goalLabel(goal.kind),
+      met: goalMet(goal.kind, standing, {
+        streakThisWeek: weekStreaks.get(userId) ?? 0,
+        tradingDaysSoFar,
+      }),
+    };
+  };
 
   return (
     <div className={`${PAGE} ${STACK}`}>
@@ -100,8 +133,13 @@ export default async function LeaguePage({
       ) : null}
 
       <Panel title="This week" description="Everyone started Monday with the same money.">
-        <StandingsTable standings={standings} />
+        <StandingsTable standings={standings} goalFor={goalFor} />
       </Panel>
+
+      <WeeklyGoal
+        leagueId={league.id}
+        declared={goals.get(user.id)?.kind ?? null}
+      />
 
       <Panel
         title="Invite someone"

@@ -8,7 +8,7 @@ import { getSession } from "@/lib/profile";
 import { getStanding, FREE_STANDING } from "@/lib/billing/entitlements";
 import { getRewards } from "@/lib/game/streaks";
 import { COIN_BUNDLES, COIN_TERMS, PLUS_BENEFITS } from "@/lib/billing/plan";
-import { stripeConfigured, subscriptionConfigured } from "@/lib/billing/stripe";
+import { cadencesOnSale, stripeConfigured } from "@/lib/billing/stripe";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatDate } from "@/lib/format";
 
@@ -99,7 +99,7 @@ export default async function PlusPage() {
             status={standing.status}
             hasPlus={standing.hasPlus}
             until={standing.until ? formatDate(standing.until) : null}
-            canSubscribe={subscriptionConfigured}
+            cadences={cadencesOnSale()}
             canManage={stripeConfigured && standing.hasPlus}
           />
         </div>
@@ -107,7 +107,7 @@ export default async function PlusPage() {
 
       <Panel
         title="Coins"
-        description="For buying titles outright. Every bundle is a fixed number of coins for a fixed price, and you see what you are getting before you pay."
+        description="You earn coins by turning up: every streak milestone pays some, and the longer ones hand over something to wear. Buying them is the shortcut. Every bundle is a fixed number of coins for a fixed price, and you see what you are getting before you pay."
         action={
           <span className="figure flex items-center gap-2 text-lg font-semibold">
             <Coins className="size-4 text-primary" aria-hidden="true" />

@@ -1,12 +1,25 @@
 import { cn } from "@/lib/utils";
 import { formatMoney, formatPercent, initials } from "@/lib/format";
+import { GoalMark } from "@/components/WeeklyGoal";
 import type { Standing } from "@/lib/game/leagues";
 
 /*
   The league table. One fixed-height row per person, so a glance down the
   column tells you where you are.
 */
-export function StandingsTable({ standings }: { standings: Standing[] }) {
+export function StandingsTable({
+  standings,
+  goalFor,
+}: {
+  standings: Standing[];
+  /*
+    What this person said they would do this week, if anything. A goal is
+    shown under the name rather than in a column of its own, because most
+    weeks most people will not have declared one and an empty column reads as
+    a missing value rather than as a choice nobody made.
+  */
+  goalFor?: (userId: string) => { label: string; met: boolean | null } | null;
+}) {
   return (
     <div className="flex flex-col gap-2">
       {standings.map((row) => {
@@ -38,11 +51,18 @@ export function StandingsTable({ standings }: { standings: Standing[] }) {
                   <span className="ml-2 text-xs text-primary">You</span>
                 ) : null}
               </span>
-              {!row.hasTraded ? (
-                <span className="text-xs text-muted-foreground">
-                  Has not traded yet
-                </span>
-              ) : null}
+              {(() => {
+                const goal = goalFor?.(row.userId);
+                if (goal) return <GoalMark label={goal.label} met={goal.met} />;
+                if (!row.hasTraded) {
+                  return (
+                    <span className="text-xs text-muted-foreground">
+                      Has not traded yet
+                    </span>
+                  );
+                }
+                return null;
+              })()}
             </span>
 
             <span className="flex shrink-0 flex-col items-end">

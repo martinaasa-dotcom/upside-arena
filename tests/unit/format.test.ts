@@ -5,6 +5,7 @@ import {
   formatPercent,
   formatTime,
   initials,
+  ordinal,
   plural,
 } from "@/lib/format";
 
@@ -61,5 +62,31 @@ describe("plural", () => {
     expect(plural(0, "day")).toBe("0 days");
     expect(plural(1, "freeze")).toBe("1 freeze");
     expect(plural(3, "freeze")).toBe("3 freezes");
+  });
+});
+
+describe("ordinal", () => {
+  it("writes a place the way it is said", () => {
+    expect(ordinal(1)).toBe("1st");
+    expect(ordinal(2)).toBe("2nd");
+    expect(ordinal(3)).toBe("3rd");
+    expect(ordinal(4)).toBe("4th");
+  });
+
+  it("gets the teens right", () => {
+    // The whole reason this is a function rather than a lookup on the last
+    // digit. Eleventh is not "11st".
+    expect(ordinal(11)).toBe("11th");
+    expect(ordinal(12)).toBe("12th");
+    expect(ordinal(13)).toBe("13th");
+  });
+
+  it("carries on past the teens", () => {
+    expect(ordinal(21)).toBe("21st");
+    expect(ordinal(22)).toBe("22nd");
+    expect(ordinal(23)).toBe("23rd");
+    expect(ordinal(101)).toBe("101st");
+    expect(ordinal(111)).toBe("111th");
+    expect(ordinal(112)).toBe("112th");
   });
 });
