@@ -8,6 +8,8 @@ import { Holdings } from "@/components/Holdings";
 import { StreakCard } from "@/components/StreakCard";
 import { EarnedToast } from "@/components/EarnedToast";
 import { NotificationInvite } from "@/components/NotificationInvite";
+import { FirstRun } from "@/components/FirstRun";
+import { Ticker } from "@/components/Ticker";
 import { WeekRecap } from "@/components/WeekRecap";
 import { TrackView } from "@/components/TrackView";
 import { LabHandoff } from "@/components/LabHandoff";
@@ -96,6 +98,14 @@ export default async function HomePage() {
   const up = view.returnPercent >= 0;
 
   /*
+    Somebody who has never traded is still being told what this is. It goes
+    the moment they do, because an explainer that outlives its usefulness is
+    an advert for something they already have.
+  */
+  const brandNew = view.positions.length === 0 && view.cash === view.startingBalance;
+  const starter = leagues[0] ?? null;
+
+  /*
     Whether there is anything worth asking to interrupt them for, said in the
     words of the thing itself. With nobody to be passed by and nothing owned,
     the honest answer is that there is not, and nothing is asked.
@@ -130,12 +140,12 @@ export default async function HomePage() {
       <Scoreboard>
         <Score
           label="Your money"
-          value={formatMoney(view.totalValue)}
+          value={<Ticker value={view.totalValue} format="money" />}
           hint={`Started with ${formatMoney(view.startingBalance)}`}
         />
         <Score
           label="This week"
-          value={formatPercent(view.returnPercent)}
+          value={<Ticker value={view.returnPercent} format="percent" />}
           tone={up ? "gain" : "loss"}
           hint={`${up ? "Up" : "Down"} ${formatMoney(
             Math.abs(view.totalValue - view.startingBalance)
@@ -208,6 +218,14 @@ export default async function HomePage() {
           />
           <StreakCard streak={activity.streak} />
         </>
+      ) : null}
+
+      {brandNew ? (
+        <FirstRun
+          startingBalance={view.startingBalance}
+          leagueName={starter?.name ?? null}
+          inviteCode={starter?.inviteCode ?? null}
+        />
       ) : null}
 
       {handoff ? (
