@@ -29,10 +29,36 @@ export const canWriteGame = Boolean(
 export const isGoogleEnabled =
   process.env.NEXT_PUBLIC_ENABLE_GOOGLE_AUTH === "true";
 
+const LOCAL_ORIGIN = "http://localhost:3000";
+
+/**
+ * Where this deployment lives, used to build sign-in links.
+ *
+ * An environment variable that exists but is empty is treated as unset. That
+ * is not hypothetical: a blank value in a hosting dashboard is a normal way to
+ * leave a placeholder, and `??` would hand the empty string straight through
+ * to `new URL()`, which throws and fails the whole build.
+ */
 export function siteUrl() {
-  const raw =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ??
-    "http://localhost:3000";
-  return raw.replace(/\/$/, "");
+  const candidates = [
+    process.env.NEXT_PUBLIC_SITE_URL?.trim(),
+    process.env.VERCEL_URL?.trim()
+      ? `https://${process.env.VERCEL_URL.trim()}`
+      : "",
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const withScheme = /^https?:\/\//.test(candidate)
+      ? candidate
+      : `https://${candidate}`;
+    try {
+      // A malformed value should fall back rather than break every page.
+      return new URL(withScheme).origin;
+    } catch {
+      continue;
+    }
+  }
+
+  return LOCAL_ORIGIN;
 }
