@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, isSupabaseConfigured } from "@/lib/env";
+import { buildContentSecurityPolicy } from "@/lib/security-headers";
 
 /** Routes a signed-out visitor may see. Everything else needs a session. */
 const PUBLIC_PATHS = [
@@ -34,7 +35,10 @@ function isPublic(pathname: string) {
 }
 
 export async function updateSession(request: NextRequest) {
+  const csp = buildContentSecurityPolicy();
+
   let response = NextResponse.next({ request });
+  response.headers.set("Content-Security-Policy", csp);
 
   // Without a project configured the app still renders its signed-out shell.
   if (!isSupabaseConfigured) return response;
@@ -49,6 +53,7 @@ export async function updateSession(request: NextRequest) {
           request.cookies.set(name, value);
         }
         response = NextResponse.next({ request });
+        response.headers.set("Content-Security-Policy", csp);
         for (const { name, value, options } of cookiesToSet) {
           response.cookies.set(name, value, options);
         }
