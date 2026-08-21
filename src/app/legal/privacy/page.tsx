@@ -21,10 +21,13 @@ export default function PrivacyPage() {
 
       <h2>1. Who is responsible for your data</h2>
       <p>
-        {COMPANY.legalName}, registered in {COMPANY.country} under registry code{" "}
-        {COMPANY.registryCode}, at {COMPANY.address}, is the controller of your
+        {COMPANY.legalName}, a private limited company in {COMPANY.country}{" "}
+        (registry code {COMPANY.registryCode}), registered office{" "}
+        {COMPANY.address}, VAT ID {COMPANY.vatId}, is the controller of your
         data. That means we decide what is collected and why, and we are the
-        ones you can hold to this policy.
+        ones you can hold to this policy. It is the same company behind{" "}
+        {COMPANY.siblingProduct}, though the two products keep separate
+        accounts and separate databases.
       </p>
       <p>
         For anything about your data, email{" "}
@@ -207,9 +210,15 @@ export default function PrivacyPage() {
           question and for a reasonable time after, in case you come back to us.
         </li>
         <li>
-          <strong>Backups.</strong> Deleted data can survive in a backup for a
-          short period before the backup is overwritten. It is not used for
-          anything in the meantime.
+          <strong>Backups.</strong> We keep an encrypted backup copy outside the
+          main database, so the app can be rebuilt if our database provider had
+          a serious failure. It is one combined file covering every account, not
+          a file for each person, so a single account cannot be edited out of
+          it. Each day&rsquo;s copy is deleted automatically 30 days after it
+          was made. Deleting your account removes your data from the live
+          service straight away, but it can sit in that day&rsquo;s backup until
+          the backup&rsquo;s own 30 days are up, the same as everyone
+          else&rsquo;s.
         </li>
       </ul>
 
@@ -328,9 +337,15 @@ export default function PrivacyPage() {
 
       <h2>12. Children</h2>
       <p>
-        Arena is for people {MINIMUM_AGE} and older. We do not knowingly collect
-        anything from anyone younger. If you believe a child has given us their
-        information, email us and we will delete it and close the account.
+        Under 13 is never allowed. Arena is for people {MINIMUM_AGE} and older,
+        the same rule {COMPANY.siblingProduct} uses. We use {MINIMUM_AGE}{" "}
+        because some countries in Europe set that as the age you can agree to
+        this kind of service by yourself.
+      </p>
+      <p>
+        We do not knowingly collect anything from anyone younger. If you believe
+        a child has given us their information, email us and we will delete it
+        and close the account.
       </p>
 
       <h2>13. How we protect your data</h2>
@@ -361,8 +376,14 @@ export default function PrivacyPage() {
 
       <h2>16. How to reach us</h2>
       <p>
-        {COMPANY.legalName}, {COMPANY.address}, {COMPANY.country}. Email{" "}
+        {COMPANY.legalName}, {COMPANY.address}, {COMPANY.country}.
+      </p>
+      <p>
+        Product help:{" "}
+        <a href={`mailto:${COMPANY.supportEmail}`}>{COMPANY.supportEmail}</a>.
+        Questions, data requests or concerns:{" "}
         <a href={`mailto:${COMPANY.privacyEmail}`}>{COMPANY.privacyEmail}</a>.
+        See also our <a href="/legal/terms">terms</a>.
       </p>
     </LegalPage>
   );

@@ -18,15 +18,20 @@ export default function TermsPage() {
 
       <h2>1. Who you are dealing with</h2>
       <p>
-        Arena is run by {COMPANY.legalName}, a company registered in{" "}
-        {COMPANY.country} under registry code {COMPANY.registryCode}, at{" "}
-        {COMPANY.address}. You can reach us at any time at{" "}
-        <a href={`mailto:${COMPANY.supportEmail}`}>{COMPANY.supportEmail}</a>.
+        Arena is run by {COMPANY.legalName}, a private limited company in{" "}
+        {COMPANY.country} (registry code {COMPANY.registryCode}). Registered
+        office: {COMPANY.address}. VAT ID {COMPANY.vatId}.
       </p>
       <p>
-        We also run {COMPANY.siblingProduct}. It is a separate product with its
-        own terms and its own account. Using one does not sign you up for the
-        other.
+        Product help:{" "}
+        <a href={`mailto:${COMPANY.supportEmail}`}>{COMPANY.supportEmail}</a>.
+        Questions about these terms:{" "}
+        <a href={`mailto:${COMPANY.privacyEmail}`}>{COMPANY.privacyEmail}</a>.
+      </p>
+      <p>
+        We also run {COMPANY.siblingProduct}, the same company&rsquo;s other
+        product. It has its own terms and its own account. Using one does not
+        sign you up for the other.
       </p>
 
       <h2>2. What Arena is, and what it is not</h2>
@@ -77,9 +82,14 @@ export default function TermsPage() {
 
       <h2>4. Who can play</h2>
       <p>
-        You must be {MINIMUM_AGE} or older to hold an account. If we find out an
-        account holder is younger, we will close the account and delete the data
-        as described in our privacy policy.
+        Under 13 is never allowed. You must be {MINIMUM_AGE} or older to hold an
+        account, which is the same rule {COMPANY.siblingProduct} uses. We use{" "}
+        {MINIMUM_AGE} because some countries in Europe set that as the age you
+        can agree to this kind of service by yourself.
+      </p>
+      <p>
+        If we find out an account holder is younger, we will close the account
+        and delete the data as described in our privacy policy.
       </p>
       <p>
         Arena is currently offered to people in {markets}. If you use it from
@@ -298,7 +308,7 @@ export default function TermsPage() {
       <h2>17. If something goes wrong between us</h2>
       <p>
         Email{" "}
-        <a href={`mailto:${COMPANY.supportEmail}`}>{COMPANY.supportEmail}</a>{" "}
+        <a href={`mailto:${COMPANY.privacyEmail}`}>{COMPANY.privacyEmail}</a>{" "}
         first and tell us what happened. Most things are quicker to sort out that
         way, and we will reply.
       </p>
@@ -352,8 +362,14 @@ export default function TermsPage() {
 
       <h2>20. How to reach us</h2>
       <p>
-        {COMPANY.legalName}, {COMPANY.address}, {COMPANY.country}. Email{" "}
+        {COMPANY.legalName}, {COMPANY.address}, {COMPANY.country}.
+      </p>
+      <p>
+        Product help:{" "}
         <a href={`mailto:${COMPANY.supportEmail}`}>{COMPANY.supportEmail}</a>.
+        Questions about these terms, or anything about your data:{" "}
+        <a href={`mailto:${COMPANY.privacyEmail}`}>{COMPANY.privacyEmail}</a>.
+        See also our <a href="/legal/privacy">privacy policy</a>.
       </p>
     </LegalPage>
   );

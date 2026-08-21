@@ -172,10 +172,7 @@ Section 13 of the plan lists three open decisions. None of them blocked phase
 - **Season length** (monthly or quarterly). Needed after the weekly loop is
   validated.
 
-Three more that phase 1 has surfaced:
-
-- **The registered company details** in `src/lib/company.ts`. Needed before the
-  legal pages can be published.
+Two more that phase 1 has surfaced:
 
 - **A market data vendor** must be picked before phase 2. The plan lists
   Finnhub, IEX Cloud and Alpha Vantage as candidates.
@@ -208,11 +205,13 @@ the explicit statement that data is neither sold nor shared for advertising.
 
 Two things follow from writing them this way:
 
-- **`src/lib/company.ts` still has placeholder values.** The registered company
-  name, registry code and address are not known here. While any of them is
-  unfilled, both legal pages render a visible draft notice, so an unconfirmed
-  detail cannot quietly ship as though it were real. Fill that file in and the
-  notice disappears.
+- **`src/lib/company.ts` carries the same company details Upside Lab
+  publishes**: Upthink Solutions OÜ, its registry code, registered office and
+  VAT ID, `app.support@upthink.ee` for product help and `privacy@upthink.ee`
+  for data requests. Arena is a second product of one company, not a second
+  company, so the two sets of documents must not disagree about who is behind
+  them. The file still detects an unfilled value and makes both legal pages
+  show a draft notice, which is what should happen if a detail is ever cleared.
 - **Consent is now enforced in code, not just described.** The policy says
   nothing is measured until you agree, so `track()` drops every event until
   consent is granted, a banner asks on first visit with refusing exactly as easy

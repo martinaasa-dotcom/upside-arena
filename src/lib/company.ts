@@ -10,17 +10,25 @@
   as though it were real.
 */
 
+/*
+  These are the same company and the same addresses Upside Lab publishes.
+  Arena is a second product of one company, not a second company, so the two
+  sets of documents must not disagree about who is behind them.
+*/
 export const COMPANY = {
   /** Registered company name, exactly as it appears in the register. */
-  legalName: "[registered company name]",
+  legalName: "Upthink Solutions OÜ",
   /** Estonian business register code. */
-  registryCode: "[registry code]",
+  registryCode: "16683946",
   /** Registered address. */
-  address: "[registered address]",
+  address: "Aiandi tn 8/2-28, Mustamäe linnaosa, 12915 Tallinn, Harju maakond",
+  /** Publishing this is required of an EU business selling to consumers. */
+  vatId: "EE102590654",
   country: "Estonia",
+  /** Product help. */
   supportEmail: "app.support@upthink.ee",
-  /** Where privacy requests go. May be the same address as support. */
-  privacyEmail: "app.support@upthink.ee",
+  /** Data requests and anything about the documents themselves. */
+  privacyEmail: "privacy@upthink.ee",
   productName: "Upside Arena",
   siblingProduct: "Upside Lab",
 } as const;
@@ -55,12 +63,14 @@ export const CONSUMER_DISPUTES = {
 export const PROCESSORS = [
   {
     name: "Supabase",
-    role: "Stores your account, your profile and your game history.",
+    role:
+      "Our database and sign-in provider. Everything you enter lives there, " +
+      "and it sends your sign-in links.",
     where: "European Union",
   },
   {
     name: "Vercel",
-    role: "Serves the website and keeps short-lived server logs.",
+    role: "Hosting. Keeps short-lived server logs.",
     where: "European Union and the United States",
   },
 ] as const;
