@@ -10,6 +10,7 @@ import {
   isTradingDay,
   nyDate,
   tradingDaysBetween,
+  tradingDaysSoFarThisWeek,
 } from "@/lib/market/session";
 import type {
   CosmeticSlot,
@@ -229,6 +230,41 @@ export async function recordVisit(userId: string): Promise<VisitResult | null> {
       .map((m) => ({ id: m.id, name: m.name, description: m.description })),
     bonuses,
   };
+}
+
+/**
+ * How many trading days of this week each of these players has turned up for.
+ *
+ * Derived from the streak rather than stored separately: a streak that is
+ * still running and was last credited inside this week covers exactly the
+ * days of it that have happened. Somebody whose last visit was last week
+ * counts as none, however long their streak was.
+ */
+export async function getWeekStreaks(
+  userIds: string[]
+): Promise<Map<string, number>> {
+  const empty = new Map<string, number>();
+  if (!canWriteGame || userIds.length === 0) return empty;
+
+  const admin = createAdminClient();
+  const monday = cycleMonday();
+  const soFar = tradingDaysSoFarThisWeek();
+
+  const { data } = await admin
+    .from("streaks")
+    .select("user_id, current_streak, last_active_date")
+    .in("user_id", userIds);
+
+  for (const row of (data ?? []) as {
+    user_id: string;
+    current_streak: number;
+    last_active_date: string | null;
+  }[]) {
+    if (!row.last_active_date || row.last_active_date < monday) continue;
+    empty.set(row.user_id, Math.min(row.current_streak, soFar));
+  }
+
+  return empty;
 }
 
 /** The streak as it stands, without crediting anything. */

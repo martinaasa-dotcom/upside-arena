@@ -45,6 +45,8 @@ export type AnalyticsEvent =
   | "league_invite_copied"
   | "league_left"
   | "standings_viewed"
+  | "goal_declared"
+  | "goal_withdrawn"
   // The long arc
   | "season_viewed"
   // Coming back

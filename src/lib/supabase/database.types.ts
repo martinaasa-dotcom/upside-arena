@@ -46,6 +46,15 @@ export type WeeklyCycleRow = {
   closed_at: string | null;
 };
 
+export type WeeklyGoalRow = {
+  id: string;
+  user_id: string;
+  league_id: string;
+  cycle_id: string;
+  kind: "beat_market" | "finish_up" | "top_three" | "every_day";
+  declared_at: string;
+};
+
 export type SeasonRow = {
   id: string;
   starts_on: string;
@@ -311,6 +320,7 @@ export type Database = {
       profiles: Table<ProfileRow>;
       terms_acceptances: Table<TermsAcceptanceRow>;
       weekly_cycles: Table<WeeklyCycleRow>;
+      weekly_goals: Table<WeeklyGoalRow>;
       seasons: Table<SeasonRow>;
       season_results: Table<SeasonResultRow>;
       portfolios: Table<PortfolioRow>;
@@ -384,6 +394,15 @@ export type Database = {
       release_cycle_claim: {
         Args: { p_cycle_id: string };
         Returns: undefined;
+      };
+      declare_goal: {
+        Args: {
+          p_user_id: string;
+          p_league_id: string;
+          p_cycle_id: string;
+          p_kind: string;
+        };
+        Returns: WeeklyGoalRow;
       };
       season_for: {
         Args: { p_monday: string };
