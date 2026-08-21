@@ -1,11 +1,15 @@
 /*
-  Arena's own mark. Related to Lab's by construction, not identical.
+  Arena's own mark. Related to Lab's by construction, not by colour.
 
-  Shared family DNA: precision-cut triangular facets, warm-gold hue family,
-  metallic light-to-dark facet shading.
-  Different silhouette: Lab is a solid standing "A". Arena is an open chevron,
-  notched at the apex into two opposing facet clusters, so it reads as upward
-  motion and a head-to-head matchup rather than a letterform standing still.
+  Shared family DNA: precision-cut facets, flat fills with no strokes, and
+  metallic light-to-dark facet shading on the same 64 grid.
+  Different silhouette and different stone: Lab is a solid standing "A" in
+  warm gold. Arena is a single eight-sided stone parted along its diagonal,
+  cut from aqua, so the two marks are unmistakably siblings and unmistakably
+  not the same product.
+
+  The parting is what carries the meaning. One stone, cleanly split, with the
+  lit half in front and the shadowed half falling back behind it.
 */
 
 type ArenaMarkProps = {
@@ -14,19 +18,20 @@ type ArenaMarkProps = {
   title?: string;
 };
 
-// Each facet is drawn full-size then scaled toward its own centroid, which
-// produces the even hairline gaps the cut-gem treatment depends on.
+/*
+  Geometry comes from an octagon of radius 26 about (32, 32), rotated 22.5deg
+  so the stone sits flat, then parted along the diagonal by 1.5 in each
+  direction. Each facet is drawn full-size and scaled toward its own centroid,
+  which produces the even hairline gaps the cut-stone treatment depends on.
+  Kept in step with scripts/generate-icons.mjs.
+*/
 const FACETS: { points: string; centroid: [number, number]; fill: string }[] = [
-  // Left cluster, dark tail up to bright apex.
-  { points: "2,38 16,21 2,58", centroid: [6.67, 39.0], fill: "url(#arena-deep)" },
-  { points: "16,21 16,41 2,58", centroid: [11.33, 40.0], fill: "url(#arena-mid)" },
-  { points: "16,21 30,4 16,41", centroid: [20.67, 22.0], fill: "url(#arena-warm)" },
-  { points: "30,4 30,24 16,41", centroid: [25.33, 23.0], fill: "url(#arena-bright)" },
-  // Right cluster, mirrored and shaded in the opposite order.
-  { points: "62,38 48,21 62,58", centroid: [57.33, 39.0], fill: "url(#arena-mid)" },
-  { points: "48,21 48,41 62,58", centroid: [52.67, 40.0], fill: "url(#arena-deep)" },
-  { points: "48,21 34,4 48,41", centroid: [43.33, 22.0], fill: "url(#arena-bright)" },
-  { points: "34,4 34,24 48,41", centroid: [38.67, 23.0], fill: "url(#arena-warm)" },
+  // Upper half: the rim catches the light, the lit face carries the stone.
+  { points: "23.55,6.48 43.45,6.48 57.52,20.55", centroid: [41.51, 11.17], fill: "arena-rim" },
+  { points: "23.55,6.48 57.52,20.55 57.52,40.45 43.45,54.52", centroid: [45.51, 30.5], fill: "arena-lit" },
+  // Lower half: falls away behind the cut.
+  { points: "40.45,57.52 20.55,57.52 6.48,43.45", centroid: [22.49, 52.83], fill: "arena-body" },
+  { points: "40.45,57.52 6.48,43.45 6.48,23.55 20.55,9.48", centroid: [18.49, 33.5], fill: "arena-shadow" },
 ];
 
 export function ArenaMark({ className, size = 20, title }: ArenaMarkProps) {
@@ -42,21 +47,21 @@ export function ArenaMark({ className, size = 20, title }: ArenaMarkProps) {
       focusable="false"
     >
       <defs>
-        <linearGradient id="arena-bright" x1="0" y1="0" x2="0.6" y2="1">
-          <stop offset="0%" stopColor="#f7e8bb" />
-          <stop offset="100%" stopColor="#d9c184" />
+        <linearGradient id="arena-rim" x1="0" y1="0" x2="0.6" y2="1">
+          <stop offset="0%" stopColor="#d9f7ff" />
+          <stop offset="100%" stopColor="#a6e4f2" />
         </linearGradient>
-        <linearGradient id="arena-warm" x1="0" y1="0" x2="0.7" y2="1">
-          <stop offset="0%" stopColor="#e4cf94" />
-          <stop offset="100%" stopColor="#c2a45f" />
+        <linearGradient id="arena-lit" x1="0" y1="0" x2="0.6" y2="1">
+          <stop offset="0%" stopColor="#4fd0e0" />
+          <stop offset="100%" stopColor="#2a9fb5" />
         </linearGradient>
-        <linearGradient id="arena-mid" x1="0.2" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#c9a659" />
-          <stop offset="100%" stopColor="#a8813a" />
+        <linearGradient id="arena-body" x1="0.2" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#17879c" />
+          <stop offset="100%" stopColor="#0d6070" />
         </linearGradient>
-        <linearGradient id="arena-deep" x1="0.2" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#a87c33" />
-          <stop offset="100%" stopColor="#7d551d" />
+        <linearGradient id="arena-shadow" x1="0.2" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#0b4a58" />
+          <stop offset="100%" stopColor="#052e36" />
         </linearGradient>
       </defs>
       {FACETS.map((facet, i) => {
@@ -65,7 +70,7 @@ export function ArenaMark({ className, size = 20, title }: ArenaMarkProps) {
           <polygon
             key={i}
             points={facet.points}
-            fill={facet.fill}
+            fill={`url(#${facet.fill})`}
             transform={`translate(${cx} ${cy}) scale(0.93) translate(${-cx} ${-cy})`}
           />
         );
