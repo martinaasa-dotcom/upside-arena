@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+  <linearGradient id="arena-bright" x1="0" y1="0" x2="0.6" y2="1">
+    <stop offset="0%" stop-color="#f7e8bb"/><stop offset="100%" stop-color="#d9c184"/>
+  </linearGradient>
+  <linearGradient id="arena-warm" x1="0" y1="0" x2="0.7" y2="1">
+    <stop offset="0%" stop-color="#e4cf94"/><stop offset="100%" stop-color="#c2a45f"/>
+  </linearGradient>
+  <linearGradient id="arena-mid" x1="0.2" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#c9a659"/><stop offset="100%" stop-color="#a8813a"/>
+  </linearGradient>
+  <linearGradient id="arena-deep" x1="0.2" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#a87c33"/><stop offset="100%" stop-color="#7d551d"/>
+  </linearGradient></defs>
+  <polygon points="32,32 32,5 50,11" fill="url(#arena-bright)" transform="translate(38 16) scale(0.93) translate(-38 -16)"/>
+  <polygon points="32,32 50,11 45,28" fill="url(#arena-warm)" transform="translate(42.33 23.67) scale(0.93) translate(-42.33 -23.67)"/>
+  <polygon points="32,32 59,32 53,50" fill="url(#arena-warm)" transform="translate(48 38) scale(0.93) translate(-48 -38)"/>
+  <polygon points="32,32 53,50 36,45" fill="url(#arena-mid)" transform="translate(40.33 42.33) scale(0.93) translate(-40.33 -42.33)"/>
+  <polygon points="32,32 32,59 14,53" fill="url(#arena-mid)" transform="translate(26 48) scale(0.93) translate(-26 -48)"/>
+  <polygon points="32,32 14,53 19,36" fill="url(#arena-deep)" transform="translate(21.67 40.33) scale(0.93) translate(-21.67 -40.33)"/>
+  <polygon points="32,32 5,32 11,14" fill="url(#arena-deep)" transform="translate(16 26) scale(0.93) translate(-16 -26)"/>
+  <polygon points="32,32 11,14 28,19" fill="url(#arena-bright)" transform="translate(23.67 21.67) scale(0.93) translate(-23.67 -21.67)"/>
+</svg>
