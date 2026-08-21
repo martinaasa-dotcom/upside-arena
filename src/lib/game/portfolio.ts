@@ -60,6 +60,14 @@ export type PortfolioView = {
   /** How far ahead of the market the player is, in percentage points. */
   versusMarket: number | null;
   tradingOpen: boolean;
+  /**
+   * Whether the market is open, taken from the benchmark quote.
+   *
+   * Never read this from a holding: a player who owns nothing has no quote to
+   * read it from, and the screen would claim the market was shut on a
+   * Wednesday afternoon.
+   */
+  marketState: string | null;
   /** True when any price shown came from cache after a failed refresh. */
   anyStale: boolean;
 };
@@ -208,6 +216,7 @@ export async function getPortfolioView(
     versusMarket:
       benchmarkReturnPercent == null ? null : returnPercent - benchmarkReturnPercent,
     tradingOpen: cycle.status === "open" && isTradingOpen(),
+    marketState: benchmarkQuote?.marketState ?? null,
     anyStale,
   };
 }

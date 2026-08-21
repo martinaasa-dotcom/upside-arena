@@ -67,7 +67,6 @@ export default async function HomePage() {
   }
 
   const up = view.returnPercent >= 0;
-  const marketState = view.positions[0]?.quote?.marketState ?? null;
 
   return (
     <div className={`${PAGE} ${STACK}`}>
@@ -77,7 +76,7 @@ export default async function HomePage() {
           {view.anyStale ? (
             <Badge variant="warning">Prices are catching up</Badge>
           ) : null}
-          <Badge variant="outline">{sessionLabel(marketState)}</Badge>
+          <Badge variant="outline">{sessionLabel(view.marketState)}</Badge>
           <Badge variant="outline">Play money</Badge>
         </div>
       </div>
