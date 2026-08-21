@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { getSharedCard } from "@/lib/game/share";
 import { headline, ordinal, versusMarketLine, weekLabel } from "@/lib/share/card";
-import { HEX, PRIMARY_RGB, arenaMarkDataUri } from "@/lib/brand/mark";
+import { HEX, PRIMARY_RGB, SECONDARY_RGB, arenaMarkDataUri } from "@/lib/brand/mark";
 import { formatPercent, plural } from "@/lib/format";
 
 /*
@@ -132,13 +132,13 @@ export default async function Image({
     flexDirection: "column",
     backgroundColor: HEX.field,
     /*
-      The ambient glow, both lobes in the accent. Product chrome follows
-      --primary and is amber, while the mark itself stays aqua: the two are a
-      deliberate warm-against-cool pair, not two accents competing.
+      The ambient field. Product chrome follows
+      the app: the near lobe in --primary aqua, matching the mark, and the far
+      one in the magenta counter-accent.
     */
     backgroundImage:
       `radial-gradient(900px 720px at -4% -8%, rgba(${PRIMARY_RGB}, 0.30), transparent 66%),` +
-      `radial-gradient(940px 720px at 100% 100%, rgba(${PRIMARY_RGB}, 0.10), transparent 72%)`,
+      `radial-gradient(940px 720px at 100% 100%, rgba(${SECONDARY_RGB}, 0.16), transparent 72%)`,
     padding: 64,
     fontFamily: "Geist",
   };

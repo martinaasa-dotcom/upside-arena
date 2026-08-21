@@ -1,10 +1,24 @@
 # Upside Lab visual system (for Upside Arena)
 
 > **Superseded in part.** This records Lab's system as of the capture date and
-> the constraint Arena started from. Arena has since diverged on the mark and
-> the accent by explicit decision: the mark is a parted aqua stone, and
-> `--primary` is a warmer amber. See `docs/brand/ARENA_MARK.md`, which wins
-> where the two disagree. Everything else here still holds.
+> the constraint Arena started from. Arena has since diverged by explicit
+> decision, and `docs/brand/ARENA_MARK.md` wins wherever the two disagree:
+>
+> - The mark is a parted aqua stone, not a gold "A".
+> - `--primary` is that same aqua, `oklch(0.79 0.113 207)`. Arena's accent is
+>   not a warm yellow, and the "do not guess" note below applies to Lab only.
+> - A second brand colour exists: `--glow-secondary`, a magenta, lighting the
+>   far lobe of the ambient field. The "one accent only" rule below is Lab's.
+> - The magenta ban in section 3 is Lab's and does not bind Arena. It still
+>   holds for anything semantic: hues near `--loss`, `--destructive`,
+>   `--warning` and `--gain` stay reserved, which is why the counter-accent is
+>   not the coral that colour theory would otherwise point at.
+> - The glass is heavier than section 6 describes. Arena now runs
+>   `blur(40px) saturate(1.9)` with a 66 percent transparent fill, matching
+>   Lab's current source rather than the values captured here, and the header
+>   is a glass bar rather than an opaque one.
+>
+> Everything else here still holds.
 
 Live product: https://upsidelab.app
 Captured: 2026-08-20 audit screenshots under `audit-final/`. Tokens below are from live source (`src/app/globals.css`, `DESIGN_TOKENS.md`) as of 2026-08-21. The system is shipped, measured, and settled. Arena should share this brand shell and diverge only in execution (rooms, interaction, game-like surfaces), not in palette, type, or chrome.

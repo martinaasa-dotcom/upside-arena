@@ -29,7 +29,7 @@ export function AppHeader({ profile }: { profile: Profile | null }) {
   const name = profile?.display_name ?? "Player";
 
   return (
-    <header className="sticky top-0 z-40 h-14 border-b border-border bg-background/75 backdrop-blur-xl">
+    <header className="glass-bar sticky top-0 z-40 h-14 border-b border-border">
       <div className={`${PAGE} flex h-14 items-center gap-3`}>
         <Link href="/home" className="rounded-md focus-visible:outline-none">
           <ArenaWordmark />

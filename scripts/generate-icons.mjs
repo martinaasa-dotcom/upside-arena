@@ -53,8 +53,9 @@ const maskableSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"
 </svg>`;
 
 /*
-  The social card is product chrome, so its ambient glow follows --primary,
-  the warm amber, while the mark stays aqua. Headline is set on two lines:
+  The social card is product chrome, so its ambient field follows the app:
+  the near lobe in --primary aqua, the far one in the magenta counter-accent.
+  Headline is set on two lines:
   the card is rendered with whatever sans the build host has, and one long
   line overflowed 1200px under the fallback metrics.
 */
@@ -62,12 +63,12 @@ const ogSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
   <defs>
     ${GRADIENTS}
     <radialGradient id="glow-a" cx="0" cy="0" r="1">
-      <stop offset="0%" stop-color="#efb970" stop-opacity="0.5"/>
-      <stop offset="66%" stop-color="#efb970" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#4ad0dd" stop-opacity="0.34"/>
+      <stop offset="66%" stop-color="#4ad0dd" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="glow-b" cx="1" cy="1" r="1">
-      <stop offset="0%" stop-color="#efb970" stop-opacity="0.14"/>
-      <stop offset="72%" stop-color="#efb970" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#d466d2" stop-opacity="0.20"/>
+      <stop offset="72%" stop-color="#d466d2" stop-opacity="0"/>
     </radialGradient>
   </defs>
   <rect width="1200" height="630" fill="#000000"/>

@@ -127,7 +127,7 @@ export default async function LandingPage({
 function SampleLeague() {
   return (
     <div className="relative mx-auto w-full max-w-sm md:-rotate-1 md:transition-transform md:duration-700 md:hover:rotate-0">
-      {/* One quiet warm lift behind the card, not a halo. */}
+      {/* One quiet lift behind the card, not a halo. */}
       <div
         className="pointer-events-none absolute -inset-2 -z-10 rounded-[2.5rem] bg-gradient-to-br from-primary/12 to-transparent opacity-70 blur-2xl"
         aria-hidden="true"

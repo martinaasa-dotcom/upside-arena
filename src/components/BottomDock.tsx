@@ -6,7 +6,7 @@ import { ArrowLeftRight, Home, Trophy, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /*
-  Bottom dock, on desktop and phone alike. Active tab is the warm-yellow pill
+  Bottom dock, on desktop and phone alike. Active tab is the aqua pill
   with black type. Rooms are added here as later phases land, never before the
   room exists: a dead tab is worse than a short dock.
 */

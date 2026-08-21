@@ -58,23 +58,38 @@ The shadow step is close to the true-black field on purpose. It was checked at
 16px magnified: the silhouette still holds, so it was left dark rather than
 lifted.
 
-### The product accent: warm amber
+### The product accent: the mark's own aqua
 
-`--primary` moved from Lab's `oklch(0.8 0.09 90)` to **`oklch(0.82 0.11 74)`**
-(`#efb970`).
-
-Arena keeps a warm accent for buttons, the active nav pill, focus rings and the
-ambient glow, so the mark and the chrome form a deliberate warm-against-cool
-pair. The hue moved off Lab's 90 toward 74 because at hue 90 the gold reads
-muddy and slightly green next to aqua; at 74 the two read as opposites on
-purpose. Lightness and chroma came up a little so the accent holds its own
-against a vivid mark.
+`--primary` is **`oklch(0.79 0.113 207)`** (`#4ad0dd`), which is the mark's lit
+face rounded. The chrome and the logo are literally the same colour rather than
+two colours chosen to sit near each other. Black on it clears 10.7:1, so
+`--primary-foreground` stays near-black.
 
 Everything derives from this one token via `oklch(from var(--primary) ...)`, so
 there is exactly one value to change in `src/app/globals.css`.
 
-This value is not Lab's banned Gold Delta (`oklch(0.762 0.102 80)`). It is
-lighter, warmer and more chromatic than that.
+`--cat-1` and `--cat-6` moved from hue 195 to 182 when this landed. `--chart-1`
+is `--primary`, and at 195 those two categories sat 12 degrees off the accent,
+close enough that a chart could have drawn the brand and a category in near
+enough the same colour. Every categorical hue now clears every semantic hue by
+at least 18 degrees.
+
+### The counter-accent
+
+`--glow-secondary` is **`oklch(0.68 0.16 328)`** (`#d466d2`), a magenta. It
+lights the far lobe of the ambient field so the page is lit from two directions
+in two hues rather than one colour twice.
+
+It was chosen rather than picked. The true complement of the accent is hue 27,
+a coral, which would give the most chromatic contrast and is unusable here: it
+lands 5 degrees from `--destructive` and 11 from `--loss`, and in a money game
+an ambient coral wash reads as "you are down" before it reads as decoration.
+Yellow is Lab's and Arena should not borrow it. That leaves the violet to
+magenta band, where 328 sits 121 degrees off the accent, still far enough to
+read as an opposite, while clearing every semantic hue by at least 44 degrees.
+
+It is deliberately quiet: 18 percent on desktop, 13 percent on a phone. It
+should be felt rather than noticed.
 
 ### What did not change
 

@@ -118,15 +118,24 @@ export const HEX = {
   foreground: "#fafafa",
   muted: "#a1a1a1",
   /*
-    Warm amber, oklch(0.82 0.11 74). Moved off Lab's hue 90 so the amber
-    chrome and the aqua mark read as a deliberate warm-against-cool pair
-    rather than as two accents competing. See docs/brand/ARENA_MARK.md.
+    The accent, oklch(0.79 0.113 207). This is the mark's own lit face, so
+    the chrome and the logo are the same aqua rather than two colours chosen
+    to sit near each other. See docs/brand/ARENA_MARK.md.
   */
-  primary: "#efb970",
+  primary: "#4ad0dd",
+  /*
+    The counter-accent, oklch(0.68 0.19 328). Lights the far side of the
+    ambient field. 121 degrees off the accent, so it still reads as an
+    opposite, and clear of every semantic hue by at least 44 degrees.
+  */
+  glowSecondary: "#d466d2",
   primaryForeground: "#0a0a0a",
   gain: "#00bc7d",
   loss: "#f2435f",
 } as const;
 
-/** The accent as rgb components, for the ambient glow's gradient stops. */
-export const PRIMARY_RGB = "239, 185, 112";
+/** The accent as rgb components, for the ambient field's near lobe. */
+export const PRIMARY_RGB = "74, 208, 221";
+
+/** The counter-accent, for the ambient field's far lobe. */
+export const SECONDARY_RGB = "212, 102, 210";

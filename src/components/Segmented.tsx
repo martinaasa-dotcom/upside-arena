@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 type SegmentedOption<T extends string> = { value: T; label: string };
 
-/** Filled toggle row. Active segment is the warm-yellow pill with black type. */
+/** Filled toggle row. Active segment is the aqua pill with black type. */
 export function Segmented<T extends string>({
   options,
   value,
