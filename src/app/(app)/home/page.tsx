@@ -10,11 +10,13 @@ import { EarnedToast } from "@/components/EarnedToast";
 import { NotificationInvite } from "@/components/NotificationInvite";
 import { WeekRecap } from "@/components/WeekRecap";
 import { TrackView } from "@/components/TrackView";
+import { LabHandoff } from "@/components/LabHandoff";
 import { getSession } from "@/lib/profile";
 import { getPortfolioView } from "@/lib/game/portfolio";
 import { recordVisit } from "@/lib/game/streaks";
 import { getLeagues } from "@/lib/game/leagues";
 import { getLatestRecap } from "@/lib/game/share";
+import { considerHandoff, labUrl } from "@/lib/billing/handoff";
 import { plural } from "@/lib/format";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatGap, formatMoney, formatPercent } from "@/lib/format";
@@ -34,14 +36,17 @@ export default async function HomePage() {
     is the trigger the plan says to start with. Crediting it here and nowhere
     else keeps the streak meaning the one thing it claims to mean.
   */
-  const [view, activity, leagues, lastWeek] = user
+  const [view, activity, leagues, lastWeek, handoff] = user
     ? await Promise.all([
         getPortfolioView(user.id),
         recordVisit(user.id),
         getLeagues(user.id),
         getLatestRecap(user.id),
+        // Almost always null. Only for somebody it is actually true of, and
+        // twice at most in their whole time here.
+        considerHandoff(user.id),
       ])
-    : [null, null, [], null];
+    : [null, null, [], null, null];
 
   /*
     With no engine configured there is nothing true to show, so the screen says
@@ -202,6 +207,18 @@ export default async function HomePage() {
             properties={{ counted: activity.streak.countedToday }}
           />
           <StreakCard streak={activity.streak} />
+        </>
+      ) : null}
+
+      {handoff ? (
+        <>
+          <TrackView event="lab_handoff_shown" />
+          <LabHandoff
+            token={handoff.token}
+            weeksPlayed={handoff.weeksPlayed}
+            weeksAhead={handoff.weeksAhead}
+            url={labUrl(handoff.token)}
+          />
         </>
       ) : null}
 

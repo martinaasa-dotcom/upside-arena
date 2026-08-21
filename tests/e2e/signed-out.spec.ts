@@ -154,11 +154,16 @@ test.describe("legal", () => {
   });
 
   test("terms promise cancellation is as easy as signing up", async ({ page }) => {
+    /*
+      Written as a promise about a future paid tier in phase 1, and as a
+      description of a live one in phase 8. The guarantee has not moved: one
+      tap, in the app, and never a phone call.
+    */
     await page.goto("/legal/terms");
     await expect(
-      page.getByText(/cancel it yourself, in the app, as easily as you signed up/)
+      page.getByText(/cancel at any time, yourself, in one tap/i)
     ).toBeVisible();
-    await expect(page.getByText(/never make you phone or email us to cancel/)).toBeVisible();
+    await expect(page.getByText(/never ask you to phone or email us/i)).toBeVisible();
   });
 });
 
@@ -497,5 +502,54 @@ test.describe("a shared week", () => {
 
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toContain("image/png");
+  });
+});
+
+test.describe("paying for things", () => {
+  test("the paid page is behind a sign-in like everything else", async ({ page }) => {
+    await page.goto("/plus");
+    await expect(page).toHaveURL(/\?next=%2Fplus$/);
+  });
+
+  test("the payment webhook refuses an unsigned request", async ({ request }) => {
+    /*
+      The whole paid tier would be free if this ever answered anything else.
+      A 404 means payments are not switched on at all; a 400 means the
+      signature was checked and refused. Both are correct; a 200 is not.
+    */
+    const response = await request.post("/api/stripe/webhook", {
+      data: { id: "evt_forged", type: "customer.subscription.updated" },
+    });
+
+    expect([400, 404]).toContain(response.status());
+  });
+
+  test("the terms say what recurs, what it costs and how to stop it", async ({
+    page,
+  }) => {
+    // Recurring billing has to be disclosed before somebody agrees, and the
+    // cancel path has to be as easy as the signup path.
+    await page.goto("/legal/terms");
+
+    await expect(page.getByText(/renews automatically until you stop it/i)).toBeVisible();
+    await expect(page.getByText(/cancel at any time, yourself, in one tap/i)).toBeVisible();
+    await expect(page.getByText(/never ask you to phone or email us/i)).toBeVisible();
+  });
+
+  test("the terms say coins are not money", async ({ page }) => {
+    await page.goto("/legal/terms");
+
+    await expect(page.getByText(/Coins are not money/)).toBeVisible();
+    await expect(page.getByText(/no randomised bundles, boxes or packs/i)).toBeVisible();
+  });
+
+  test("the terms keep money away from scoring", async ({ page }) => {
+    // The locked rule from section 9. If this line ever leaves the terms,
+    // something has gone badly wrong upstream of the terms.
+    await page.goto("/legal/terms");
+
+    await expect(
+      page.getByText(/Money never changes your score, your ranking, your odds/i)
+    ).toBeVisible();
   });
 });

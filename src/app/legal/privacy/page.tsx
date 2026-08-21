@@ -81,6 +81,12 @@ export default function PrivacyPage() {
           which is the one number that tells us whether the game is any good.
         </li>
         <li>
+          <strong>What you have bought, if you buy anything.</strong> Which
+          subscription or coin bundle, when, and whether it is still running. We
+          never see or store your card number: our payment provider handles the
+          card and tells us only that a payment succeeded.
+        </li>
+        <li>
           <strong>Weeks you choose to share.</strong> When you press share on a
           finished week, we save a copy of that result: your name, the title you
           were wearing, how the week went, where you finished in a league, your
@@ -150,6 +156,12 @@ export default function PrivacyPage() {
           anyone. Nothing produced this way names a person, describes a person,
           or could be traced back to one: it is totals, such as how many
           accounts exist and how many people opened the app yesterday.
+        </li>
+        <li>
+          <strong>To take a payment and give you what you paid for.</strong> We
+          need this to do what you asked us to do. We also have to keep records
+          of what was sold, because tax and accounting law requires it, which is
+          a legal obligation rather than a choice.
         </li>
         <li>
           <strong>To let you share a week.</strong> We do this to do what you

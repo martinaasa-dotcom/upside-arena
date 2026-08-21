@@ -29,6 +29,10 @@ Production and Preview both. None of them belongs in the repository.
 | `RESEND_API_KEY` | a Resend API key | **Server only.** Only used for the email fallback. |
 | `RESEND_FROM` | `Upside Arena <arena@upsidearena.com>` | Optional. Must be a verified sender in Resend. |
 | `ARENA_ADMIN_EMAILS` | your email address | **Server only.** Comma separated. Who may open `/metrics`. Unset means nobody. |
+| `STRIPE_SECRET_KEY` | from the Stripe dashboard | **Server only.** Without it nothing is on sale. |
+| `STRIPE_WEBHOOK_SECRET` | from the Stripe webhook endpoint | **Server only.** Without it the webhook refuses everything. |
+| `STRIPE_PLUS_PRICE_ID` | the recurring price's id | The subscription only appears once this is set. |
+| `NEXT_PUBLIC_LAB_URL` | `https://upsidelab.app` | Optional. Where the handoff points. |
 
 Everything to do with notifications is optional. With no VAPID keys the panel
 on the profile page hides itself and nothing is ever sent; with no Resend key
@@ -161,11 +165,49 @@ said yes, and it carries no names, no tickers, no league names and no figures.
 The two halves answer different questions and neither substitutes for the
 other.
 
+## Payments
+
+Everything is built and nothing is on sale until the Stripe keys are set. With
+none of them the paid page says so plainly, the free game is untouched, and
+the webhook returns a not-found.
+
+To switch it on:
+
+1. Make a **recurring price** for Arena Plus in the Stripe dashboard and put
+   its id in `STRIPE_PLUS_PRICE_ID`. The price lives in Stripe, not in this
+   repository, so changing it never needs a deploy.
+2. Turn on **Stripe Tax**, so VAT and sales tax are worked out for you rather
+   than by us.
+3. Turn on the **Customer Portal**, with cancellation enabled. That is what
+   satisfies the click-to-cancel rule, and Arena has no other cancel path on
+   purpose.
+4. Add a webhook endpoint pointing at `/api/stripe/webhook`, subscribed to
+   `checkout.session.completed`, `customer.subscription.created`,
+   `customer.subscription.updated`, `customer.subscription.deleted` and
+   `invoice.payment_failed`. Put its signing secret in
+   `STRIPE_WEBHOOK_SECRET`.
+
+Coin bundle prices are in `src/lib/billing/plan.ts` rather than in Stripe,
+because a one-off price has to be checked against a list the server controls:
+the bundle id comes from the browser, and the price must never.
+
+Two things that are deliberate and worth not undoing. Every webhook is claimed
+in the database before it is acted on, so Stripe retrying is never a replay.
+And a failed payment marks the subscription past due rather than revoking it,
+because Stripe retries a card for days and cutting somebody off on the first
+failure turns a renewal that would have worked into a lost subscriber.
+
 ## Plan limits worth knowing
 
-The team is on Vercel's **Hobby** plan. Hobby is for non-commercial use. Arena
-is free with no ads, so it fits for now. Phase 8 adds payments, which does not,
-and will need Pro. Scheduling is no longer a reason to upgrade.
+The team is on Vercel's **Hobby** plan, which is for non-commercial use only.
+Arena is free with no ads, so it fits today.
+
+**Taking a payment does not fit, and this is the one thing that has to be
+sorted before the paid tier is switched on.** The code is written and tested;
+setting the Stripe keys on a Hobby deployment would put the project in breach
+of Vercel's terms. Upgrade to Pro first, then set the keys. Nothing else about
+Arena needs Pro: scheduling has not been a reason to upgrade since the
+settlement work in phase 3.
 
 ## Deploying
 

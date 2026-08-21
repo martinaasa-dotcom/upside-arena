@@ -94,6 +94,9 @@ export type RewardRow = {
   description: string;
   streak_required: number | null;
   sort_order: number;
+  /** What it costs in coins, or null when it is earned rather than bought. */
+  coin_price: number | null;
+  plus_only: boolean;
 };
 
 export type UserRewardRow = {
@@ -191,6 +194,63 @@ export type ShareCardRow = {
   revoked_at: string | null;
 };
 
+export type EntitlementRow = {
+  user_id: string;
+  product: string;
+  source: "stripe" | "apple" | "google" | "gift";
+  status: "active" | "past_due" | "cancelled" | "expired";
+  external_ref: string | null;
+  granted_at: string;
+  expires_at: string | null;
+  updated_at: string;
+};
+
+export type CoinBalanceRow = {
+  user_id: string;
+  balance: number;
+  updated_at: string;
+};
+
+export type CoinLedgerRow = {
+  id: string;
+  user_id: string;
+  delta: number;
+  balance_after: number;
+  reason: "purchase" | "spend" | "gift" | "refund";
+  detail: string | null;
+  idempotency_key: string;
+  created_at: string;
+};
+
+export type BillingCustomerRow = {
+  user_id: string;
+  provider: string;
+  customer_id: string;
+  created_at: string;
+};
+
+/*
+  Webhooks already handled. Never read through the client, and listed here
+  only so the drift check can see it: a provider retries until acknowledged,
+  and this table is what makes a retry harmless.
+*/
+export type BillingEventRow = {
+  id: string;
+  provider: string;
+  kind: string;
+  received_at: string;
+};
+
+export type LabHandoffRow = {
+  user_id: string;
+  token: string;
+  shown_count: number;
+  last_shown_at: string | null;
+  dismissed_at: string | null;
+  clicked_at: string | null;
+  created_at: string;
+};
+
 export type DailyActiveRow = {
   user_id: string;
   on_date: string;
@@ -231,6 +291,12 @@ export type Database = {
       portfolio_marks: Table<PortfolioMarkRow>;
       share_cards: Table<ShareCardRow>;
       daily_actives: Table<DailyActiveRow>;
+      entitlements: Table<EntitlementRow>;
+      coin_balances: Table<CoinBalanceRow>;
+      coin_ledger: Table<CoinLedgerRow>;
+      billing_customers: Table<BillingCustomerRow>;
+      billing_events: Table<BillingEventRow>;
+      lab_handoffs: Table<LabHandoffRow>;
     };
     Views: Record<never, never>;
     Functions: {
@@ -324,6 +390,8 @@ export type Database = {
           p_today: string;
           p_missed_days: number;
           p_week_monday: string;
+          /** How many freezes the weekly grant lifts them to. */
+          p_weekly_freezes?: number;
         };
         Returns: StreakRow;
       };
@@ -437,6 +505,51 @@ export type Database = {
           members: number;
           biggest: number;
         }[];
+      };
+      grant_entitlement: {
+        Args: {
+          p_user_id: string;
+          p_product: string;
+          p_source: "stripe" | "apple" | "google" | "gift";
+          p_status: "active" | "past_due" | "cancelled" | "expired";
+          p_external_ref?: string | null;
+          p_expires_at?: string | null;
+        };
+        Returns: EntitlementRow;
+      };
+      has_entitlement: {
+        Args: { p_user_id: string; p_product: string };
+        Returns: boolean;
+      };
+      add_coins: {
+        Args: {
+          p_user_id: string;
+          p_amount: number;
+          p_reason: "purchase" | "gift" | "refund";
+          p_idempotency_key: string;
+          p_detail?: string | null;
+        };
+        Returns: number;
+      };
+      buy_reward: {
+        Args: { p_user_id: string; p_reward_id: string };
+        Returns: number;
+      };
+      link_billing_customer: {
+        Args: { p_user_id: string; p_customer_id: string; p_provider?: string };
+        Returns: undefined;
+      };
+      claim_billing_event: {
+        Args: { p_id: string; p_kind: string; p_provider?: string };
+        Returns: boolean;
+      };
+      record_handoff_shown: {
+        Args: { p_user_id: string };
+        Returns: LabHandoffRow;
+      };
+      record_handoff_outcome: {
+        Args: { p_user_id: string; p_outcome: "clicked" | "dismissed" };
+        Returns: undefined;
       };
       metrics_engagement: {
         Args: { p_today: string };

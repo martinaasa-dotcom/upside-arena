@@ -35,6 +35,8 @@ export async function GET() {
     { data: notificationSettings },
     { data: notifications },
     { data: shareCards },
+    { data: entitlements },
+    { data: coins },
     { data: devices },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
@@ -61,6 +63,8 @@ export async function GET() {
       .maybeSingle(),
     supabase.from("notifications").select("*").eq("user_id", user.id),
     supabase.from("share_cards").select("*").eq("user_id", user.id),
+    supabase.from("entitlements").select("*").eq("user_id", user.id),
+    supabase.from("coin_ledger").select("*").eq("user_id", user.id),
     /*
       Which browsers are subscribed, without the encryption keys. Those keys
       are what lets a message be sent to the device, so putting them in a file
@@ -93,6 +97,8 @@ export async function GET() {
     notification_settings: notificationSettings ?? null,
     notifications_sent: notifications ?? [],
     shared_weeks: shareCards ?? [],
+    what_you_have_bought: entitlements ?? [],
+    coin_history: coins ?? [],
     subscribed_devices: devices ?? [],
   };
 

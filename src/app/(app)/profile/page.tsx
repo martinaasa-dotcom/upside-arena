@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Coins } from "lucide-react";
 import { Panel } from "@/components/Panel";
 import { HairlineCell, HairlineGrid } from "@/components/HairlineGrid";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,6 +14,7 @@ import { getSession } from "@/lib/profile";
 import { getRewards } from "@/lib/game/streaks";
 import { getLeagues } from "@/lib/game/leagues";
 import { getMyCards } from "@/lib/game/share";
+import { getStanding, FREE_STANDING } from "@/lib/billing/entitlements";
 import { getNotificationState, DEFAULT_SETTINGS } from "@/lib/notify/settings";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatDate, initials } from "@/lib/format";
@@ -24,10 +27,11 @@ export default async function ProfilePage() {
   const name = profile?.display_name ?? "Player";
   const rewards = user
     ? await getRewards(user.id)
-    : { owned: [], locked: [], equipped: null };
+    : { owned: [], locked: [], forSale: [], equipped: null };
 
   const leagues = user ? await getLeagues(user.id) : [];
   const cards = user ? await getMyCards(user.id) : [];
+  const standing = user ? await getStanding(user.id) : FREE_STANDING;
 
   const notifications = user
     ? await getNotificationState(user.id)
@@ -136,6 +140,27 @@ export default async function ProfilePage() {
           />
         </Panel>
       ) : null}
+
+      <Panel
+        title={standing.hasPlus ? "Arena Plus" : "Decoration, if you want it"}
+        description={
+          standing.hasPlus
+            ? "Thank you. Manage or cancel any time, in one tap."
+            : "The whole game is free. There is a subscription and a shop for titles, and neither changes a score."
+        }
+        action={
+          <span className="figure flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Coins className="size-3.5 text-primary" aria-hidden="true" />
+            {standing.coins}
+          </span>
+        }
+      >
+        <Button asChild variant={standing.hasPlus ? "outline" : "default"} size="sm">
+          <Link href="/plus">
+            {standing.hasPlus ? "Manage your membership" : "See what there is"}
+          </Link>
+        </Button>
+      </Panel>
 
       <Panel
         title="Weeks you have shared"

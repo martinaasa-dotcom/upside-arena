@@ -195,33 +195,78 @@ export default function TermsPage() {
 
       <h2>11. Paid features</h2>
       <p>
-        Arena is free. There are no paid features today, and no part of the game
-        is behind a payment.
+        <strong>The game itself is free and stays free.</strong> Portfolios,
+        leagues, streaks, standings and results are not behind a payment, and
+        there are no adverts. There are two optional things you can pay for, and
+        neither of them changes anything about how you are scored.
       </p>
-      <p>If we add any, we commit now that:</p>
-      <ul>
-        <li>
-          The price, what you get, and how often you would be charged will be
-          shown clearly before you pay.
-        </li>
-        <li>
-          Anything that renews will say so before you buy, and you will be able
-          to cancel it yourself, in the app, as easily as you signed up. We will
-          never make you phone or email us to cancel.
-        </li>
-        <li>
-          Where the law gives you a period to change your mind after buying
-          digital content, you will get it, and we will tell you plainly if
-          starting to use the content straight away gives that right up.
-        </li>
-        <li>
-          It will still be true that money never changes your score, your chances
-          or what you can do in the game.
-        </li>
-      </ul>
+
+      <h3>Arena Plus</h3>
       <p>
-        We will update these terms before any of that goes live, and we will tell
-        you about it first.
+        A subscription that renews automatically until you stop it. Before you
+        pay anything, you are shown the price, the currency, and how often you
+        will be charged. Your receipt says the same. It gives you more streak
+        freezes, more and larger leagues, your full history, and two titles only
+        members can wear.
+      </p>
+      <p>
+        <strong>You can cancel at any time, yourself, in one tap</strong>, from
+        the Arena Plus page. We will never ask you to phone or email us to stop
+        paying. Cancelling takes effect at the end of the period you have already
+        paid for, and you keep everything until then. We do not refund part of a
+        period you have already used, except where the law says we must.
+      </p>
+      <p>
+        If a payment fails we do not take anything away straight away. Your card
+        provider is given a few days to retry, and we tell you so you can fix it.
+      </p>
+      <p>
+        If we change the price, we will tell you before it takes effect and you
+        can cancel before being charged the new amount.
+      </p>
+
+      <h3>Arena Coins</h3>
+      <p>
+        Coins are bought outright in bundles of a fixed size for a fixed price,
+        and are spent on decoration. Every bundle says exactly how many coins you
+        get and exactly what it costs before you pay. Every item says exactly
+        what it costs before you buy it.
+      </p>
+      <p>
+        <strong>
+          There are no randomised bundles, boxes or packs of any kind.
+        </strong>{" "}
+        You always see precisely what you are buying.
+      </p>
+      <p>
+        <strong>Coins are not money.</strong> They have no cash value, cannot be
+        exchanged for money, cannot be sold, given away or moved to another
+        account, and are not refundable once spent. If you close your account, or
+        we close it, any unspent coins are gone. If we ever stop the game we will
+        give reasonable notice so you can spend what you hold.
+      </p>
+
+      <h3>Changing your mind</h3>
+      <p>
+        Where the law gives you a period to change your mind after buying digital
+        content, you have it. By starting a subscription or buying coins you are
+        asking us to give you access immediately, and you accept that once we
+        have, that right ends. We tell you this at the point of purchase as well
+        as here.
+      </p>
+
+      <h3>The rule that does not move</h3>
+      <p>
+        <strong>
+          Money never changes your score, your ranking, your odds, your starting
+          balance or what you are able to trade.
+        </strong>{" "}
+        Everyone starts every week with the same amount, whether they have paid
+        us anything or not. This is not a promise about our current plans. It is
+        what the product is.
+      </p>
+      <p>
+        Payments are handled by Stripe. We never see or store your card details.
       </p>
 
       <h2>12. The game will change</h2>

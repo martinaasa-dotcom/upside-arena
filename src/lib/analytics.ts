@@ -66,6 +66,17 @@ export type AnalyticsEvent =
   | "share_revoked"
   | "shared_card_viewed"
   | "shared_card_cta_clicked"
+  // Paying for things
+  | "plus_viewed"
+  | "plus_checkout_started"
+  | "plus_manage_opened"
+  | "coins_checkout_started"
+  | "cosmetic_purchased"
+  | "cosmetic_purchase_refused"
+  // The Upside Lab handoff
+  | "lab_handoff_shown"
+  | "lab_handoff_clicked"
+  | "lab_handoff_dismissed"
   // Housekeeping
   | "install_prompt_shown"
   | "install_prompt_accepted"

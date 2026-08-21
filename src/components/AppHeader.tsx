@@ -13,6 +13,7 @@ const ROOM_TITLES: Record<string, string> = {
   "/trade": "Trade",
   "/leagues": "Leagues",
   "/metrics": "Numbers",
+  "/plus": "Arena Plus",
   "/profile": "Profile",
 };
 

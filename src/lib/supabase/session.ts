@@ -26,6 +26,11 @@ const PUBLIC_API_PATHS: string[] = [
   // the request itself when the secret is missing or wrong.
   "/api/cron/settle",
   "/api/cron/notify",
+
+  // Stripe authenticates by signing the request body, not by holding a
+  // session. Left off this list the endpoint answers 401 to Stripe, which
+  // retries for days while nobody's subscription is ever recorded.
+  "/api/stripe/webhook",
 ];
 
 function isPublic(pathname: string) {
