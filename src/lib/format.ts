@@ -36,6 +36,15 @@ export function formatPercent(value: number, digits = 1) {
   return `${sign}${value.toFixed(digits)}%`;
 }
 
+/**
+ * A gap between two numbers, for a sentence that already says which way it
+ * goes. "1.7% behind Bo" reads correctly; "+1.7% behind Bo" does not, and
+ * "-1.7% behind Bo" is worse.
+ */
+export function formatGap(value: number, digits = 1) {
+  return `${Math.abs(value).toFixed(digits)}%`;
+}
+
 /** Initials for an avatar fallback. */
 export function initials(name: string | null | undefined) {
   if (!name) return "?";

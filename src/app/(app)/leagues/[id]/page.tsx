@@ -10,7 +10,7 @@ import { getSession } from "@/lib/profile";
 import { getLeagueStandings } from "@/lib/game/leagues";
 import { submitLeaveLeague } from "@/app/(app)/leagues/actions";
 import { PAGE, STACK } from "@/lib/page-shell";
-import { formatPercent } from "@/lib/format";
+import { formatGap, formatPercent } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -79,9 +79,7 @@ export default async function LeaguePage({
         <Panel>
           <p className="text-sm">
             You are{" "}
-            <span className="figure text-loss">
-              {formatPercent(rival.behindBy)}
-            </span>{" "}
+            <span className="figure text-loss">{formatGap(rival.behindBy)}</span>{" "}
             behind <span className="font-semibold">{rival.name}</span>.{" "}
             <span className="text-muted-foreground">
               One good day closes that.

@@ -8,7 +8,7 @@ import { Holdings } from "@/components/Holdings";
 import { getSession } from "@/lib/profile";
 import { getPortfolioView } from "@/lib/game/portfolio";
 import { PAGE, STACK } from "@/lib/page-shell";
-import { formatMoney, formatPercent } from "@/lib/format";
+import { formatGap, formatMoney, formatPercent } from "@/lib/format";
 import { sessionLabel } from "@/lib/market/session";
 
 export const metadata = { title: "Home" };
@@ -128,15 +128,17 @@ export default async function HomePage() {
           <p className="text-sm">
             {view.versusMarket >= 0 ? (
               <>
-                You are <span className="figure text-gain">
-                  {formatPercent(view.versusMarket)}
+                You are{" "}
+                <span className="figure text-gain">
+                  {formatGap(view.versusMarket)}
                 </span>{" "}
                 ahead of the market this week.
               </>
             ) : (
               <>
-                You are <span className="figure text-loss">
-                  {formatPercent(Math.abs(view.versusMarket) * -1)}
+                You are{" "}
+                <span className="figure text-loss">
+                  {formatGap(view.versusMarket)}
                 </span>{" "}
                 behind the market this week.
               </>

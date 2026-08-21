@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { formatMoney, formatPercent, formatTime, initials } from "@/lib/format";
+import {
+  formatGap,
+  formatMoney,
+  formatPercent,
+  formatTime,
+  initials,
+} from "@/lib/format";
 
 describe("formatTime", () => {
   it("uses a 24-hour clock", () => {
@@ -35,5 +41,14 @@ describe("initials", () => {
     expect(initials(null)).toBe("?");
     expect(initials("")).toBe("?");
     expect(initials("   ")).toBe("?");
+  });
+});
+
+describe("formatGap", () => {
+  it("drops the sign, because the sentence already carries the direction", () => {
+    // "+1.7% behind Bo" reads wrong, and "-1.7% behind Bo" reads worse.
+    expect(formatGap(1.7)).toBe("1.7%");
+    expect(formatGap(-1.7)).toBe("1.7%");
+    expect(formatGap(0)).toBe("0.0%");
   });
 });
