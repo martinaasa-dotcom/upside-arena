@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+  <linearGradient id="sapphire-1" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0%" stop-color="#d9e9ff"/><stop offset="100%" stop-color="#a9c8f0"/></linearGradient>
+  <linearGradient id="sapphire-2" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0%" stop-color="#6aa6f0"/><stop offset="100%" stop-color="#3f74c8"/></linearGradient>
+  <linearGradient id="sapphire-3" x1="0.2" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2d5cb5"/><stop offset="100%" stop-color="#1a3a84"/></linearGradient>
+  <linearGradient id="sapphire-4" x1="0.2" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#17306b"/><stop offset="100%" stop-color="#0c1a3d"/></linearGradient></defs>
+  <polygon points="32,2 53.21,10.79 47.56,16.44 32,10" fill="url(#sapphire-3)" transform="translate(41.19 9.81) scale(0.93) translate(-41.19 -9.81)"/>
+  <polygon points="53.21,10.79 62,32 54,32 47.56,16.44" fill="url(#sapphire-3)" transform="translate(54.19 22.81) scale(0.93) translate(-54.19 -22.81)"/>
+  <polygon points="62,32 53.21,53.21 47.56,47.56 54,32" fill="url(#sapphire-4)" transform="translate(54.19 41.19) scale(0.93) translate(-54.19 -41.19)"/>
+  <polygon points="53.21,53.21 32,62 32,54 47.56,47.56" fill="url(#sapphire-4)" transform="translate(41.19 54.19) scale(0.93) translate(-41.19 -54.19)"/>
+  <polygon points="32,62 10.79,53.21 16.44,47.56 32,54" fill="url(#sapphire-4)" transform="translate(22.81 54.19) scale(0.93) translate(-22.81 -54.19)"/>
+  <polygon points="10.79,53.21 2,32 10,32 16.44,47.56" fill="url(#sapphire-4)" transform="translate(9.81 41.19) scale(0.93) translate(-9.81 -41.19)"/>
+  <polygon points="2,32 10.79,10.79 16.44,16.44 10,32" fill="url(#sapphire-3)" transform="translate(9.81 22.81) scale(0.93) translate(-9.81 -22.81)"/>
+  <polygon points="10.79,10.79 32,2 32,10 16.44,16.44" fill="url(#sapphire-3)" transform="translate(22.81 9.81) scale(0.93) translate(-22.81 -9.81)"/>
+  <polygon points="32,18 44,32 32,32" fill="url(#sapphire-1)" transform="translate(36 27.33) scale(0.93) translate(-36 -27.33)"/>
+  <polygon points="32,32 44,32 32,46" fill="url(#sapphire-2)" transform="translate(36 36.67) scale(0.93) translate(-36 -36.67)"/>
+  <polygon points="32,18 32,32 20,32" fill="url(#sapphire-1)" transform="translate(28 27.33) scale(0.93) translate(-28 -27.33)"/>
+  <polygon points="32,32 32,46 20,32" fill="url(#sapphire-2)" transform="translate(28 36.67) scale(0.93) translate(-28 -36.67)"/>
+</svg>

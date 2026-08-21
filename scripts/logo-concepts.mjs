@@ -1,32 +1,75 @@
 /*
-  Ten alternative Arena mark silhouettes, drawn in Lab's cut-gem style.
+  Arena mark concepts, round two.
 
-  Every concept reuses the family DNA exactly as ArenaMark.tsx defines it:
-  the same four warm-gold gradients, flat facets with no stroke, and each
-  facet scaled toward its own centroid so the cuts read as hairline gaps.
-  Only the silhouette changes. Run with `node scripts/logo-concepts.mjs`.
+  Construction is unchanged from src/components/brand/ArenaMark.tsx: flat
+  facets, no strokes, each facet scaled toward its own centroid so the cuts
+  read as hairline gaps, all on the same 64 grid.
+
+  What changed is the palette and the idea. The marks are cut from a jewel
+  family rather than Lab's warm gold, and every silhouette is about a
+  relationship between two parts rather than a trophy shape. Sapphire is the
+  primary family; teal and emerald are generated alongside it as a palette
+  study. Run with `node scripts/logo-concepts.mjs`.
 */
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, rm } from "node:fs/promises";
 import path from "node:path";
 
-const GRADIENTS = `
-  <linearGradient id="arena-bright" x1="0" y1="0" x2="0.6" y2="1">
-    <stop offset="0%" stop-color="#f7e8bb"/><stop offset="100%" stop-color="#d9c184"/>
-  </linearGradient>
-  <linearGradient id="arena-warm" x1="0" y1="0" x2="0.7" y2="1">
-    <stop offset="0%" stop-color="#e4cf94"/><stop offset="100%" stop-color="#c2a45f"/>
-  </linearGradient>
-  <linearGradient id="arena-mid" x1="0.2" y1="0" x2="1" y2="1">
-    <stop offset="0%" stop-color="#c9a659"/><stop offset="100%" stop-color="#a8813a"/>
-  </linearGradient>
-  <linearGradient id="arena-deep" x1="0.2" y1="0" x2="1" y2="1">
-    <stop offset="0%" stop-color="#a87c33"/><stop offset="100%" stop-color="#7d551d"/>
-  </linearGradient>`;
+/*
+  The warm family is Lab's, untouched. The cool family is built to match it
+  step for step so the two read as the same milled metal in different alloys,
+  which is what keeps a two-tone mark from looking like two stickers.
+*/
+/*
+  Each family runs polished rim, lit face, body, shadow, so a facet cluster
+  keeps the same light-to-dark logic the gold mark uses. The rim step is
+  deliberately desaturated: a jewel reads as cut stone only if something on it
+  catches light like metal.
+*/
+const PALETTES = {
+  sapphire: {
+    label: "Sapphire",
+    note: "No collision with any semantic token. Furthest from Lab's gold while staying premium.",
+    stops: [
+      ["#d9e9ff", "#a9c8f0"],
+      ["#6aa6f0", "#3f74c8"],
+      ["#2d5cb5", "#1a3a84"],
+      ["#17306b", "#0c1a3d"],
+    ],
+  },
+  teal: {
+    label: "Teal",
+    note: "Sits beside --cat-1 and --cat-6, so it already belongs to the system. Coolest and calmest of the three.",
+    stops: [
+      ["#d4f4f2", "#a2ddd9"],
+      ["#5fc9c4", "#34998f"],
+      ["#1f8b86", "#12615f"],
+      ["#0f4d4c", "#07302f"],
+    ],
+  },
+  emerald: {
+    label: "Emerald",
+    note: "Richest of the three, but it lands on --gain green. A stock game whose logo reads as profit is a problem.",
+    stops: [
+      ["#d6f5e2", "#a3e0bd"],
+      ["#4fd18c", "#2ba565"],
+      ["#16904f", "#0b6537"],
+      ["#0a4d2a", "#052e19"],
+    ],
+  },
+};
+
+const gradientsFor = (key) =>
+  PALETTES[key].stops
+    .map(([a, b], i) => {
+      const [x2, y2] = i < 2 ? [0.6, 1] : [1, 1];
+      const x1 = i < 2 ? 0 : 0.2;
+      return `<linearGradient id="${key}-${i + 1}" x1="${x1}" y1="0" x2="${x2}" y2="${y2}">` +
+        `<stop offset="0%" stop-color="${a}"/><stop offset="100%" stop-color="${b}"/></linearGradient>`;
+    })
+    .join("\n  ");
 
 const r1 = (n) => Math.round(n * 100) / 100;
 
-// [x, y, x, y, ...] with a shade name. Centroid is averaged from the vertices,
-// which is close enough to the true area centroid for an even cut.
 function facet(coords, shade) {
   const pts = [];
   for (let i = 0; i < coords.length; i += 2) pts.push([coords[i], coords[i + 1]]);
@@ -35,193 +78,180 @@ function facet(coords, shade) {
   return { points: pts.map((p) => `${r1(p[0])},${r1(p[1])}`).join(" "), c: [cx, cy], shade };
 }
 
-const rot = (coords, deg, ox = 32, oy = 32) => {
-  const a = (deg * Math.PI) / 180;
-  const out = [];
-  for (let i = 0; i < coords.length; i += 2) {
-    const dx = coords[i] - ox;
-    const dy = coords[i + 1] - oy;
-    out.push(ox + dx * Math.cos(a) - dy * Math.sin(a), oy + dx * Math.sin(a) + dy * Math.cos(a));
-  }
-  return out;
-};
-
-// A bar rendered as two triangles, so a rectangle still reads as cut stone.
-const bar = (x0, x1, top, bottom, lit, dark) => [
-  facet([x0, top, x1, top, x0, bottom], lit),
-  facet([x1, top, x1, bottom, x0, bottom], dark),
-];
-
-const ring = (n, outer, inner, squash, shades, rotateDeg = 0) => {
-  const out = [];
-  for (let i = 0; i < n; i++) {
-    const a0 = ((i / n) * 360 + rotateDeg - 90) * (Math.PI / 180);
-    const a1 = (((i + 1) / n) * 360 + rotateDeg - 90) * (Math.PI / 180);
-    const p = (r, a) => [32 + r * Math.cos(a), 32 + r * squash * Math.sin(a)];
-    const [ax, ay] = p(outer, a0);
-    const [bx, by] = p(outer, a1);
-    const [cx, cy] = p(inner, a1);
-    const [dx, dy] = p(inner, a0);
-    out.push(facet([ax, ay, bx, by, cx, cy, dx, dy], shades[i % shades.length]));
-  }
-  return out;
+const seg = (i, n, outer, inner, shade, squash = 1) => {
+  const a0 = ((i / n) * 360 - 90) * (Math.PI / 180);
+  const a1 = (((i + 1) / n) * 360 - 90) * (Math.PI / 180);
+  const p = (r, a) => [32 + r * Math.cos(a), 32 + r * squash * Math.sin(a)];
+  return facet([...p(outer, a0), ...p(outer, a1), ...p(inner, a1), ...p(inner, a0)], shade);
 };
 
 const CONCEPTS = [
   {
-    id: "ridge",
-    name: "Ridge",
-    idea: "A rising mountain range, cut by vertical ridges. Reads as upside without a single arrow or chart line.",
+    id: "clash",
+    name: "Clash",
+    idea: "A big wedge and a smaller one driving past each other. Deliberately unequal, because a matchup rarely is.",
     facets: [
-      facet([26, 6, 26, 30, 13, 30], "bright"),
-      facet([13, 30, 26, 30, 26, 56, 2, 56], "mid"),
-      facet([26, 6, 40, 42, 40, 56, 26, 56], "warm"),
-      facet([52, 18, 40, 42, 40, 56, 52, 56], "mid"),
-      facet([52, 18, 52, 56, 62, 56], "deep"),
+      facet([4, 6, 34, 24, 34, 28, 4, 28], 1),
+      facet([4, 28, 34, 28, 34, 32, 4, 52], 2),
+      facet([60, 26, 30, 36, 30, 39, 60, 42], 3),
+      facet([60, 42, 30, 39, 30, 42, 60, 58], 4),
     ],
   },
   {
-    id: "podium",
-    name: "Podium",
-    idea: "The finish, not the fight. Three blocks with the winner centred, each capped by a lit top slab.",
+    id: "split",
+    name: "Split",
+    idea: "One stone cut down the middle and pulled apart. Same shape twice, offset, with the gap doing the talking.",
     facets: [
-      facet([24, 16, 42, 16, 42, 23, 24, 23], "bright"),
-      facet([24, 23, 42, 23, 42, 58, 24, 58], "warm"),
-      facet([4, 31, 24, 31, 24, 38, 4, 38], "warm"),
-      facet([4, 38, 24, 38, 24, 58, 4, 58], "mid"),
-      facet([42, 39, 60, 39, 60, 46, 42, 46], "mid"),
-      facet([42, 46, 60, 46, 60, 58, 42, 58], "deep"),
+      facet([31, 3, 31, 27, 9, 16], 1),
+      facet([31, 27, 31, 51, 9, 38, 9, 16], 2),
+      facet([33, 9, 55, 22, 33, 33], 3),
+      facet([33, 33, 55, 22, 55, 44, 33, 57], 4),
     ],
   },
   {
-    id: "crown",
-    name: "Crown",
-    idea: "Three spikes on a band. The gaps between facets do the work, so the notches never need a stroke.",
+    id: "bracket",
+    name: "Bracket",
+    idea: "Two brackets facing off. The empty middle is the floor, so the mark frames whatever sits in it.",
     facets: [
-      facet([8, 42, 15, 13, 23, 42], "warm"),
-      facet([23, 42, 32, 4, 41, 42], "bright"),
-      facet([41, 42, 49, 13, 56, 42], "mid"),
-      facet([8, 42, 23, 42, 23, 57, 8, 57], "mid"),
-      facet([23, 42, 41, 42, 41, 57, 23, 57], "warm"),
-      facet([41, 42, 56, 42, 56, 57, 41, 57], "deep"),
+      facet([5, 8, 19, 8, 19, 56, 5, 56], 2),
+      facet([19, 8, 31, 8, 31, 22, 19, 22], 1),
+      facet([19, 42, 31, 42, 31, 56, 19, 56], 3),
+      facet([45, 8, 59, 8, 59, 56, 45, 56], 4),
+      facet([33, 8, 45, 8, 45, 22, 33, 22], 3),
+      facet([33, 42, 45, 42, 45, 56, 33, 56], 4),
     ],
   },
   {
-    id: "bowl",
-    name: "Bowl",
-    idea: "The arena itself, seen from above and slightly tilted. Eight seating segments around an open floor.",
-    facets: ring(8, 30, 15, 0.82, ["bright", "warm", "mid", "deep", "deep", "mid", "warm", "bright"], 22.5),
-  },
-  {
-    id: "gem",
-    name: "Gem",
-    idea: "A brilliant cut, table to culet. The most literal reading of the metallic-facet language the family already speaks.",
+    id: "cross",
+    name: "Cross",
+    idea: "Two blades crossing, the cool one passing behind. The only concept here with real depth in it.",
     facets: [
-      facet([22, 12, 42, 12, 46, 25, 18, 25], "bright"),
-      facet([22, 12, 6, 25, 18, 25], "warm"),
-      facet([42, 12, 58, 25, 46, 25], "mid"),
-      facet([6, 25, 19, 25, 32, 58], "warm"),
-      facet([19, 25, 32, 25, 32, 58], "bright"),
-      facet([32, 25, 45, 25, 32, 58], "mid"),
-      facet([45, 25, 58, 25, 32, 58], "deep"),
+      facet([56, 8, 52, 4, 6, 48, 10, 52], 3),
+      facet([56, 8, 10, 52, 14, 56, 60, 12], 4),
+      facet([8, 8, 12, 4, 58, 48, 54, 52], 1),
+      facet([8, 8, 54, 52, 50, 56, 4, 12], 2),
     ],
   },
   {
-    id: "steps",
-    name: "Steps",
-    idea: "Four bars climbing left to right, each cut on the diagonal and lit a step brighter than the last.",
+    id: "pivot",
+    name: "Pivot",
+    idea: "A scale caught mid tip. Nobody has won yet, which is the state a live round is actually in.",
     facets: [
-      ...bar(4, 15, 44, 58, "deep", "deep"),
-      ...bar(18, 29, 34, 58, "mid", "deep"),
-      ...bar(32, 43, 22, 58, "warm", "mid"),
-      ...bar(46, 57, 8, 58, "bright", "warm"),
+      facet([6, 34, 32, 24, 32, 36, 8, 46], 2),
+      facet([32, 24, 58, 14, 58, 26, 32, 36], 1),
+      facet([32, 30, 32, 58, 14, 58], 4),
+      facet([32, 30, 50, 58, 32, 58], 3),
     ],
   },
   {
-    id: "crest",
-    name: "Crest",
-    idea: "A shield quartered into four facets. Club-badge energy, which suits rooms and leagues.",
+    id: "orbit",
+    name: "Orbit",
+    idea: "Two arcs chasing each other round a common centre. Neither one leads, and the gaps read as motion.",
     facets: [
-      facet([10, 8, 32, 8, 32, 32, 10, 32], "bright"),
-      facet([32, 8, 54, 8, 54, 32, 32, 32], "warm"),
-      facet([10, 32, 32, 32, 32, 58], "mid"),
-      facet([32, 32, 54, 32, 32, 58], "deep"),
+      seg(0, 8, 30, 18, 1), seg(1, 8, 30, 18, 2), seg(2, 8, 30, 18, 2),
+      seg(4, 8, 30, 18, 3), seg(5, 8, 30, 18, 4), seg(6, 8, 30, 18, 4),
     ],
   },
   {
-    id: "burst",
-    name: "Burst",
-    idea: "Eight spikes on alternating lengths around a cut centre. A star that is a compass rather than a rating.",
+    id: "field",
+    name: "Field",
+    idea: "Nine stones, one lit. The only concept that shows what a player actually does, which is pick one out of many.",
     facets: (() => {
+      const shades = [4, 3, 1, 3, 4, 3, 4, 3, 4];
       const out = [];
-      const tips = [30, 21, 30, 21, 30, 21, 30, 21];
-      const shades = ["bright", "warm", "mid", "warm", "deep", "mid", "warm", "bright"];
-      for (let i = 0; i < 8; i++) {
-        const at = ((i / 8) * 360 - 90) * (Math.PI / 180);
-        const a0 = at - Math.PI / 8;
-        const a1 = at + Math.PI / 8;
-        const p = (r, a) => [32 + r * Math.cos(a), 32 + r * Math.sin(a)];
-        out.push(facet([...p(tips[i], at), ...p(11, a1), ...p(11, a0)], shades[i]));
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          const cx = 16 + col * 16;
+          const cy = 16 + row * 16;
+          out.push(facet([cx, cy - 8, cx + 8, cy, cx, cy + 8, cx - 8, cy], shades[row * 3 + col]));
+        }
       }
-      const oct = [];
-      for (let i = 0; i < 8; i++) {
-        const a = ((i / 8) * 360 + 22.5 - 90) * (Math.PI / 180);
-        oct.push(32 + 10 * Math.cos(a), 32 + 10 * Math.sin(a));
-      }
-      out.push(facet(oct, "warm"));
       return out;
     })(),
   },
   {
-    id: "cup",
-    name: "Cup",
-    idea: "A trophy, faceted rather than drawn. Warmest and most literal of the ten.",
+    id: "fracture",
+    name: "Fracture",
+    idea: "A single diamond broken along a lightning seam. The break is jagged, so the two halves can never be swapped.",
     facets: [
-      facet([14, 10, 32, 10, 32, 34, 20, 34], "warm"),
-      facet([32, 10, 50, 10, 44, 34, 32, 34], "bright"),
-      facet([15, 12, 4, 16, 10, 30, 15, 26], "mid"),
-      facet([49, 12, 60, 16, 54, 30, 49, 26], "deep"),
-      facet([27, 34, 37, 34, 36, 46, 28, 46], "mid"),
-      facet([17, 48, 47, 48, 52, 58, 12, 58], "deep"),
+      facet([32, 4, 40, 22, 24, 40, 6, 32], 1),
+      facet([6, 32, 24, 40, 32, 60], 2),
+      facet([32, 4, 58, 32, 40, 22], 3),
+      facet([40, 22, 58, 32, 32, 60, 24, 40], 4),
     ],
   },
   {
-    id: "turn",
-    name: "Turn",
-    idea: "Four blades in rotation. No summit, no letterform, pure motion, so it never collides with Lab's standing A.",
-    facets: (() => {
-      const blade = [32, 32, 32, 5, 50, 11, 45, 28];
-      const shades = ["bright", "warm", "mid", "deep"];
-      const out = [];
-      for (let i = 0; i < 4; i++) {
-        const b = rot(blade, i * 90);
-        out.push(facet([b[0], b[1], b[2], b[3], b[4], b[5]], shades[i]));
-        out.push(facet([b[0], b[1], b[4], b[5], b[6], b[7]], shades[(i + 1) % 4]));
-      }
-      return out;
-    })(),
+    id: "trade",
+    name: "Trade",
+    idea: "Two arrows passing in opposite directions. Reads as a swap, a matchup and a market all at once.",
+    facets: [
+      facet([8, 14, 46, 14, 46, 26, 8, 26], 2),
+      facet([46, 10, 60, 20, 46, 30], 1),
+      facet([18, 38, 56, 38, 56, 50, 18, 50], 4),
+      facet([18, 34, 4, 44, 18, 54], 3),
+    ],
+  },
+  {
+    id: "contest",
+    name: "Contest",
+    idea: "A cool ring with a warm stone held inside it. The only one that shows the arena and the player at once.",
+    facets: [
+      seg(0, 8, 30, 22, 3), seg(1, 8, 30, 22, 3), seg(2, 8, 30, 22, 4),
+      seg(3, 8, 30, 22, 4), seg(4, 8, 30, 22, 4), seg(5, 8, 30, 22, 4),
+      seg(6, 8, 30, 22, 3), seg(7, 8, 30, 22, 3),
+      facet([32, 18, 44, 32, 32, 32], 1),
+      facet([32, 32, 44, 32, 32, 46], 2),
+      facet([32, 18, 32, 32, 20, 32], 1),
+      facet([32, 32, 32, 46, 20, 32], 2),
+    ],
   },
 ];
 
-const facetMarkup = (facets, scale = 0.93) =>
+const facetMarkup = (facets, palette, scale = 0.93) =>
   facets
     .map(({ points, c: [cx, cy], shade }) =>
-      `<polygon points="${points}" fill="url(#arena-${shade})" transform="translate(${r1(cx)} ${r1(cy)}) scale(${scale}) translate(${r1(-cx)} ${r1(-cy)})"/>`
+      `<polygon points="${points}" fill="url(#${palette}-${shade})" transform="translate(${r1(cx)} ${r1(cy)}) scale(${scale}) translate(${r1(-cx)} ${r1(-cy)})"/>`
     )
     .join("\n  ");
 
-const svgFor = (concept) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>${GRADIENTS}</defs>
-  ${facetMarkup(concept.facets)}
+const svgFor = (concept, palette = "sapphire") => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+  ${gradientsFor(palette)}</defs>
+  ${facetMarkup(concept.facets, palette)}
 </svg>
 `;
 
 const outDir = path.join(process.cwd(), "docs", "brand", "concepts");
+await rm(outDir, { recursive: true, force: true });
 await mkdir(outDir, { recursive: true });
-for (const c of CONCEPTS) {
-  await writeFile(path.join(outDir, `${c.id}.svg`), svgFor(c));
-}
-await writeFile(path.join(outDir, "concepts.json"), JSON.stringify(
-  CONCEPTS.map((c) => ({ id: c.id, name: c.name, idea: c.idea, svg: svgFor(c).trim() })), null, 2));
+for (const c of CONCEPTS) await writeFile(path.join(outDir, `${c.id}.svg`), svgFor(c));
 
-console.log(`Wrote ${CONCEPTS.length} concepts to docs/brand/concepts`);
+/*
+  The palette study runs one silhouette through all three families, so the
+  colour decision can be made independently of the shape decision.
+*/
+const STUDY_ON = "fracture";
+const study = CONCEPTS.find((c) => c.id === STUDY_ON);
+for (const key of Object.keys(PALETTES)) {
+  await writeFile(path.join(outDir, `study-${key}.svg`), svgFor(study, key));
+}
+
+await writeFile(
+  path.join(outDir, "concepts.json"),
+  JSON.stringify(
+    {
+      palette: "sapphire",
+      concepts: CONCEPTS.map((c) => ({ id: c.id, name: c.name, idea: c.idea, svg: svgFor(c).trim() })),
+      study: Object.entries(PALETTES).map(([key, v]) => ({
+        id: key,
+        label: v.label,
+        note: v.note,
+        svg: svgFor(study, key).trim(),
+      })),
+    },
+    null,
+    2
+  )
+);
+
+console.log(`Wrote ${CONCEPTS.length} concepts and ${Object.keys(PALETTES).length} palette studies`);
