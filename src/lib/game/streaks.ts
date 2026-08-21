@@ -2,6 +2,7 @@ import "server-only";
 
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { recordDailyActive } from "@/lib/metrics";
 import {
   cycleMonday,
   isTradingDay,
@@ -80,6 +81,13 @@ export async function recordVisit(userId: string): Promise<{
 
   const admin = createAdminClient();
   const today = nyDate();
+
+  /*
+    Noted as a visit before anything else, and on every day rather than only
+    on trading days. A streak deliberately ignores the weekend; retention must
+    not, because somebody who came back on a Saturday came back.
+  */
+  await recordDailyActive(userId);
 
   /*
     A visit at the weekend is not a missed day and not a credited one either.

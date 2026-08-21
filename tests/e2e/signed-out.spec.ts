@@ -254,6 +254,68 @@ test.describe("consent", () => {
       page.getByRole("dialog", { name: "Optional measurement" })
     ).toBeHidden();
   });
+
+  /*
+    The measurement script is absent until somebody says yes, rather than
+    loaded and asked to behave. Mounting a vendor and trusting a flag is not
+    consent, and it is the difference between the privacy policy being true
+    and being aspirational.
+  */
+
+  test("loads no measurement script before a choice is made", async ({ page }) => {
+    const requested: string[] = [];
+    page.on("request", (request) => requested.push(request.url()));
+
+    await page.goto("/");
+    await page.waitForTimeout(1000);
+
+    expect(requested.filter((url) => url.includes("va.vercel-scripts.com"))).toEqual([]);
+    expect(requested.filter((url) => url.includes("/_vercel/insights"))).toEqual([]);
+  });
+
+  test("loads no measurement script after a refusal", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "No thanks" }).click();
+
+    const requested: string[] = [];
+    page.on("request", (request) => requested.push(request.url()));
+
+    await page.reload();
+    await page.waitForTimeout(1000);
+
+    expect(requested.filter((url) => url.includes("va.vercel-scripts.com"))).toEqual([]);
+  });
+
+  test("stops measuring again the moment consent is withdrawn", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Allow" }).click();
+
+    // Withdrawing has to be as effective as never having agreed, not just as
+    // easy. The stored answer is what every gate in the app reads.
+    await page.evaluate(() => {
+      window.localStorage.setItem("arena.consent.measurement", "denied");
+      window.dispatchEvent(new Event("arena:consent-changed"));
+    });
+
+    const stored = await page.evaluate(() =>
+      window.localStorage.getItem("arena.consent.measurement")
+    );
+    expect(stored).toBe("denied");
+  });
+});
+
+test.describe("the numbers page", () => {
+  test("is not there for somebody with no account", async ({ page }) => {
+    // Owner only. A signed-out visitor is sent to sign in rather than shown
+    // anything, and a signed-in stranger gets a plain not-found, so nobody
+    // learns the page exists.
+    await page.goto("/metrics");
+
+    // Sent to sign in, carrying where they were headed, like any other
+    // signed-in page. Nothing on the way says whether that page exists.
+    await expect(page).toHaveURL(/\?next=%2Fmetrics$/);
+    await expect(page.getByLabel("Email")).toBeVisible();
+  });
 });
 
 test.describe("brand shell", () => {

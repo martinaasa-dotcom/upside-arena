@@ -9,6 +9,7 @@ import { StreakCard } from "@/components/StreakCard";
 import { EarnedToast } from "@/components/EarnedToast";
 import { NotificationInvite } from "@/components/NotificationInvite";
 import { WeekRecap } from "@/components/WeekRecap";
+import { TrackView } from "@/components/TrackView";
 import { getSession } from "@/lib/profile";
 import { getPortfolioView } from "@/lib/game/portfolio";
 import { recordVisit } from "@/lib/game/streaks";
@@ -100,6 +101,7 @@ export default async function HomePage() {
     : activity && activity.streak.current >= 2
       ? `You are ${plural(activity.streak.current, "day")} into a streak. Want a nudge on a day you have not opened Arena?`
       : "";
+  const inviteKind = rival ? "rival" : "streak";
 
   return (
     <div className={`${PAGE} ${STACK}`}>
@@ -188,13 +190,31 @@ export default async function HomePage() {
       {inviteReason ? (
         <NotificationInvite
           reason={inviteReason}
+          kind={inviteKind}
           publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
         />
       ) : null}
 
-      {activity ? <StreakCard streak={activity.streak} /> : null}
+      {activity ? (
+        <>
+          <TrackView
+            event="streak_viewed"
+            properties={{ counted: activity.streak.countedToday }}
+          />
+          <StreakCard streak={activity.streak} />
+        </>
+      ) : null}
 
-      {lastWeek ? <WeekRecap recap={lastWeek.recap} /> : null}
+      {lastWeek ? (
+        <>
+          {/*
+            Shares are measured against recaps seen, not against players. A
+            player with no finished week has not declined to share one.
+          */}
+          <TrackView event="week_recap_viewed" />
+          <WeekRecap recap={lastWeek.recap} />
+        </>
+      ) : null}
 
       <Panel
         title="What you own"

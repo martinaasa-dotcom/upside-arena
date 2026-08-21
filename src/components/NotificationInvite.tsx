@@ -5,6 +5,7 @@ import { BellRing, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Well } from "@/components/Panel";
+import { track } from "@/lib/analytics";
 import {
   browserTimezone,
   currentEndpoint,
@@ -31,10 +32,18 @@ const DISMISSED = "arena.notify.invited";
 
 export function NotificationInvite({
   reason,
+  kind,
   publicKey,
 }: {
   /** The concrete thing they would be told about. Empty means do not ask. */
   reason: string;
+  /*
+    Which sort of reason it was, for measurement. Separate from the sentence
+    itself because that sentence carries a league name, and a league name is
+    something a player typed about people they know. It does not go to a
+    measurement vendor.
+  */
+  kind: "rival" | "streak";
   publicKey: string;
 }) {
   const [visible, setVisible] = useState(false);
@@ -56,9 +65,13 @@ export function NotificationInvite({
     }
 
     void currentEndpoint().then((endpoint) => {
-      if (!endpoint) setVisible(true);
+      if (endpoint) return;
+      setVisible(true);
+      // Which reason was offered, so it is visible whether asking after a
+      // rival appears works better than asking after a streak starts.
+      track("notification_invite_shown", { kind });
     });
-  }, [reason, publicKey]);
+  }, [reason, kind, publicKey]);
 
   function remember() {
     try {
@@ -71,6 +84,7 @@ export function NotificationInvite({
   function dismiss() {
     remember();
     setVisible(false);
+    track("notification_invite_dismissed");
   }
 
   function accept() {
@@ -81,12 +95,17 @@ export function NotificationInvite({
       if (outcome.state === "subscribed" && outcome.subscription) {
         await subscribeToPush({ ...outcome.subscription, timezone: browserTimezone() });
         setVisible(false);
+        track("notification_invite_accepted");
+        track("push_enabled", { from: "invite" });
         toast.success("We will only tell you when something actually happens.");
         return;
       }
 
       setVisible(false);
       if (outcome.state === "denied") {
+        // A refusal is permanent in the browser, so this is the number that
+        // says whether the moment we chose to ask was the right one.
+        track("push_blocked", { from: "invite" });
         toast("Left off. You can turn them on any time from your profile.");
       }
     });

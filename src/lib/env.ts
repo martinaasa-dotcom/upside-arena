@@ -39,6 +39,29 @@ const LOCAL_ORIGIN = "http://localhost:3000";
  * leave a placeholder, and `??` would hand the empty string straight through
  * to `new URL()`, which throws and fails the whole build.
  */
+/*
+  Who may see the numbers.
+
+  A comma separated list of email addresses, server side only. Deliberately
+  not a flag on a profile row: a database column that grants access to every
+  player's aggregates is one bad row away from being wrong, while an
+  environment variable can only be changed by somebody who can already deploy.
+
+  Unset means nobody, which is the safe direction. An unset variable must
+  never be the thing that opens something.
+*/
+const ADMIN_EMAILS = (process.env.ARENA_ADMIN_EMAILS ?? "")
+  .split(",")
+  .map((entry) => entry.trim().toLowerCase())
+  .filter(Boolean);
+
+export const hasAdmins = ADMIN_EMAILS.length > 0;
+
+export function isAdmin(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
+}
+
 export function siteUrl() {
   const candidates = [
     process.env.NEXT_PUBLIC_SITE_URL?.trim(),

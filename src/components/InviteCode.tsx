@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Well } from "@/components/Panel";
+import { track } from "@/lib/analytics";
 
 /*
   The invite code, and one button that puts a ready-made message on the
@@ -29,6 +30,9 @@ export function InviteCode({ code, leagueName }: { code: string; leagueName: str
           try {
             await navigator.clipboard.writeText(share);
             setCopied(true);
+            // The last step Arena controls before an invite either works or
+            // is abandoned in somebody's chat app.
+            track("league_invite_copied");
             window.setTimeout(() => setCopied(false), 2500);
           } catch {
             // Clipboard access can be refused. The code is on screen either

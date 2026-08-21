@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Well } from "@/components/Panel";
+import { track } from "@/lib/analytics";
 import {
   browserTimezone,
   currentEndpoint,
@@ -124,6 +125,7 @@ export function NotificationSettings({
       const outcome = await subscribe(publicKey);
 
       if (outcome.state === "denied") {
+        track("push_blocked", { from: "settings" });
         toast.error(
           "Your browser is blocking notifications. You can undo that in its site settings."
         );
@@ -151,6 +153,7 @@ export function NotificationSettings({
       }
 
       setSubscribed(true);
+      track("push_enabled", { from: "settings" });
       setDevice((current) =>
         current ? { ...current, permission: "granted", hasEndpoint: true } : current
       );
@@ -164,6 +167,7 @@ export function NotificationSettings({
       const endpoint = (await unsubscribe()) ?? "";
       await unsubscribeFromPush(endpoint);
       setSubscribed(false);
+      track("push_disabled");
       setDevice((current) => (current ? { ...current, hasEndpoint: false } : current));
       setSettings((current) => ({ ...current, push: false }));
       toast.success("Notifications are off.");
@@ -230,7 +234,12 @@ export function NotificationSettings({
             <Switch
               checked={settings[kind.key]}
               disabled={busy}
-              onCheckedChange={(value) => save({ [kind.key]: value })}
+              onCheckedChange={(value) => {
+                // Which kind people actually turn off is the whole argument
+                // for having made each of them separately refusable.
+                track("notification_kind_toggled", { kind: kind.key, on: value });
+                save({ [kind.key]: value });
+              }}
               aria-label={kind.label}
             />
           </label>

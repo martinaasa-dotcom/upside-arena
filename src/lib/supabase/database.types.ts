@@ -191,6 +191,11 @@ export type ShareCardRow = {
   revoked_at: string | null;
 };
 
+export type DailyActiveRow = {
+  user_id: string;
+  on_date: string;
+};
+
 export type TermsAcceptanceRow = {
   id: string;
   user_id: string;
@@ -225,6 +230,7 @@ export type Database = {
       notifications: Table<NotificationRow>;
       portfolio_marks: Table<PortfolioMarkRow>;
       share_cards: Table<ShareCardRow>;
+      daily_actives: Table<DailyActiveRow>;
     };
     Views: Record<never, never>;
     Functions: {
@@ -402,6 +408,49 @@ export type Database = {
       revoke_share_card: {
         Args: { p_user_id: string; p_card_id: string };
         Returns: boolean;
+      };
+      record_daily_active: {
+        Args: { p_user_id: string; p_date: string };
+        Returns: undefined;
+      };
+      metrics_retention: {
+        Args: { p_today: string };
+        Returns: { window_days: number; cohort: number; returned: number }[];
+      };
+      metrics_streaks: {
+        Args: Record<never, never>;
+        Returns: {
+          players: number;
+          alive: number;
+          reached_five: number;
+          reached_twenty: number;
+          longest: number;
+          freezes_spent: number;
+        }[];
+      };
+      metrics_leagues: {
+        Args: Record<never, never>;
+        Returns: {
+          leagues: number;
+          alone: number;
+          with_company: number;
+          members: number;
+          biggest: number;
+        }[];
+      };
+      metrics_engagement: {
+        Args: { p_today: string };
+        Returns: {
+          players: number;
+          onboarded: number;
+          traded: number;
+          in_a_league: number;
+          weeks_scored: number;
+          weeks_shared: number;
+          cards_live: number;
+          active_today: number;
+          active_this_week: number;
+        }[];
       };
     };
     Enums: Record<never, never>;

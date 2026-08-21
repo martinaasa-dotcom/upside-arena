@@ -70,8 +70,15 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>How the app is used, only if you allow it.</strong> Which
-          screens are opened and how quickly pages load. We ask you first, and
-          Arena works exactly the same if you say no.
+          screens are opened, which buttons are pressed, how quickly pages
+          load. Never what you searched for, what you bought, what your league
+          is called or how much you have. We ask you first, and Arena works
+          exactly the same if you say no.
+        </li>
+        <li>
+          <strong>Which days you opened Arena.</strong> The date, and nothing
+          about what you did. We use it to count how many people come back,
+          which is the one number that tells us whether the game is any good.
         </li>
         <li>
           <strong>Weeks you choose to share.</strong> When you press share on a
@@ -135,6 +142,14 @@ export default function PrivacyPage() {
         <li>
           <strong>To measure how the app is used.</strong> Only with your
           consent, which you can take back at any time.
+        </li>
+        <li>
+          <strong>To count how many people play and come back.</strong> We have
+          a legitimate interest in knowing whether Arena works, and we do it by
+          counting our own records rather than by sending anything about you to
+          anyone. Nothing produced this way names a person, describes a person,
+          or could be traced back to one: it is totals, such as how many
+          accounts exist and how many people opened the app yesterday.
         </li>
         <li>
           <strong>To let you share a week.</strong> We do this to do what you

@@ -5,6 +5,7 @@ import { Check, Copy, Download, Share2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Well } from "@/components/Panel";
+import { track } from "@/lib/analytics";
 import { shareMyWeek, unshareCard } from "@/app/(app)/share-actions";
 
 /*
@@ -30,6 +31,7 @@ export function ShareWeek({ label = "Share this week" }: { label?: string }) {
 
   function make(then: (result: Shared) => void) {
     startTransition(async () => {
+      track("share_started");
       const result = await shareMyWeek();
       if (!result.ok) {
         toast.error(result.error);
@@ -47,6 +49,7 @@ export function ShareWeek({ label = "Share this week" }: { label?: string }) {
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      track("share_copied");
       toast.success("Copied. Paste it anywhere.");
     } catch {
       // A browser that refuses the clipboard still leaves the text on screen
@@ -68,6 +71,9 @@ export function ShareWeek({ label = "Share this week" }: { label?: string }) {
             title: "My week in Upside Arena",
             text: result.text,
           });
+          // The share sheet does not say where it went, only that it opened
+          // and was not dismissed. That is the honest ceiling here.
+          track("share_completed", { via: "sheet" });
           return;
         } catch {
           // Dismissing the sheet lands here too, which is not a failure. The
@@ -91,6 +97,7 @@ export function ShareWeek({ label = "Share this week" }: { label?: string }) {
         return;
       }
       setShared(null);
+      track("share_revoked", { from: "recap" });
       toast.success("Taken down. That link no longer works.");
     });
   }
@@ -124,6 +131,7 @@ export function ShareWeek({ label = "Share this week" }: { label?: string }) {
                 href={`${new URL(shared.url).pathname}/opengraph-image`}
                 target="_blank"
                 rel="noreferrer"
+                onClick={() => track("share_image_opened")}
               >
                 <Download className="size-4" aria-hidden="true" />
                 Picture

@@ -10,6 +10,7 @@ import { getSession } from "@/lib/profile";
 import { getLeagueStandings } from "@/lib/game/leagues";
 import { submitLeaveLeague } from "@/app/(app)/leagues/actions";
 import { PAGE, STACK } from "@/lib/page-shell";
+import { TrackView } from "@/components/TrackView";
 import { formatGap, formatPercent } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,7 @@ export default async function LeaguePage({
 
   return (
     <div className={`${PAGE} ${STACK}`}>
+      <TrackView event="standings_viewed" />
       <div>
         <Button asChild variant="ghost" size="sm" className="-ml-2 mb-2">
           <Link href="/leagues">

@@ -4,6 +4,8 @@ import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
 import { Panel, Well } from "@/components/Panel";
 import { Button } from "@/components/ui/button";
 import { WeekShape } from "@/components/WeekShape";
+import { TrackView } from "@/components/TrackView";
+import { ShareCta } from "@/components/ShareCta";
 import { getSharedCard, shareUrl } from "@/lib/game/share";
 import { headline, ordinal, versusMarketLine, weekLabel } from "@/lib/share/card";
 import { PAGE, PAGE_FRAME } from "@/lib/page-shell";
@@ -74,6 +76,7 @@ export default async function SharedWeekPage({ params }: Props) {
         <main id="main" className={`${PAGE} flex min-h-dvh flex-col justify-center py-16`}>
           <div className="mx-auto w-full max-w-md">
             <ArenaWordmark className="mb-8" />
+            <TrackView event="shared_card_viewed" properties={{ live: false }} />
             <Panel
               title="This card is no longer shared"
               description="Whoever posted it has taken it down, or the link was mistyped. Nothing is wrong on your end."
@@ -96,6 +99,12 @@ export default async function SharedWeekPage({ params }: Props) {
     <div className={PAGE_FRAME}>
       <main id="main" className={`${PAGE} flex min-h-dvh flex-col justify-center py-16`}>
         <div className="mx-auto flex w-full max-w-lg flex-col gap-6">
+          {/*
+            The top of the growth loop. How many strangers open one of these,
+            and how many go on to play, is the only measure of whether the
+            share card works at all.
+          */}
+          <TrackView event="shared_card_viewed" properties={{ live: true }} />
           <ArenaWordmark />
 
           <Panel>
@@ -153,9 +162,7 @@ export default async function SharedWeekPage({ params }: Props) {
             title="Everyone starts Monday with the same money"
             description="Pick shares with play money, find out on Friday who did best. Free, no ads, and nothing to win but the bragging."
           >
-            <Button asChild>
-              <Link href="/">Play a week</Link>
-            </Button>
+            <ShareCta>Play a week</ShareCta>
           </Panel>
 
           <p className="text-center text-xs text-muted-foreground">

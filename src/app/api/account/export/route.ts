@@ -40,8 +40,17 @@ export async function GET() {
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
     supabase.from("terms_acceptances").select("*").eq("user_id", user.id),
     supabase.from("portfolios").select("*").eq("user_id", user.id),
-    supabase.from("trades").select("*").eq("user_id", user.id),
-    supabase.from("holdings").select("*").eq("user_id", user.id),
+    /*
+      Trades and holdings hang off a portfolio rather than off a person, so
+      they are filtered through it. Row level security already limits both to
+      the caller's own rows; the filter is what makes the query legal, not
+      what makes it safe.
+    */
+    supabase.from("trades").select("*, portfolios!inner(user_id)").eq("portfolios.user_id", user.id),
+    supabase
+      .from("holdings")
+      .select("*, portfolios!inner(user_id)")
+      .eq("portfolios.user_id", user.id),
     supabase.from("league_members").select("*").eq("user_id", user.id),
     supabase.from("streaks").select("*").eq("user_id", user.id).maybeSingle(),
     supabase.from("user_rewards").select("*").eq("user_id", user.id),

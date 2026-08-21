@@ -5,6 +5,7 @@ import { ExternalLink, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Well } from "@/components/Panel";
+import { track } from "@/lib/analytics";
 import { unshareCard } from "@/app/(app)/share-actions";
 import { weekLabel } from "@/lib/share/card";
 import { formatPercent } from "@/lib/format";
@@ -37,6 +38,7 @@ export function SharedCards({ cards }: { cards: SharedCardSummary[] }) {
         return;
       }
       setLive((current) => current.filter((card) => card.id !== id));
+      track("share_revoked", { from: "profile" });
       toast.success("Taken down. That link no longer works.");
     });
   }

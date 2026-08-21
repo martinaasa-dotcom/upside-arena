@@ -28,6 +28,7 @@ Production and Preview both. None of them belongs in the repository.
 | `VAPID_PRIVATE_KEY` | the VAPID private key | **Server only.** Signs every push. |
 | `RESEND_API_KEY` | a Resend API key | **Server only.** Only used for the email fallback. |
 | `RESEND_FROM` | `Upside Arena <arena@upsidearena.com>` | Optional. Must be a verified sender in Resend. |
+| `ARENA_ADMIN_EMAILS` | your email address | **Server only.** Comma separated. Who may open `/metrics`. Unset means nobody. |
 
 Everything to do with notifications is optional. With no VAPID keys the panel
 on the profile page hides itself and nothing is ever sent; with no Resend key
@@ -138,6 +139,27 @@ Nothing is sent twice, ever. Every message is claimed in the database before
 it is sent, keyed on the event it describes, so a pass that runs twice or
 overlaps another sends nothing extra. The database also enforces the limit of
 three a day, so a bug in the application cannot spam anyone.
+
+## The numbers
+
+`/metrics` shows the four figures section 2.8 of the plan is tuned by:
+retention at one, seven and thirty days, whether streaks survive, how full the
+leagues get, and how often a scored week actually gets shared.
+
+Set `ARENA_ADMIN_EMAILS` to the addresses allowed to open it. Unset means
+nobody, and the page returns a plain not-found rather than a refusal, so a
+stranger never learns it is there.
+
+Everything on that page is counted from Arena's own tables. Nothing about a
+player is sent to an analytics vendor to produce it, which means the figures
+are true for everybody rather than only for the minority who agree to
+measurement, and there is no extra processor to disclose.
+
+Separately, which buttons people press is measured through Vercel Web
+Analytics, behind the consent banner. That half only loads once somebody has
+said yes, and it carries no names, no tickers, no league names and no figures.
+The two halves answer different questions and neither substitutes for the
+other.
 
 ## Plan limits worth knowing
 
