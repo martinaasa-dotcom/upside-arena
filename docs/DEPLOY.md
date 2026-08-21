@@ -11,6 +11,10 @@ Supabase project. Nothing here is shared with Lab except the company behind it.
 | Project | `upside-arena` |
 | Repository | `martinaasa-dotcom/upside-arena`, branch `main` |
 
+> Setting all of this up for the first time? `docs/SWITCH_ON.md` is the same
+> ground as a click-by-click walkthrough, in the order to do it. This file is
+> the reference.
+
 ## Environment variables
 
 Set these in the Vercel project under Settings, Environment Variables, for
@@ -23,6 +27,21 @@ Production and Preview both. None of them belongs in the repository.
 | `SUPABASE_SERVICE_ROLE_KEY` | the secret key | **Server only.** Bypasses row level security. Never prefix it with `NEXT_PUBLIC_`. |
 | `NEXT_PUBLIC_SITE_URL` | `https://upsidearena.com` | Used to build sign-in links. Wrong value means sign-in emails point somewhere useless. |
 | `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH` | `false` | Turn to `true` only once the Google provider is enabled in Supabase. |
+| `CRON_SECRET` | a long random string | **Server only.** Shared with the GitHub workflows below. |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | the VAPID public key | Public. It is handed to the browser to subscribe with. |
+| `VAPID_PRIVATE_KEY` | the VAPID private key | **Server only.** Signs every push. |
+| `RESEND_API_KEY` | a Resend API key | **Server only.** Only used for the email fallback. |
+| `RESEND_FROM` | `Upside Arena <arena@upsidearena.com>` | Optional. Must be a verified sender in Resend. |
+| `ARENA_ADMIN_EMAILS` | your email address | **Server only.** Comma separated. Who may open `/metrics`. Unset means nobody. |
+| `STRIPE_SECRET_KEY` | from the Stripe dashboard | **Server only.** Without it nothing is on sale. |
+| `STRIPE_WEBHOOK_SECRET` | from the Stripe webhook endpoint | **Server only.** Without it the webhook refuses everything. |
+| `STRIPE_PLUS_PRICE_ID` | the recurring price's id | The subscription only appears once this is set. |
+| `STRIPE_PORTAL_CONFIGURATION_ID` | Arena's own portal configuration | Only needed when the Stripe account is shared with another product. |
+| `NEXT_PUBLIC_LAB_URL` | `https://upsidelab.app` | Optional. Where the handoff points. |
+
+Everything to do with notifications is optional. With no VAPID keys the panel
+on the profile page hides itself and nothing is ever sent; with no Resend key
+the email fallback is skipped. Neither absence breaks anything else.
 
 The service role key is what lets the server write cash, holdings and trades
 while a player can write none of them. If it leaks, rotate it in Supabase and
@@ -69,8 +88,10 @@ Two things must be updated or sign-in silently breaks.
 
 ## Settling the week, without paying for a scheduler
 
-Vercel's Hobby plan runs a cron once a day at an hour it chooses, which cannot
-be relied on to fire after Friday's close. Arena does not need it to.
+Vercel's cheapest scheduling runs a cron once a day at an hour it chooses,
+which cannot be relied on to fire after Friday's close. Rather than pay for a
+scheduler to do something the app can notice for itself, Arena does not need
+one at all.
 
 **A finished week is settled by the first request that touches the game.**
 `getCurrentCycle` checks for a due week with one indexed query and, if it
@@ -93,11 +114,122 @@ Actions. Without it the workflow exits quietly and the app carries on settling
 by itself. The endpoint refuses every request when the secret is unset, so an
 unset variable can never be what makes it public.
 
-## Plan limits worth knowing
+## Notifications
 
-The team is on Vercel's **Hobby** plan. Hobby is for non-commercial use. Arena
-is free with no ads, so it fits for now. Phase 8 adds payments, which does not,
-and will need Pro. Scheduling is no longer a reason to upgrade.
+Two pieces, and both are optional.
+
+**Push** needs a VAPID key pair, which identifies the sender to every
+browser's push service. Generate one with:
+
+```
+npx web-push generate-vapid-keys
+```
+
+Put the public half in `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and the private half in
+`VAPID_PRIVATE_KEY`. Changing the pair later invalidates every existing
+subscription: those players are simply never sent anything again, silently, so
+treat the pair as permanent once anyone has subscribed.
+
+**Email** is the fallback, and it matters more than it sounds. iOS only
+delivers web push to a site added to the home screen, so a large share of
+players can never receive a push at all. Email reaches them. It is only used
+when no browser of theirs is listening, so nobody gets both.
+
+`.github/workflows/notify.yml` calls `/api/cron/notify` hourly through the
+trading day, plus twice at the weekend for a week result that landed while
+somebody was asleep. Each pass decides for itself whether now is the right
+moment, so the schedule does not have to be clever. It uses the same
+`CRON_SECRET` as settling.
+
+The same endpoint records what every portfolio was worth at the day's close,
+which is what gives a shared week card its shape. That one cannot be caught up
+afterwards, since prices move on, so the app also writes it by itself on the
+first request after the close. A missed run costs nothing.
+
+Nothing is sent twice, ever. Every message is claimed in the database before
+it is sent, keyed on the event it describes, so a pass that runs twice or
+overlaps another sends nothing extra. The database also enforces the limit of
+three a day, so a bug in the application cannot spam anyone.
+
+## The numbers
+
+`/metrics` shows the four figures section 2.8 of the plan is tuned by:
+retention at one, seven and thirty days, whether streaks survive, how full the
+leagues get, and how often a scored week actually gets shared.
+
+Set `ARENA_ADMIN_EMAILS` to the addresses allowed to open it. Unset means
+nobody, and the page returns a plain not-found rather than a refusal, so a
+stranger never learns it is there.
+
+Everything on that page is counted from Arena's own tables. Nothing about a
+player is sent to an analytics vendor to produce it, which means the figures
+are true for everybody rather than only for the minority who agree to
+measurement, and there is no extra processor to disclose.
+
+Separately, which buttons people press is measured through Vercel Web
+Analytics, behind the consent banner. That half only loads once somebody has
+said yes, and it carries no names, no tickers, no league names and no figures.
+The two halves answer different questions and neither substitutes for the
+other.
+
+## Payments
+
+Everything is built and nothing is on sale until the Stripe keys are set. With
+none of them the paid page says so plainly, the free game is untouched, and
+the webhook returns a not-found.
+
+To switch it on, in Stripe first and Vercel last, so the app never runs with
+half of it configured:
+
+1. Turn on **Stripe Tax** (Settings, Tax). VAT and sales tax are then worked
+   out by Stripe rather than by us. Set the default tax behaviour to
+   **inclusive**: selling to consumers in the EU, the advertised price has to
+   be the price paid, and a bundle that says 1.99 and charges 2.45 produces a
+   chargeback rather than a second purchase. The coin bundles set this
+   explicitly in code; the subscription price takes it from the dashboard.
+2. Make a **recurring price** for Arena Plus, with tax behaviour inclusive.
+   Its id goes in `STRIPE_PLUS_PRICE_ID`. The price lives in Stripe, not in
+   this repository, so changing it never needs a deploy.
+3. Turn on the **Customer Portal** (Settings, Billing, Customer portal) with
+   cancellation enabled. That is what satisfies the click-to-cancel rule, and
+   Arena has no other cancel path on purpose.
+4. Add a webhook endpoint pointing at
+   `https://upsidearena.com/api/stripe/webhook`, subscribed to
+   `checkout.session.completed`, `customer.subscription.created`,
+   `customer.subscription.updated`, `customer.subscription.deleted` and
+   `invoice.payment_failed`. Its signing secret goes in
+   `STRIPE_WEBHOOK_SECRET`.
+5. Only now set the three variables in Vercel and redeploy. Until all three
+   are present the paid page says it is not on sale and the webhook returns a
+   not-found, which is the right state to be in while half-configured.
+
+Test it end to end with a card before announcing it. Stripe's test mode has
+its own keys, its own price ids and its own webhook secret, so a full dry run
+costs nothing and proves the webhook is reaching the right URL.
+
+Coin bundle prices are in `src/lib/billing/plan.ts` rather than in Stripe,
+because a one-off price has to be checked against a list the server controls:
+the bundle id comes from the browser, and the price must never.
+
+Two things that are deliberate and worth not undoing. Every webhook is claimed
+in the database before it is acted on, so Stripe retrying is never a replay.
+And a failed payment marks the subscription past due rather than revoking it,
+because Stripe retries a card for days and cutting somebody off on the first
+failure turns a renewal that would have worked into a lost subscriber.
+
+## Where Arena is deployed
+
+Arena deploys under the `upthink-solutions` scope, the same one Upside Lab
+uses, and Lab already takes payments there. So taking a payment is not a
+blocker on switching the paid tier on.
+
+Worth knowing only because it would bite later: Vercel's **Hobby** plan is for
+non-commercial use, so a project that took payments would have to not be on
+it. That is a constraint on where Arena is deployed, not on the code.
+
+Scheduling has not been a reason to upgrade anything since the settlement work
+in phase 3: a finished week is settled by the first request that touches the
+game, and the hourly pass runs on GitHub Actions.
 
 ## Deploying
 

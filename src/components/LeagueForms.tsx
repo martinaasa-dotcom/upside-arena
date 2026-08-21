@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Panel } from "@/components/Panel";
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 import { LEAGUE_ICONS } from "@/lib/game";
 import {
   submitCreateLeague,
@@ -22,12 +24,26 @@ export function CreateLeagueForm() {
   const [icon, setIcon] = useState<string>(LEAGUE_ICONS[0]);
   const nameId = useId();
 
+  /*
+    Only the attempt and the refusal are recorded here. A league that is
+    actually created redirects away, so there is no render left to report it
+    from, and counting them from the database is both easier and true for the
+    people who declined measurement.
+  */
+  useEffect(() => {
+    if (state.error) track("league_join_failed", { at: "create" });
+  }, [state.error]);
+
   return (
     <Panel
       title="Start a league"
       description="Name it, then send the code to the people you want to beat."
     >
-      <form action={formAction} className="flex flex-col gap-5">
+      <form
+        action={formAction}
+        onSubmit={() => track("league_create_started")}
+        className="flex flex-col gap-5"
+      >
         <input type="hidden" name="icon" value={icon} />
 
         <div className="flex flex-col gap-1.5">
@@ -89,12 +105,22 @@ export function JoinLeagueForm() {
   );
   const codeId = useId();
 
+  useEffect(() => {
+    // A wrong or expired code is the most useful thing this screen can say:
+    // it means somebody was invited and could not get in.
+    if (state.error) track("league_join_failed", { at: "join" });
+  }, [state.error]);
+
   return (
     <Panel
       title="Join a league"
       description="Someone sent you a code? Put it in here."
     >
-      <form action={formAction} className="flex flex-col gap-5">
+      <form
+        action={formAction}
+        onSubmit={() => track("league_join_started")}
+        className="flex flex-col gap-5"
+      >
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={codeId}>Invite code</Label>
           <Input

@@ -86,8 +86,16 @@ The field is still true black and the theme colour is still `#000000`.
 
 ## Regenerating the assets
 
-Geometry lives in two places that must stay in step: `ArenaMark.tsx` for the
-app, and `scripts/generate-icons.mjs` for the rasters. After changing either:
+Geometry lives in two places that must stay in step: `src/lib/brand/mark.ts`
+for everything the app renders, and `scripts/generate-icons.mjs` for the
+rasters.
+
+`ArenaMark.tsx` draws from `mark.ts` rather than holding its own copy, because
+the weekly share card has to draw the same stone into a PNG through a
+different renderer. Two copies of the geometry would drift, and a logo that
+differs between the app and the thing people post is worse than either.
+
+After changing either place:
 
 ```
 npm run icons

@@ -154,11 +154,16 @@ test.describe("legal", () => {
   });
 
   test("terms promise cancellation is as easy as signing up", async ({ page }) => {
+    /*
+      Written as a promise about a future paid tier in phase 1, and as a
+      description of a live one in phase 8. The guarantee has not moved: one
+      tap, in the app, and never a phone call.
+    */
     await page.goto("/legal/terms");
     await expect(
-      page.getByText(/cancel it yourself, in the app, as easily as you signed up/)
+      page.getByText(/cancel at any time, yourself, in one tap/i)
     ).toBeVisible();
-    await expect(page.getByText(/never make you phone or email us to cancel/)).toBeVisible();
+    await expect(page.getByText(/never ask you to phone or email us/i)).toBeVisible();
   });
 });
 
@@ -254,9 +259,81 @@ test.describe("consent", () => {
       page.getByRole("dialog", { name: "Optional measurement" })
     ).toBeHidden();
   });
+
+  /*
+    The measurement script is absent until somebody says yes, rather than
+    loaded and asked to behave. Mounting a vendor and trusting a flag is not
+    consent, and it is the difference between the privacy policy being true
+    and being aspirational.
+  */
+
+  test("loads no measurement script before a choice is made", async ({ page }) => {
+    const requested: string[] = [];
+    page.on("request", (request) => requested.push(request.url()));
+
+    await page.goto("/");
+    await page.waitForTimeout(1000);
+
+    expect(requested.filter((url) => url.includes("va.vercel-scripts.com"))).toEqual([]);
+    expect(requested.filter((url) => url.includes("/_vercel/insights"))).toEqual([]);
+  });
+
+  test("loads no measurement script after a refusal", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "No thanks" }).click();
+
+    const requested: string[] = [];
+    page.on("request", (request) => requested.push(request.url()));
+
+    await page.reload();
+    await page.waitForTimeout(1000);
+
+    expect(requested.filter((url) => url.includes("va.vercel-scripts.com"))).toEqual([]);
+  });
+
+  test("stops measuring again the moment consent is withdrawn", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Allow" }).click();
+
+    // Withdrawing has to be as effective as never having agreed, not just as
+    // easy. The stored answer is what every gate in the app reads.
+    await page.evaluate(() => {
+      window.localStorage.setItem("arena.consent.measurement", "denied");
+      window.dispatchEvent(new Event("arena:consent-changed"));
+    });
+
+    const stored = await page.evaluate(() =>
+      window.localStorage.getItem("arena.consent.measurement")
+    );
+    expect(stored).toBe("denied");
+  });
+});
+
+test.describe("the numbers page", () => {
+  test("is not there for somebody with no account", async ({ page }) => {
+    // Owner only. A signed-out visitor is sent to sign in rather than shown
+    // anything, and a signed-in stranger gets a plain not-found, so nobody
+    // learns the page exists.
+    await page.goto("/metrics");
+
+    // Sent to sign in, carrying where they were headed, like any other
+    // signed-in page. Nothing on the way says whether that page exists.
+    await expect(page).toHaveURL(/\?next=%2Fmetrics$/);
+    await expect(page.getByLabel("Email")).toBeVisible();
+  });
 });
 
 test.describe("brand shell", () => {
+  /*
+    Arena shares Lab's system and diverges from it in exactly two places, both
+    by explicit decision recorded in docs/brand/ARENA_MARK.md: the mark is a
+    parted aqua stone, and the accent is a warmer amber so the two read as a
+    warm-against-cool pair rather than as two accents competing.
+
+    Everything else is still Lab's, and the point of this test is that it
+    stays that way. Two deliberate exceptions are a divergence; a third that
+    nobody wrote down is the second palette the brand doc forbids.
+  */
   test("paints the locked tokens, not a second palette", async ({ page }) => {
     await page.goto("/");
 
@@ -278,8 +355,9 @@ test.describe("brand shell", () => {
           ["--foreground", "oklch(0.985 0 0)"],
           ["--card", "oklch(0.205 0 0)"],
           ["--muted", "oklch(0.269 0 0)"],
-          ["--primary", "oklch(0.8 0.09 90)"],
-          ["--ring", "oklch(0.8 0.09 90)"],
+          // Arena's own accent, not Lab's. oklch(0.82 0.11 74), #efb970.
+          ["--primary", "oklch(0.82 0.11 74)"],
+          ["--ring", "oklch(0.82 0.11 74)"],
           ["--gain", "oklch(0.696 0.17 162.48)"],
           ["--loss", "oklch(0.645 0.21 16.439)"],
           ["--warning", "oklch(0.63 0.22 45)"],
@@ -288,8 +366,30 @@ test.describe("brand shell", () => {
     );
 
     for (const { token, actual, expected } of results) {
-      expect(actual, `${token} must match Upside Lab`).toEqual(expected);
+      expect(actual, `${token} has moved off the locked palette`).toEqual(expected);
     }
+  });
+
+  test("keeps the accent clear of the banned hues and of Lab's own gold", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const primary = await page.evaluate((resolveSource) => {
+      const resolve = eval(resolveSource) as (value: string) => number[];
+      const style = getComputedStyle(document.documentElement);
+      return resolve(style.getPropertyValue("--primary").trim());
+    }, RESOLVE_COLOR);
+
+    const [r, g, b] = primary;
+
+    // Warm: red leads, blue trails. A cool accent would fight the aqua mark
+    // instead of pairing with it.
+    expect(r).toBeGreaterThan(g);
+    expect(g).toBeGreaterThan(b);
+
+    // And distinct from Lab's gold, which is the whole reason it moved.
+    expect(primary.slice(0, 3)).not.toEqual([212, 188, 121]);
   });
 
   test("carries no violet, purple or magenta anywhere in the palette", async ({
@@ -375,5 +475,114 @@ test.describe("accessibility basics", () => {
     const email = page.getByLabel("Email");
     await expect(email).toHaveAttribute("type", "email");
     await expect(email).toHaveAttribute("autocomplete", "email");
+  });
+});
+
+test.describe("a shared week", () => {
+  /*
+    These links are posted into group chats. Everything below is about the one
+    way this feature can fail completely: a stranger following the link and
+    being asked to sign in instead of seeing the card. That turns the whole
+    growth loop into a dead end, and it is one line in the proxy away from
+    happening.
+  */
+
+  const link = "/w/0123456789abcdef0123456789abcdef";
+
+  test("opens for somebody with no account", async ({ page }) => {
+    const response = await page.goto(link);
+
+    expect(response?.status()).toBe(200);
+    await expect(page).toHaveURL(new RegExp(`${link}$`));
+  });
+
+  test("never bounces a visitor to sign in", async ({ page }) => {
+    await page.goto(link);
+
+    // A card that has gone is a card that has gone. It must not become a
+    // sign-in wall, which is what a missing public path rule would produce.
+    await expect(page.getByLabel("Email")).toHaveCount(0);
+  });
+
+  test("says plainly when a link no longer works, and blames nobody", async ({
+    page,
+  }) => {
+    await page.goto(link);
+
+    await expect(
+      page.getByRole("heading", { name: "This card is no longer shared" })
+    ).toBeVisible();
+    await expect(page.getByText("Nothing is wrong on your end")).toBeVisible();
+  });
+
+  test("offers the visitor a way into the game", async ({ page }) => {
+    // The only reason this page exists. A dead end here wastes the share.
+    await page.goto(link);
+    await expect(page.getByRole("link", { name: /Upside Arena/i })).toBeVisible();
+  });
+
+  test("asks not to be listed in search results", async ({ page }) => {
+    await page.goto(link);
+
+    const robots = page.locator('meta[name="robots"]');
+    await expect(robots).toHaveAttribute("content", /noindex/);
+  });
+
+  test("still produces a picture for a link that has gone", async ({ request }) => {
+    // A dead preview in a chat looks worse than a plain one, so the image
+    // route has to answer even when there is no card behind it.
+    const response = await request.get(`${link}/opengraph-image`);
+
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toContain("image/png");
+  });
+});
+
+test.describe("paying for things", () => {
+  test("the paid page is behind a sign-in like everything else", async ({ page }) => {
+    await page.goto("/plus");
+    await expect(page).toHaveURL(/\?next=%2Fplus$/);
+  });
+
+  test("the payment webhook refuses an unsigned request", async ({ request }) => {
+    /*
+      The whole paid tier would be free if this ever answered anything else.
+      A 404 means payments are not switched on at all; a 400 means the
+      signature was checked and refused. Both are correct; a 200 is not.
+    */
+    const response = await request.post("/api/stripe/webhook", {
+      data: { id: "evt_forged", type: "customer.subscription.updated" },
+    });
+
+    expect([400, 404]).toContain(response.status());
+  });
+
+  test("the terms say what recurs, what it costs and how to stop it", async ({
+    page,
+  }) => {
+    // Recurring billing has to be disclosed before somebody agrees, and the
+    // cancel path has to be as easy as the signup path.
+    await page.goto("/legal/terms");
+
+    await expect(page.getByText(/renews automatically until you stop it/i)).toBeVisible();
+    await expect(page.getByText(/cancel at any time, yourself, in one tap/i)).toBeVisible();
+    await expect(page.getByText(/never ask you to phone or email us/i)).toBeVisible();
+  });
+
+  test("the terms say coins are not money", async ({ page }) => {
+    await page.goto("/legal/terms");
+
+    await expect(page.getByText(/Coins are not money/)).toBeVisible();
+    await expect(page.getByText(/no randomised bundles, boxes or packs/i)).toBeVisible();
+  });
+
+  test("the terms keep money away from scoring", async ({ page }) => {
+    // The locked rule from section 9. If this line ever leaves the terms,
+    // something has gone badly wrong upstream of the terms.
+    await page.goto("/legal/terms");
+
+    await expect(
+      page.getByText(/Money never changes your score, your ranking, your odds/i)
+    ).toBeVisible();
   });
 });

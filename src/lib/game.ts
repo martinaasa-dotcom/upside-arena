@@ -1,3 +1,5 @@
+import { FREE } from "@/lib/billing/plan";
+
 /*
   The rules of the game, in one place.
 
@@ -50,10 +52,17 @@ export const MAX_TRADES_PER_CYCLE = 500;
   tier, so these are the numbers that stay free. They are deliberately generous
   enough that nobody hits them by accident: a limit that bites a normal player
   is a bug, not a business model.
+
+  The paid numbers live in src/lib/billing/plan.ts alongside everything else
+  money buys, so the whole of what a subscription changes can be read in one
+  place and checked in one test. These re-export from there rather than being
+  a second copy that can drift.
 */
-export const MAX_LEAGUES_OWNED = 3;
-export const MAX_LEAGUES_JOINED = 10;
-export const MAX_LEAGUE_MEMBERS = 20;
+export { FREE as FREE_LIMITS } from "@/lib/billing/plan";
+
+export const MAX_LEAGUES_OWNED = FREE.leaguesOwned;
+export const MAX_LEAGUES_JOINED = FREE.leaguesJoined;
+export const MAX_LEAGUE_MEMBERS = FREE.leagueMembers;
 
 /** Icons a league can be given. Kept to a set so a name cannot smuggle markup. */
 export const LEAGUE_ICONS = [

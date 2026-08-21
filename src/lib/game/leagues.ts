@@ -1,10 +1,8 @@
 import "server-only";
 
-import {
-  MAX_LEAGUES_JOINED,
-  MAX_LEAGUES_OWNED,
-  MAX_LEAGUE_MEMBERS,
-} from "@/lib/game";
+import { limitsFor } from "@/lib/billing/plan";
+import { hasPlus } from "@/lib/billing/entitlements";
+import { MAX_LEAGUES_JOINED, MAX_LEAGUES_OWNED } from "@/lib/game";
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getQuotes } from "@/lib/market/quotes";
@@ -307,20 +305,30 @@ export async function createLeague(
 ): Promise<LeagueOutcome> {
   if (!canWriteGame) return { ok: false, error: "Leagues are not switched on yet." };
 
+  /*
+    How many they may run, and how big. A subscriber gets more of both, which
+    is a convenience rather than an advantage: a bigger league is more people
+    to be beaten by, and nothing about it changes how a week is scored.
+  */
+  const limits = limitsFor(await hasPlus(userId));
+
   const admin = createAdminClient();
   const { data, error } = await admin.rpc("create_league", {
     p_user_id: userId,
     p_name: name,
     p_icon: icon,
-    p_max_leagues: MAX_LEAGUES_OWNED,
-    p_max_members: MAX_LEAGUE_MEMBERS,
+    p_max_leagues: limits.leaguesOwned,
+    p_max_members: limits.leagueMembers,
   });
 
   if (error) {
     if (error.message.includes("league limit reached")) {
       return {
         ok: false,
-        error: `You can run ${MAX_LEAGUES_OWNED} leagues at once. Leave one to start another.`,
+        error:
+          limits.leaguesOwned > MAX_LEAGUES_OWNED
+            ? `You can run ${limits.leaguesOwned} leagues at once. Leave one to start another.`
+            : `You can run ${limits.leaguesOwned} leagues at once. Leave one to start another, or take Arena Plus for more.`,
       };
     }
     if (error.message.includes("needs a name")) {
@@ -338,11 +346,13 @@ export async function joinLeague(
 ): Promise<LeagueOutcome> {
   if (!canWriteGame) return { ok: false, error: "Leagues are not switched on yet." };
 
+  const limits = limitsFor(await hasPlus(userId));
+
   const admin = createAdminClient();
   const { data, error } = await admin.rpc("join_league", {
     p_user_id: userId,
     p_invite_code: inviteCode,
-    p_max_leagues: MAX_LEAGUES_JOINED,
+    p_max_leagues: limits.leaguesJoined,
   });
 
   if (error) {
@@ -355,7 +365,10 @@ export async function joinLeague(
     if (error.message.includes("too many leagues")) {
       return {
         ok: false,
-        error: `You are in ${MAX_LEAGUES_JOINED} leagues already. Leave one to join another.`,
+        error:
+          limits.leaguesJoined > MAX_LEAGUES_JOINED
+            ? `You are in ${limits.leaguesJoined} leagues already. Leave one to join another.`
+            : `You are in ${limits.leaguesJoined} leagues already. Leave one to join another, or take Arena Plus for more.`,
       };
     }
     return { ok: false, error: "We could not join that league. Try again." };

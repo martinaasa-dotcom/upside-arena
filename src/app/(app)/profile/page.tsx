@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Coins } from "lucide-react";
 import { Panel } from "@/components/Panel";
 import { HairlineCell, HairlineGrid } from "@/components/HairlineGrid";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -6,8 +8,14 @@ import { ProfileForm } from "@/components/ProfileForm";
 import { AccountControls } from "@/components/AccountControls";
 import { ConsentControl } from "@/components/ConsentControl";
 import { Titles } from "@/components/Titles";
+import { NotificationSettings } from "@/components/NotificationSettings";
+import { SharedCards } from "@/components/SharedCards";
 import { getSession } from "@/lib/profile";
 import { getRewards } from "@/lib/game/streaks";
+import { getLeagues } from "@/lib/game/leagues";
+import { getMyCards } from "@/lib/game/share";
+import { getStanding, FREE_STANDING } from "@/lib/billing/entitlements";
+import { getNotificationState, DEFAULT_SETTINGS } from "@/lib/notify/settings";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatDate, initials } from "@/lib/format";
 import { signOut } from "@/app/auth/actions";
@@ -19,7 +27,20 @@ export default async function ProfilePage() {
   const name = profile?.display_name ?? "Player";
   const rewards = user
     ? await getRewards(user.id)
-    : { owned: [], locked: [], equipped: null };
+    : { owned: [], locked: [], forSale: [], equipped: null };
+
+  const leagues = user ? await getLeagues(user.id) : [];
+  const cards = user ? await getMyCards(user.id) : [];
+  const standing = user ? await getStanding(user.id) : FREE_STANDING;
+
+  const notifications = user
+    ? await getNotificationState(user.id)
+    : {
+        settings: DEFAULT_SETTINGS,
+        devices: 0,
+        pushAvailable: false,
+        emailAvailable: false,
+      };
 
   const wearing = rewards.owned.find((title) => title.equipped);
 
@@ -81,7 +102,7 @@ export default async function ProfilePage() {
           </HairlineCell>
           <HairlineCell>
             <span className="text-sm text-muted-foreground">Leagues</span>
-            <span className="figure text-lg font-semibold">0</span>
+            <span className="figure text-lg font-semibold">{leagues.length}</span>
           </HairlineCell>
         </HairlineGrid>
       </Panel>
@@ -102,6 +123,56 @@ export default async function ProfilePage() {
           defaultName={profile?.display_name ?? ""}
           defaultHandle={profile?.handle ?? ""}
           email={user?.email ?? ""}
+        />
+      </Panel>
+
+      {notifications.pushAvailable || notifications.emailAvailable ? (
+        <Panel
+          title="Being told things"
+          description="Every one of these is something that actually happened. Turn off any of them and it stops immediately."
+        >
+          <NotificationSettings
+            initial={notifications.settings}
+            devices={notifications.devices}
+            pushAvailable={notifications.pushAvailable}
+            emailAvailable={notifications.emailAvailable}
+            publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
+          />
+        </Panel>
+      ) : null}
+
+      <Panel
+        title={standing.hasPlus ? "Arena Plus" : "Decoration, if you want it"}
+        description={
+          standing.hasPlus
+            ? "Thank you. Manage or cancel any time, in one tap."
+            : "The whole game is free. There is a subscription and a shop for titles, and neither changes a score."
+        }
+        action={
+          <span className="figure flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Coins className="size-3.5 text-primary" aria-hidden="true" />
+            {standing.coins}
+          </span>
+        }
+      >
+        <Button asChild variant={standing.hasPlus ? "outline" : "default"} size="sm">
+          <Link href="/plus">
+            {standing.hasPlus ? "Manage your membership" : "See what there is"}
+          </Link>
+        </Button>
+      </Panel>
+
+      <Panel
+        title="Weeks you have shared"
+        description="Anyone holding one of these links can see that week, and nothing else about you."
+      >
+        <SharedCards
+          cards={cards.map((card) => ({
+            id: card.id,
+            url: card.url,
+            monday: card.recap.monday,
+            returnPercent: card.recap.returnPercent,
+          }))}
         />
       </Panel>
 

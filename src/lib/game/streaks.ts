@@ -2,6 +2,9 @@ import "server-only";
 
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { recordDailyActive } from "@/lib/metrics";
+import { hasPlus } from "@/lib/billing/entitlements";
+import { limitsFor } from "@/lib/billing/plan";
 import {
   cycleMonday,
   isTradingDay,
@@ -82,6 +85,13 @@ export async function recordVisit(userId: string): Promise<{
   const today = nyDate();
 
   /*
+    Noted as a visit before anything else, and on every day rather than only
+    on trading days. A streak deliberately ignores the weekend; retention must
+    not, because somebody who came back on a Saturday came back.
+  */
+  await recordDailyActive(userId);
+
+  /*
     A visit at the weekend is not a missed day and not a credited one either.
     Reading the streak without touching it means someone checking in on a
     Sunday sees the truth rather than having Friday quietly overwritten.
@@ -108,11 +118,20 @@ export async function recordVisit(userId: string): Promise<{
 
   const before = await ownedRewardIds(userId);
 
+  /*
+    How many freezes the weekly grant lifts them to. A subscriber gets more,
+    which is convenience rather than advantage: a freeze covers a day nobody
+    opened the app, and a streak has never touched a standing or a lifetime
+    figure.
+  */
+  const limits = limitsFor(await hasPlus(userId));
+
   const { data, error } = await admin.rpc("record_activity", {
     p_user_id: userId,
     p_today: today,
     p_missed_days: missed,
     p_week_monday: cycleMonday(),
+    p_weekly_freezes: limits.weeklyFreezes,
   });
 
   if (error || !data) return readStreak(userId);
@@ -188,13 +207,21 @@ export type OwnedReward = EarnedReward & {
   equipped: boolean;
 };
 
+/** A cosmetic that can be bought outright, at a price that never varies. */
+export type ForSaleReward = EarnedReward & {
+  coinPrice: number | null;
+  plusOnly: boolean;
+};
+
 /** Every title a player has earned, and which one they are wearing. */
 export async function getRewards(userId: string): Promise<{
   owned: OwnedReward[];
   locked: (EarnedReward & { streakRequired: number | null })[];
+  /** The ones with a price on them, or that come with a subscription. */
+  forSale: ForSaleReward[];
   equipped: string | null;
 }> {
-  if (!canWriteGame) return { owned: [], locked: [], equipped: null };
+  if (!canWriteGame) return { owned: [], locked: [], forSale: [], equipped: null };
 
   const admin = createAdminClient();
   const [catalogueRows, { data: mine }, { data: profile }] = await Promise.all([
@@ -215,9 +242,11 @@ export async function getRewards(userId: string): Promise<{
 
   const owned: OwnedReward[] = [];
   const locked: (EarnedReward & { streakRequired: number | null })[] = [];
+  const forSale: ForSaleReward[] = [];
 
   for (const row of catalogueRows) {
     const when = earnedAt.get(row.id);
+
     if (when) {
       owned.push({
         id: row.id,
@@ -226,17 +255,34 @@ export async function getRewards(userId: string): Promise<{
         earnedAt: when,
         equipped: equipped === row.id,
       });
-    } else {
-      locked.push({
+      continue;
+    }
+
+    /*
+      Bought or given with a subscription, rather than earned. Kept out of
+      "still to earn" so that list stays a list of things playing gets you,
+      which is the only reason it is worth looking at.
+    */
+    if (row.coin_price != null || row.plus_only) {
+      forSale.push({
         id: row.id,
         name: row.name,
         description: row.description,
-        streakRequired: row.streak_required,
+        coinPrice: row.coin_price,
+        plusOnly: row.plus_only,
       });
+      continue;
     }
+
+    locked.push({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      streakRequired: row.streak_required,
+    });
   }
 
-  return { owned, locked, equipped };
+  return { owned, locked, forSale, equipped };
 }
 
 export async function equipTitle(

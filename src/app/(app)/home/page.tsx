@@ -7,9 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Holdings } from "@/components/Holdings";
 import { StreakCard } from "@/components/StreakCard";
 import { EarnedToast } from "@/components/EarnedToast";
+import { NotificationInvite } from "@/components/NotificationInvite";
+import { WeekRecap } from "@/components/WeekRecap";
+import { TrackView } from "@/components/TrackView";
+import { LabHandoff } from "@/components/LabHandoff";
 import { getSession } from "@/lib/profile";
 import { getPortfolioView } from "@/lib/game/portfolio";
 import { recordVisit } from "@/lib/game/streaks";
+import { getLeagues } from "@/lib/game/leagues";
+import { getLatestRecap } from "@/lib/game/share";
+import { considerHandoff, labUrl } from "@/lib/billing/handoff";
+import { plural } from "@/lib/format";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatGap, formatMoney, formatPercent } from "@/lib/format";
 import { sessionLabel } from "@/lib/market/session";
@@ -28,9 +36,17 @@ export default async function HomePage() {
     is the trigger the plan says to start with. Crediting it here and nowhere
     else keeps the streak meaning the one thing it claims to mean.
   */
-  const [view, activity] = user
-    ? await Promise.all([getPortfolioView(user.id), recordVisit(user.id)])
-    : [null, null];
+  const [view, activity, leagues, lastWeek, handoff] = user
+    ? await Promise.all([
+        getPortfolioView(user.id),
+        recordVisit(user.id),
+        getLeagues(user.id),
+        getLatestRecap(user.id),
+        // Almost always null. Only for somebody it is actually true of, and
+        // twice at most in their whole time here.
+        considerHandoff(user.id),
+      ])
+    : [null, null, [], null, null];
 
   /*
     With no engine configured there is nothing true to show, so the screen says
@@ -49,7 +65,7 @@ export default async function HomePage() {
           <Score label="Weeks played" value={profile?.weeks_played ?? 0} />
           <Score label="Best week" value="Not yet" as="text" />
           <Score label="Longest streak" value={profile?.longest_streak ?? 0} hint="days" />
-          <Score label="Leagues" value={0} />
+          <Score label="Leagues" value={leagues.length} />
         </Scoreboard>
 
         <Panel
@@ -78,6 +94,19 @@ export default async function HomePage() {
   }
 
   const up = view.returnPercent >= 0;
+
+  /*
+    Whether there is anything worth asking to interrupt them for, said in the
+    words of the thing itself. With nobody to be passed by and nothing owned,
+    the honest answer is that there is not, and nothing is asked.
+  */
+  const rival = leagues.find((league) => league.memberCount > 1);
+  const inviteReason = rival
+    ? `Want to know when somebody in ${rival.name} passes you?`
+    : activity && activity.streak.current >= 2
+      ? `You are ${plural(activity.streak.current, "day")} into a streak. Want a nudge on a day you have not opened Arena?`
+      : "";
+  const inviteKind = rival ? "rival" : "streak";
 
   return (
     <div className={`${PAGE} ${STACK}`}>
@@ -163,7 +192,46 @@ export default async function HomePage() {
         </Panel>
       ) : null}
 
-      {activity ? <StreakCard streak={activity.streak} /> : null}
+      {inviteReason ? (
+        <NotificationInvite
+          reason={inviteReason}
+          kind={inviteKind}
+          publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
+        />
+      ) : null}
+
+      {activity ? (
+        <>
+          <TrackView
+            event="streak_viewed"
+            properties={{ counted: activity.streak.countedToday }}
+          />
+          <StreakCard streak={activity.streak} />
+        </>
+      ) : null}
+
+      {handoff ? (
+        <>
+          <TrackView event="lab_handoff_shown" />
+          <LabHandoff
+            token={handoff.token}
+            weeksPlayed={handoff.weeksPlayed}
+            weeksAhead={handoff.weeksAhead}
+            url={labUrl(handoff.token)}
+          />
+        </>
+      ) : null}
+
+      {lastWeek ? (
+        <>
+          {/*
+            Shares are measured against recaps seen, not against players. A
+            player with no finished week has not declined to share one.
+          */}
+          <TrackView event="week_recap_viewed" />
+          <WeekRecap recap={lastWeek.recap} />
+        </>
+      ) : null}
 
       <Panel
         title="What you own"

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { track } from "@/lib/analytics";
 import type { EarnedReward } from "@/lib/game/streaks";
 
 /*
@@ -18,6 +19,7 @@ export function EarnedToast({ earned }: { earned: EarnedReward[] }) {
     for (const reward of earned) {
       if (announced.current.has(reward.id)) continue;
       announced.current.add(reward.id);
+      track("reward_earned", { reward: reward.id });
       toast.success(`You earned "${reward.name}"`, {
         description: reward.description,
         duration: 6000,

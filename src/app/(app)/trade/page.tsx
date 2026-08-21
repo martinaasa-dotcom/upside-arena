@@ -4,6 +4,7 @@ import { TradeForm } from "@/components/TradeForm";
 import { getSession } from "@/lib/profile";
 import { getPortfolioView } from "@/lib/game/portfolio";
 import { PAGE, STACK } from "@/lib/page-shell";
+import { TrackView } from "@/components/TrackView";
 import { formatMoney } from "@/lib/format";
 import { isWeekend } from "@/lib/market/session";
 
@@ -21,6 +22,7 @@ export default async function TradePage() {
   if (!view) {
     return (
       <div className={`${PAGE} ${STACK}`}>
+      <TrackView event="trade_screen_viewed" />
         <h1>Trade</h1>
         <Panel
           title="Trading is not switched on yet"

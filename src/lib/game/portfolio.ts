@@ -14,6 +14,7 @@ import { getQuotes, normaliseSymbol, type Quote } from "@/lib/market/quotes";
 import { getSessionOpen } from "@/lib/market/benchmark";
 import { cycleMonday, isTradingOpen } from "@/lib/market/session";
 import { hasDueCycle, settleDueCycles } from "@/lib/game/settle";
+import { needsMarkToday, recordDailyMarks } from "@/lib/game/marks";
 
 /*
   Reading and valuing a player's week.
@@ -112,6 +113,22 @@ export const getCurrentCycle = cache(async (): Promise<Cycle | null> => {
       } catch {
         // The next request tries again. A failed settle must never turn into
         // a failed page.
+      }
+    });
+  }
+
+  /*
+    Today's closing value, on the same terms. A mark cannot be caught up
+    later, because prices move on, so it must not depend on a schedule any
+    more than settling does. The cron writes it promptly; this makes sure a
+    day is never lost when the cron does not run.
+  */
+  if (await needsMarkToday()) {
+    after(async () => {
+      try {
+        await recordDailyMarks();
+      } catch {
+        // A missing mark costs a bar on a share card and nothing else.
       }
     });
   }

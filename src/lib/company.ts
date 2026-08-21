@@ -76,6 +76,30 @@ export const PROCESSORS = [
     where: "European Union and the United States",
   },
   {
+    name: "Stripe",
+    role:
+      "Takes payments if you buy anything. It receives your email address and " +
+      "your card details, which we never see, and tells us only that a payment " +
+      "succeeded. It handles nothing for people who buy nothing.",
+    where: "European Union and the United States",
+  },
+  {
+    name: "Resend",
+    role:
+      "Sends the notification emails you have asked for. It receives your " +
+      "email address and the text of the message, and nothing about what you " +
+      "hold or what you have traded.",
+    where: "European Union",
+  },
+  {
+    name: "Google, Apple, Mozilla and Microsoft",
+    role:
+      "The push services built into browsers. If you turn on notifications, " +
+      "whichever one your browser uses passes the message to your device. It " +
+      "is encrypted on the way, so the service cannot read it.",
+    where: "European Union and the United States",
+  },
+  {
     name: "Yahoo Finance",
     role:
       "Share prices. We send it a ticker symbol and nothing else: no account, " +

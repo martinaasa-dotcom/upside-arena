@@ -25,6 +25,12 @@ const PUBLIC_API_PATHS: string[] = [
   // Authenticates with a shared secret rather than a session, and refuses
   // the request itself when the secret is missing or wrong.
   "/api/cron/settle",
+  "/api/cron/notify",
+
+  // Stripe authenticates by signing the request body, not by holding a
+  // session. Left off this list the endpoint answers 401 to Stripe, which
+  // retries for days while nobody's subscription is ever recorded.
+  "/api/stripe/webhook",
 ];
 
 function isPublic(pathname: string) {
@@ -33,6 +39,15 @@ function isPublic(pathname: string) {
     PUBLIC_API_PATHS.includes(pathname) ||
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/icons/") ||
+    /*
+      A shared week card, and the picture that goes with it.
+
+      Signed out on purpose. These links are posted into group chats, and a
+      page that asked for an account before showing anything would end the
+      share loop before it started. Each one shows a single frozen week and
+      offers no way to reach the player behind it.
+    */
+    pathname.startsWith("/w/") ||
     pathname === "/manifest.webmanifest" ||
     pathname === "/sw.js"
   );

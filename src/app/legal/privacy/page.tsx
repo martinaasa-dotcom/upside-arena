@@ -70,8 +70,43 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>How the app is used, only if you allow it.</strong> Which
-          screens are opened and how quickly pages load. We ask you first, and
-          Arena works exactly the same if you say no.
+          screens are opened, which buttons are pressed, how quickly pages
+          load. Never what you searched for, what you bought, what your league
+          is called or how much you have. We ask you first, and Arena works
+          exactly the same if you say no.
+        </li>
+        <li>
+          <strong>Which days you opened Arena.</strong> The date, and nothing
+          about what you did. We use it to count how many people come back,
+          which is the one number that tells us whether the game is any good.
+        </li>
+        <li>
+          <strong>What you have bought, if you buy anything.</strong> Which
+          subscription or coin bundle, when, and whether it is still running. We
+          never see or store your card number: our payment provider handles the
+          card and tells us only that a payment succeeded.
+        </li>
+        <li>
+          <strong>Weeks you choose to share.</strong> When you press share on a
+          finished week, we save a copy of that result: your name, the title you
+          were wearing, how the week went, where you finished in a league, your
+          streak, and the daily figures behind it. That copy is what the link
+          shows. It is frozen, so it never reveals anything that happens
+          afterwards, and you can take it down whenever you like.
+        </li>
+        <li>
+          <strong>What your portfolio was worth each day.</strong> Recorded once
+          per trading day for everyone playing, so a shared week can show its
+          shape rather than a single number.
+        </li>
+        <li>
+          <strong>Notifications, only if you turn them on.</strong> If you allow
+          notifications in your browser, we store the address your browser&rsquo;s
+          push service gives us, the keys needed to encrypt a message to it, a
+          description of the browser, and the time zone your device reports so
+          nothing arrives in the middle of your night. We also keep a record of
+          what we sent you and when, which is what stops the same thing being
+          sent twice and keeps us to our own daily limit.
         </li>
       </ul>
       <p>
@@ -115,6 +150,32 @@ export default function PrivacyPage() {
           consent, which you can take back at any time.
         </li>
         <li>
+          <strong>To count how many people play and come back.</strong> We have
+          a legitimate interest in knowing whether Arena works, and we do it by
+          counting our own records rather than by sending anything about you to
+          anyone. Nothing produced this way names a person, describes a person,
+          or could be traced back to one: it is totals, such as how many
+          accounts exist and how many people opened the app yesterday.
+        </li>
+        <li>
+          <strong>To take a payment and give you what you paid for.</strong> We
+          need this to do what you asked us to do. We also have to keep records
+          of what was sold, because tax and accounting law requires it, which is
+          a legal obligation rather than a choice.
+        </li>
+        <li>
+          <strong>To let you share a week.</strong> We do this to do what you
+          asked us to do, which is make that one week postable. Nothing is
+          shared until you press the button, and taking it down ends it.
+        </li>
+        <li>
+          <strong>To send you notifications.</strong> Only with your consent,
+          which you can take back at any time from your profile page or in your
+          browser&rsquo;s own settings. Every email we send carries a link that
+          turns them off. We only send things that describe something that has
+          actually happened in your game, never marketing.
+        </li>
+        <li>
           <strong>To record that you agreed to our terms, and to meet other
           legal duties.</strong> We have to be able to show this.
         </li>
@@ -152,6 +213,14 @@ export default function PrivacyPage() {
           address is never shown to another player.
         </li>
         <li>
+          <strong>Anyone you send a share link to.</strong> A shared week is a
+          public web address: whoever holds the link can open it, without an
+          account, and can pass it on. It shows that one week and offers no way
+          to reach anything else about you. We ask search engines not to list
+          these pages, though we cannot force them to obey. Taking a card down
+          makes its link stop working.
+        </li>
+        <li>
           <strong>Companies that run parts of the service for us.</strong> They
           may only use your data to do that work, under a written contract, and
           never for their own purposes. Today they are:
@@ -163,8 +232,8 @@ export default function PrivacyPage() {
               </li>
             ))}
           </ul>
-          We keep this list current. When we add a market data provider, an
-          email sender or a measurement tool, they will be named here first.
+          We keep this list current. Anyone we add later will be named here
+          first.
         </li>
         <li>
           <strong>Anyone the law requires.</strong> If we are legally obliged to

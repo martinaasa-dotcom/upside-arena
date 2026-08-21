@@ -23,9 +23,58 @@ export async function GET() {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
-  const [{ data: profile }, { data: acceptances }] = await Promise.all([
+  const [
+    { data: profile },
+    { data: acceptances },
+    { data: portfolios },
+    { data: trades },
+    { data: holdings },
+    { data: memberships },
+    { data: streak },
+    { data: titles },
+    { data: notificationSettings },
+    { data: notifications },
+    { data: shareCards },
+    { data: entitlements },
+    { data: coins },
+    { data: devices },
+  ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
     supabase.from("terms_acceptances").select("*").eq("user_id", user.id),
+    supabase.from("portfolios").select("*").eq("user_id", user.id),
+    /*
+      Trades and holdings hang off a portfolio rather than off a person, so
+      they are filtered through it. Row level security already limits both to
+      the caller's own rows; the filter is what makes the query legal, not
+      what makes it safe.
+    */
+    supabase.from("trades").select("*, portfolios!inner(user_id)").eq("portfolios.user_id", user.id),
+    supabase
+      .from("holdings")
+      .select("*, portfolios!inner(user_id)")
+      .eq("portfolios.user_id", user.id),
+    supabase.from("league_members").select("*").eq("user_id", user.id),
+    supabase.from("streaks").select("*").eq("user_id", user.id).maybeSingle(),
+    supabase.from("user_rewards").select("*").eq("user_id", user.id),
+    supabase
+      .from("notification_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase.from("notifications").select("*").eq("user_id", user.id),
+    supabase.from("share_cards").select("*").eq("user_id", user.id),
+    supabase.from("entitlements").select("*").eq("user_id", user.id),
+    supabase.from("coin_ledger").select("*").eq("user_id", user.id),
+    /*
+      Which browsers are subscribed, without the encryption keys. Those keys
+      are what lets a message be sent to the device, so putting them in a file
+      somebody downloads would turn an export into a way of pushing to their
+      phone. Everything else about the subscription is here.
+    */
+    supabase
+      .from("push_subscriptions")
+      .select("id, user_agent, created_at, last_used_at")
+      .eq("user_id", user.id),
   ]);
 
   const payload = {
@@ -39,6 +88,18 @@ export async function GET() {
     },
     profile: profile ?? null,
     terms_acceptances: acceptances ?? [],
+    portfolios: portfolios ?? [],
+    trades: trades ?? [],
+    holdings: holdings ?? [],
+    league_memberships: memberships ?? [],
+    streak: streak ?? null,
+    titles_earned: titles ?? [],
+    notification_settings: notificationSettings ?? null,
+    notifications_sent: notifications ?? [],
+    shared_weeks: shareCards ?? [],
+    what_you_have_bought: entitlements ?? [],
+    coin_history: coins ?? [],
+    subscribed_devices: devices ?? [],
   };
 
   return new NextResponse(JSON.stringify(payload, null, 2), {

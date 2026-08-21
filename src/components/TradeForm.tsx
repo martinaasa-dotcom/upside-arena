@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
+import { track } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,8 +66,16 @@ export function TradeForm({
     if (state.success) {
       toast.success(state.success);
       formRef.current?.reset();
+      // Which side, and nothing else. What they bought is theirs.
+      track("trade_placed");
     }
   }, [state.success]);
+
+  useEffect(() => {
+    // A rejected trade is worth more than a filled one: it is somebody trying
+    // to do something the game would not let them.
+    if (state.error) track("trade_rejected");
+  }, [state.error]);
 
   // Search as you type, but only once typing pauses. Every keystroke would be
   // a request to an outside service for a company nobody meant to look up.
@@ -82,6 +91,8 @@ export function TradeForm({
       if (cancelled) return;
       setMatches(found);
       setSearching(false);
+      // Whether a search found anything, never what was typed.
+      track("symbol_searched", { found: found.length });
     }, 300);
 
     return () => {
