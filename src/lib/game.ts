@@ -42,3 +42,21 @@ export const WHOLE_SHARES_ONLY = true;
  */
 export const MAX_TRADES_PER_MINUTE = 10;
 export const MAX_TRADES_PER_CYCLE = 500;
+
+/*
+  League limits on the free tier.
+
+  Section 9 of the plan puts "more and larger private leagues" behind the paid
+  tier, so these are the numbers that stay free. They are deliberately generous
+  enough that nobody hits them by accident: a limit that bites a normal player
+  is a bug, not a business model.
+*/
+export const MAX_LEAGUES_OWNED = 3;
+export const MAX_LEAGUES_JOINED = 10;
+export const MAX_LEAGUE_MEMBERS = 20;
+
+/** Icons a league can be given. Kept to a set so a name cannot smuggle markup. */
+export const LEAGUE_ICONS = [
+  "\u{1F3C6}", "\u{2615}", "\u{1F525}", "\u{1F680}", "\u{1F3AF}", "\u{1F42E}",
+  "\u{1F43B}", "\u{1F419}", "\u{1F48E}", "\u{1F340}", "\u{26A1}", "\u{1F9E0}",
+] as const;

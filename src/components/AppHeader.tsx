@@ -11,6 +11,7 @@ import type { Profile } from "@/lib/types";
 const ROOM_TITLES: Record<string, string> = {
   "/home": "Home",
   "/trade": "Trade",
+  "/leagues": "Leagues",
   "/profile": "Profile",
 };
 
@@ -20,7 +21,9 @@ const ROOM_TITLES: Record<string, string> = {
 */
 export function AppHeader({ profile }: { profile: Profile | null }) {
   const pathname = usePathname();
-  const room = ROOM_TITLES[pathname] ?? "Arena";
+  const room = pathname.startsWith("/leagues/")
+    ? "League"
+    : (ROOM_TITLES[pathname] ?? "Arena");
   const name = profile?.display_name ?? "Player";
 
   return (

@@ -75,6 +75,25 @@ export type TradeRow = {
   executed_at: string;
 };
 
+export type LeagueRow = {
+  id: string;
+  name: string;
+  icon: string | null;
+  owner_id: string;
+  invite_code: string;
+  max_members: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type LeagueMemberRow = {
+  id: string;
+  league_id: string;
+  user_id: string;
+  role: "owner" | "member";
+  joined_at: string;
+};
+
 export type TermsAcceptanceRow = {
   id: string;
   user_id: string;
@@ -99,6 +118,8 @@ export type Database = {
       portfolios: Table<PortfolioRow>;
       holdings: Table<HoldingRow>;
       trades: Table<TradeRow>;
+      leagues: Table<LeagueRow>;
+      league_members: Table<LeagueMemberRow>;
     };
     Views: Record<never, never>;
     Functions: {
@@ -150,6 +171,41 @@ export type Database = {
       release_cycle_claim: {
         Args: { p_cycle_id: string };
         Returns: undefined;
+      };
+      is_league_member: {
+        Args: { p_league_id: string; p_user_id: string };
+        Returns: boolean;
+      };
+      create_league: {
+        Args: {
+          p_user_id: string;
+          p_name: string;
+          p_icon: string | null;
+          p_max_leagues: number;
+          p_max_members: number;
+        };
+        Returns: LeagueRow;
+      };
+      join_league: {
+        Args: { p_user_id: string; p_invite_code: string; p_max_leagues: number };
+        Returns: LeagueRow;
+      };
+      leave_league: {
+        Args: { p_user_id: string; p_league_id: string };
+        Returns: undefined;
+      };
+      rename_league: {
+        Args: {
+          p_user_id: string;
+          p_league_id: string;
+          p_name: string;
+          p_icon: string | null;
+        };
+        Returns: LeagueRow;
+      };
+      generate_invite_code: {
+        Args: Record<never, never>;
+        Returns: string;
       };
     };
     Enums: Record<never, never>;

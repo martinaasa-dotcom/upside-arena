@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeftRight, Home, User } from "lucide-react";
+import { ArrowLeftRight, Home, Trophy, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /*
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 const ROOMS = [
   { href: "/home", label: "Home", icon: Home },
   { href: "/trade", label: "Trade", icon: ArrowLeftRight },
+  { href: "/leagues", label: "Leagues", icon: Trophy },
   { href: "/profile", label: "Profile", icon: User },
 ];
 
