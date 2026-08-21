@@ -146,6 +146,18 @@ export async function startCoinCheckout(
           price_data: {
             currency: chosen.currency,
             unit_amount: chosen.amount,
+            /*
+              The price shown is the price paid. Selling to consumers in the
+              EU, VAT has to be included in the advertised figure rather than
+              added at the end, and a bundle that says 1.99 and charges 2.45
+              is the kind of surprise that produces a chargeback rather than a
+              second purchase.
+
+              Stripe also requires this explicitly once automatic tax is on
+              and the price is defined inline, so leaving it to the account
+              default is a checkout that fails to open.
+            */
+            tax_behavior: "inclusive",
             product_data: {
               name: `Upside Arena, ${chosen.label}`,
               description:

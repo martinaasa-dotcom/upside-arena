@@ -83,8 +83,10 @@ Two things must be updated or sign-in silently breaks.
 
 ## Settling the week, without paying for a scheduler
 
-Vercel's Hobby plan runs a cron once a day at an hour it chooses, which cannot
-be relied on to fire after Friday's close. Arena does not need it to.
+Vercel's cheapest scheduling runs a cron once a day at an hour it chooses,
+which cannot be relied on to fire after Friday's close. Rather than pay for a
+scheduler to do something the app can notice for itself, Arena does not need
+one at all.
 
 **A finished week is settled by the first request that touches the game.**
 `getCurrentCycle` checks for a due week with one indexed query and, if it
@@ -171,21 +173,34 @@ Everything is built and nothing is on sale until the Stripe keys are set. With
 none of them the paid page says so plainly, the free game is untouched, and
 the webhook returns a not-found.
 
-To switch it on:
+To switch it on, in Stripe first and Vercel last, so the app never runs with
+half of it configured:
 
-1. Make a **recurring price** for Arena Plus in the Stripe dashboard and put
-   its id in `STRIPE_PLUS_PRICE_ID`. The price lives in Stripe, not in this
-   repository, so changing it never needs a deploy.
-2. Turn on **Stripe Tax**, so VAT and sales tax are worked out for you rather
-   than by us.
-3. Turn on the **Customer Portal**, with cancellation enabled. That is what
-   satisfies the click-to-cancel rule, and Arena has no other cancel path on
-   purpose.
-4. Add a webhook endpoint pointing at `/api/stripe/webhook`, subscribed to
+1. Turn on **Stripe Tax** (Settings, Tax). VAT and sales tax are then worked
+   out by Stripe rather than by us. Set the default tax behaviour to
+   **inclusive**: selling to consumers in the EU, the advertised price has to
+   be the price paid, and a bundle that says 1.99 and charges 2.45 produces a
+   chargeback rather than a second purchase. The coin bundles set this
+   explicitly in code; the subscription price takes it from the dashboard.
+2. Make a **recurring price** for Arena Plus, with tax behaviour inclusive.
+   Its id goes in `STRIPE_PLUS_PRICE_ID`. The price lives in Stripe, not in
+   this repository, so changing it never needs a deploy.
+3. Turn on the **Customer Portal** (Settings, Billing, Customer portal) with
+   cancellation enabled. That is what satisfies the click-to-cancel rule, and
+   Arena has no other cancel path on purpose.
+4. Add a webhook endpoint pointing at
+   `https://upsidearena.com/api/stripe/webhook`, subscribed to
    `checkout.session.completed`, `customer.subscription.created`,
    `customer.subscription.updated`, `customer.subscription.deleted` and
-   `invoice.payment_failed`. Put its signing secret in
+   `invoice.payment_failed`. Its signing secret goes in
    `STRIPE_WEBHOOK_SECRET`.
+5. Only now set the three variables in Vercel and redeploy. Until all three
+   are present the paid page says it is not on sale and the webhook returns a
+   not-found, which is the right state to be in while half-configured.
+
+Test it end to end with a card before announcing it. Stripe's test mode has
+its own keys, its own price ids and its own webhook secret, so a full dry run
+costs nothing and proves the webhook is reaching the right URL.
 
 Coin bundle prices are in `src/lib/billing/plan.ts` rather than in Stripe,
 because a one-off price has to be checked against a list the server controls:
@@ -197,17 +212,19 @@ And a failed payment marks the subscription past due rather than revoking it,
 because Stripe retries a card for days and cutting somebody off on the first
 failure turns a renewal that would have worked into a lost subscriber.
 
-## Plan limits worth knowing
+## Where Arena is deployed
 
-The team is on Vercel's **Hobby** plan, which is for non-commercial use only.
-Arena is free with no ads, so it fits today.
+Arena deploys under the `upthink-solutions` scope, the same one Upside Lab
+uses, and Lab already takes payments there. So taking a payment is not a
+blocker on switching the paid tier on.
 
-**Taking a payment does not fit, and this is the one thing that has to be
-sorted before the paid tier is switched on.** The code is written and tested;
-setting the Stripe keys on a Hobby deployment would put the project in breach
-of Vercel's terms. Upgrade to Pro first, then set the keys. Nothing else about
-Arena needs Pro: scheduling has not been a reason to upgrade since the
-settlement work in phase 3.
+Worth knowing only because it would bite later: Vercel's **Hobby** plan is for
+non-commercial use, so a project that took payments would have to not be on
+it. That is a constraint on where Arena is deployed, not on the code.
+
+Scheduling has not been a reason to upgrade anything since the settlement work
+in phase 3: a finished week is settled by the first request that touches the
+game, and the hourly pass runs on GitHub Actions.
 
 ## Deploying
 
