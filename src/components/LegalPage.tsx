@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
 import { PAGE, PAGE_FRAME } from "@/lib/page-shell";
+import { COMPANY_DETAILS_PENDING } from "@/lib/company";
 
 /** Shared frame for the terms and privacy documents. */
 export function LegalPage({
@@ -22,6 +23,16 @@ export function LegalPage({
           </Link>
 
           <h1>{title}</h1>
+
+          {COMPANY_DETAILS_PENDING ? (
+            <p
+              role="status"
+              className="mt-4 rounded-lg border-l-4 border-warning bg-transparent py-2 pl-4 text-sm text-warning"
+            >
+              Draft. The company details in this document have not been filled
+              in yet, so it is not ready to publish. See src/lib/company.ts.
+            </p>
+          ) : null}
           <p className="figure mt-2 text-sm text-muted-foreground">
             Version {version}
           </p>

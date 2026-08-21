@@ -1,5 +1,7 @@
 "use client";
 
+import { getConsent } from "@/lib/consent";
+
 /*
   Product analytics is threaded through every phase rather than bolted on at
   the end. This is the single call site the app uses, so swapping in PostHog
@@ -21,14 +23,19 @@ export type AnalyticsEvent =
   | "install_prompt_shown"
   | "install_prompt_accepted"
   | "install_prompt_dismissed"
+  | "consent_granted"
+  | "consent_withdrawn"
   | "account_data_exported"
   | "account_deleted"
   | "signed_out";
 
-const enabled = Boolean(process.env.NEXT_PUBLIC_ANALYTICS_KEY);
+const configured = Boolean(process.env.NEXT_PUBLIC_ANALYTICS_KEY);
 
 export function track(event: AnalyticsEvent, properties?: Record<string, unknown>) {
-  if (!enabled) {
+  // Measurement is optional and opt-in. No consent, no event, no exceptions.
+  if (getConsent() !== "granted") return;
+
+  if (!configured) {
     if (process.env.NODE_ENV === "development") {
       console.debug("[analytics]", event, properties ?? {});
     }

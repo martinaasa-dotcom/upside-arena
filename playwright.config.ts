@@ -36,5 +36,13 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
+    env: {
+      /*
+        Node's built-in fetch ignores HTTPS_PROXY unless told otherwise, which
+        makes every server-side Supabase call fail inside a proxied sandbox.
+        Harmless everywhere else.
+      */
+      NODE_USE_ENV_PROXY: "1",
+    },
   },
 });

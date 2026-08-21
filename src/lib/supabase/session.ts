@@ -7,14 +7,25 @@ const PUBLIC_PATHS = [
   "/",
   "/legal/terms",
   "/legal/privacy",
+  // The service worker falls back to this when the network is gone, so it has
+  // to be reachable without a session.
+  "/offline",
   "/auth/callback",
   "/auth/confirm",
   "/auth/error",
 ];
 
+/*
+  API routes that must stay open to an unauthenticated caller. Payment provider
+  webhooks belong here when they arrive, since they authenticate by signature
+  rather than by session.
+*/
+const PUBLIC_API_PATHS: string[] = [];
+
 function isPublic(pathname: string) {
   return (
     PUBLIC_PATHS.includes(pathname) ||
+    PUBLIC_API_PATHS.includes(pathname) ||
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/icons/") ||
     pathname === "/manifest.webmanifest" ||
@@ -54,6 +65,15 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!user && !isPublic(pathname)) {
+    /*
+      An API caller gets a status code, not a redirect to a web page. Sending
+      HTML to something expecting JSON turns "not signed in" into a parse
+      error at the other end.
+    */
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    }
+
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.searchParams.set("next", pathname);

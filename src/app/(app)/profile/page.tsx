@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ProfileForm } from "@/components/ProfileForm";
 import { AccountControls } from "@/components/AccountControls";
+import { ConsentControl } from "@/components/ConsentControl";
 import { getSession } from "@/lib/profile";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatDate, initials } from "@/lib/format";
@@ -81,6 +82,13 @@ export default async function ProfilePage() {
           defaultHandle={profile?.handle ?? ""}
           email={user?.email ?? ""}
         />
+      </Panel>
+
+      <Panel
+        title="Measuring how the app is used"
+        description="Optional, and off until you say yes. Arena works the same either way."
+      >
+        <ConsentControl />
       </Panel>
 
       <Panel

@@ -1,4 +1,10 @@
 import { LegalPage } from "@/components/LegalPage";
+import {
+  AVAILABLE_IN,
+  COMPANY,
+  PROCESSORS,
+  SUPERVISORY_AUTHORITY,
+} from "@/lib/company";
 import { MINIMUM_AGE, PRIVACY_VERSION } from "@/lib/legal";
 
 export const metadata = { title: "Privacy policy" };
@@ -7,15 +13,39 @@ export default function PrivacyPage() {
   return (
     <LegalPage title="Privacy policy" version={PRIVACY_VERSION}>
       <p>
-        This explains what Upside Arena collects, why, and what you can ask us
-        to do about it. We collect as little as the game needs.
+        This explains what Upside Arena collects about you, why, who else sees
+        it, how long we keep it, and what you can tell us to do about it. We
+        collect as little as the game needs. We do not sell your data and we do
+        not run ads.
       </p>
 
-      <h2>What we collect</h2>
+      <h2>1. Who is responsible for your data</h2>
+      <p>
+        {COMPANY.legalName}, registered in {COMPANY.country} under registry code{" "}
+        {COMPANY.registryCode}, at {COMPANY.address}, is the controller of your
+        data. That means we decide what is collected and why, and we are the
+        ones you can hold to this policy.
+      </p>
+      <p>
+        For anything about your data, email{" "}
+        <a href={`mailto:${COMPANY.privacyEmail}`}>{COMPANY.privacyEmail}</a>.
+      </p>
+      <p>
+        We are based in the European Union, so European data protection law
+        applies to everything we do with your data, wherever you live. If you
+        live in California, section 11 sets out the extra rights you have.
+      </p>
+
+      <h2>2. What we collect</h2>
+      <p>
+        Almost all of it comes from you, or from your use of the game. We do not
+        buy data about you from anyone.
+      </p>
       <ul>
         <li>
-          <strong>Your account.</strong> Your email address, and your name and
-          picture if you sign in with Google.
+          <strong>Your account.</strong> Your email address. If you sign in with
+          Google, also the name and profile picture Google gives us. We never
+          see your Google password.
         </li>
         <li>
           <strong>Your profile.</strong> The name and player tag you choose, and
@@ -23,90 +53,316 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Your game history.</strong> Your trades, your scores, your
-          leagues and your streak.
+          leagues, your streak and your standing.
         </li>
         <li>
-          <strong>How the app is used.</strong> Which screens are opened and how
-          quickly pages load, so we can find what is slow or broken. Sign-in
-          cookies always run. Anything beyond that is optional and you can turn
-          it down.
+          <strong>What you agreed to.</strong> Which version of these documents
+          you accepted, and when.
+        </li>
+        <li>
+          <strong>Technical records.</strong> When you use Arena our hosting
+          provider records your IP address, your browser and the pages you
+          asked for. This happens for every website and we use it to keep the
+          service working and to spot abuse.
+        </li>
+        <li>
+          <strong>How the app is used, only if you allow it.</strong> Which
+          screens are opened and how quickly pages load. We ask you first, and
+          Arena works exactly the same if you say no.
         </li>
       </ul>
-      <p>We do not sell your data, and we do not run ads.</p>
-
-      <h2>Why we hold it</h2>
       <p>
-        To run your account, to score the game, to show other players in your
-        league who you are, to keep the game fair, and to answer you when you
-        contact us.
+        We do not collect anything about your health, your beliefs, your
+        politics, your ethnicity or anything else the law treats as sensitive.
+        Please do not put that kind of information into a name, a league name or
+        a message.
       </p>
 
-      <h2>Who else sees it</h2>
+      <h2>3. Why we use it, and what allows us to</h2>
+      <p>
+        The law says we need a reason for each thing we do with your data. Ours
+        are:
+      </p>
+      <ul>
+        <li>
+          <strong>To give you an account and run the game.</strong> We need this
+          to do what you asked us to do, which is let you play. Without it there
+          is no account and no game.
+        </li>
+        <li>
+          <strong>To show you to the other players in your league.</strong> Same
+          reason. A league you joined cannot work without showing who is in it.
+        </li>
+        <li>
+          <strong>To keep the game fair and to stop abuse.</strong> We have a
+          legitimate interest in Arena not being ruined by bots, cheating or
+          multiple accounts. We have weighed that against your privacy and kept
+          it to the minimum that works.
+        </li>
+        <li>
+          <strong>To keep the service secure and working.</strong> Also a
+          legitimate interest, and one you benefit from directly.
+        </li>
+        <li>
+          <strong>To answer you when you contact us.</strong> A legitimate
+          interest in being able to help you.
+        </li>
+        <li>
+          <strong>To measure how the app is used.</strong> Only with your
+          consent, which you can take back at any time.
+        </li>
+        <li>
+          <strong>To record that you agreed to our terms, and to meet other
+          legal duties.</strong> We have to be able to show this.
+        </li>
+      </ul>
+      <p>
+        If you object to anything we do on the basis of a legitimate interest,
+        tell us and we will stop unless we have a strong reason not to.
+      </p>
+
+      <h2>4. Cookies and similar technology</h2>
+      <p>We use two kinds, and only two:</p>
+      <ul>
+        <li>
+          <strong>Sign-in cookies, always on.</strong> These keep you signed in
+          and keep your session secure. Arena cannot work without them, so we do
+          not ask permission for these.
+        </li>
+        <li>
+          <strong>Measurement, only if you allow it.</strong> Page views and
+          load times. We ask before any of it runs, and nothing is recorded
+          until you say yes.
+        </li>
+      </ul>
+      <p>
+        You can change your mind whenever you like from the banner or from your
+        profile page. We do not use advertising cookies and we do not let anyone
+        track you across other websites.
+      </p>
+
+      <h2>5. Who else sees your data</h2>
       <ul>
         <li>
           <strong>Other players.</strong> Your name, player tag, picture and
-          scores in a league you have joined.
+          scores are visible to people in a league you have joined. Your email
+          address is never shown to another player.
         </li>
         <li>
-          <strong>Companies that run parts of the service</strong>, such as our
-          hosting and database provider, our email sender and our market data
-          provider. They may only use it to do that work for us.
+          <strong>Companies that run parts of the service for us.</strong> They
+          may only use your data to do that work, under a written contract, and
+          never for their own purposes. Today they are:
+          <ul>
+            {PROCESSORS.map((processor) => (
+              <li key={processor.name}>
+                <strong>{processor.name}</strong>. {processor.role} Stored in{" "}
+                {processor.where}.
+              </li>
+            ))}
+          </ul>
+          We keep this list current. When we add a market data provider, an
+          email sender or a measurement tool, they will be named here first.
         </li>
         <li>
-          <strong>Anyone the law requires</strong>, if we are legally obliged to
-          hand something over.
+          <strong>Anyone the law requires.</strong> If we are legally obliged to
+          hand something over, or need to in order to establish or defend a
+          legal claim. We will tell you unless we are not allowed to.
+        </li>
+        <li>
+          <strong>A buyer,</strong> if our business is sold. They would have to
+          keep to this policy, and we would tell you first.
         </li>
       </ul>
+      <p>
+        <strong>We do not sell your data, and we never have.</strong>
+      </p>
 
-      <h2>What you can ask for</h2>
+      <h2>6. Sending data outside Europe</h2>
+      <p>
+        Some of the companies above may store or handle data outside the
+        European Economic Area, including in the United States. When that
+        happens we rely on the protections European law provides for this, which
+        are the European Commission&rsquo;s standard contractual clauses, or a
+        decision by the Commission that the country protects data adequately.
+        Ask us and we will tell you which applies and send you a copy.
+      </p>
+
+      <h2>7. How long we keep it</h2>
       <ul>
-        <li>A copy of everything we hold about you, from your profile page.</li>
-        <li>A correction, if something is wrong.</li>
         <li>
-          Deletion of your account and its data, from your profile page. It goes
-          straight away and cannot be undone.
+          <strong>Your account, profile and game history.</strong> For as long
+          as your account is open.
         </li>
         <li>
-          To object to how we use something, or to complain to your local data
-          protection authority.
+          <strong>When you close your account.</strong> All of it is erased
+          straight away, including your profile, your game history and the
+          record of what you agreed to. This cannot be undone.
+        </li>
+        <li>
+          <strong>Technical records.</strong> Kept briefly by our hosting
+          provider, normally around thirty days, then deleted automatically.
+        </li>
+        <li>
+          <strong>Emails you send us.</strong> Kept while we deal with your
+          question and for a reasonable time after, in case you come back to us.
+        </li>
+        <li>
+          <strong>Backups.</strong> Deleted data can survive in a backup for a
+          short period before the backup is overwritten. It is not used for
+          anything in the meantime.
+        </li>
+      </ul>
+
+      <h2>8. Your rights</h2>
+      <p>You can ask us to:</p>
+      <ul>
+        <li>
+          <strong>Show you what we hold.</strong> You can download all of it
+          yourself, right now, from your profile page.
+        </li>
+        <li>
+          <strong>Correct something that is wrong.</strong> Most of it you can
+          edit yourself on your profile page.
+        </li>
+        <li>
+          <strong>Delete your account and its data.</strong> You can do this
+          yourself from your profile page. It happens immediately.
+        </li>
+        <li>
+          <strong>Give you your data in a portable form,</strong> so you can
+          take it elsewhere. The download from your profile page is exactly
+          this.
+        </li>
+        <li>
+          <strong>Stop or limit something we are doing with it,</strong>{" "}
+          including anything based on a legitimate interest.
+        </li>
+        <li>
+          <strong>Take back your consent</strong> to measurement, at any time.
+          That does not undo anything that happened lawfully before you changed
+          your mind.
         </li>
       </ul>
       <p>
-        You do not have to give a reason, and we will never treat you worse for
-        asking.
+        Email{" "}
+        <a href={`mailto:${COMPANY.privacyEmail}`}>{COMPANY.privacyEmail}</a> for
+        anything you cannot do yourself. We will reply within one month. If your
+        request is complicated we may need longer, and we will tell you why. It
+        is free, we will never make you give a reason, and we will never treat
+        you worse for asking.
       </p>
-
-      <h2>How long we keep it</h2>
       <p>
-        While your account is open. When you close it, your profile and game
-        history are erased. We may keep a minimal record of the closure where
-        the law requires it.
+        We may need to check it is really you before we act, so that someone
+        else cannot use these rights against you.
       </p>
 
-      <h2>Children</h2>
+      <h2>9. Complaining</h2>
+      <p>
+        If you think we have handled your data badly, please tell us first and
+        give us a chance to fix it. You can also complain to a data protection
+        authority at any time, without asking us.
+      </p>
+      <p>
+        Ours is the {SUPERVISORY_AUTHORITY.englishName} (
+        {SUPERVISORY_AUTHORITY.name}),{" "}
+        <a href={SUPERVISORY_AUTHORITY.url} rel="noreferrer noopener" target="_blank">
+          {SUPERVISORY_AUTHORITY.url}
+        </a>
+        ,{" "}
+        <a href={`mailto:${SUPERVISORY_AUTHORITY.email}`}>
+          {SUPERVISORY_AUTHORITY.email}
+        </a>
+        . If you live elsewhere in Europe you can go to the authority in your own
+        country instead.
+      </p>
+
+      <h2>10. Decisions made automatically</h2>
+      <p>
+        The game scores your portfolio and ranks your league automatically, which
+        is the whole point of it. None of that has any legal effect on you or
+        affects you in any comparable way, it is a game. We do not profile you
+        for advertising, and no automated decision we make can deny you a
+        service, a job or credit.
+      </p>
+
+      <h2>11. If you live in California</h2>
+      <p>
+        California law gives you some extra rights and requires us to say some
+        things plainly.
+      </p>
+      <ul>
+        <li>
+          The categories of personal information we collect are: identifiers
+          such as your email address and an account number, your account name
+          and picture, internet activity such as pages viewed, and rough
+          location inferred from your IP address. Section 2 lists exactly what is
+          in each.
+        </li>
+        <li>
+          We collect it for the purposes in section 3 and we keep it for the
+          periods in section 7.
+        </li>
+        <li>
+          <strong>
+            We do not sell your personal information and we do not share it for
+            cross-context behavioural advertising.
+          </strong>{" "}
+          We have not in the past twelve months. We do not sell the personal
+          information of anyone under sixteen, because nobody under sixteen may
+          hold an account.
+        </li>
+        <li>
+          You can ask us to tell you what we have collected, to delete it, or to
+          correct it. Sections 7 and 8 explain how, and the buttons on your
+          profile page do all three.
+        </li>
+        <li>
+          You may use an authorised agent to make a request. We will ask for
+          proof that you gave them permission.
+        </li>
+        <li>
+          We will never deny you service, charge you a different price or give
+          you a worse experience for using any of these rights.
+        </li>
+      </ul>
+
+      <h2>12. Children</h2>
       <p>
         Arena is for people {MINIMUM_AGE} and older. We do not knowingly collect
-        anything from anyone younger. If you believe we have, email us and we
-        will erase it.
+        anything from anyone younger. If you believe a child has given us their
+        information, email us and we will delete it and close the account.
       </p>
 
-      <h2>Where your data lives</h2>
+      <h2>13. How we protect your data</h2>
       <p>
-        Our providers may store data outside your country. When they do, they
-        are required to protect it to the standard your data protection law
-        expects.
+        Connections to Arena are encrypted. Your data is separated at the
+        database level so one account cannot reach another&rsquo;s, access to
+        production systems is limited to people who need it, and we do not store
+        passwords at all because we sign you in with a link or with Google.
+      </p>
+      <p>
+        No service can promise perfect security. If something goes wrong in a way
+        that puts you at real risk, we will tell you and the relevant authority
+        as quickly as the law requires.
       </p>
 
-      <h2>Changes</h2>
+      <h2>14. Where Arena is offered</h2>
       <p>
-        If we change this policy in a way that matters, we will tell you in the
-        app before it takes effect.
+        Arena is currently offered to people in {AVAILABLE_IN.join(" and ")}. We
+        apply this policy to everyone who uses it, wherever they are.
       </p>
 
-      <h2>Contact</h2>
+      <h2>15. Changes to this policy</h2>
       <p>
-        Email app.support@upthink.ee with anything at all, including a request
-        to see, correct or erase your data.
+        Every version is dated. If we change something that matters to you, we
+        will tell you in the app or by email before it takes effect, and where
+        the law requires it we will ask you again.
+      </p>
+
+      <h2>16. How to reach us</h2>
+      <p>
+        {COMPANY.legalName}, {COMPANY.address}, {COMPANY.country}. Email{" "}
+        <a href={`mailto:${COMPANY.privacyEmail}`}>{COMPANY.privacyEmail}</a>.
       </p>
     </LegalPage>
   );

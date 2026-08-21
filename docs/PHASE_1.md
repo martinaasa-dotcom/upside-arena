@@ -147,7 +147,10 @@ Section 13 of the plan lists three open decisions. None of them blocked phase
 - **Season length** (monthly or quarterly). Needed after the weekly loop is
   validated.
 
-Two more that phase 1 has surfaced:
+Three more that phase 1 has surfaced:
+
+- **The registered company details** in `src/lib/company.ts`. Needed before the
+  legal pages can be published.
 
 - **A market data vendor** must be picked before phase 2. The plan lists
   Finnhub, IEX Cloud and Alpha Vantage as candidates.
@@ -156,8 +159,42 @@ Two more that phase 1 has surfaced:
 
 ## Legal
 
-`src/app/legal/terms` and `src/app/legal/privacy` are plain-language drafts
-written against section 8 of the plan. They are **not legal advice and have not
-been reviewed by an attorney.** Section 8 of the plan is clear that a real
-attorney must review them, and the subscription compliance items, before Arena
-takes a single payment.
+`src/app/legal/terms` and `src/app/legal/privacy` are written against the rules
+that actually apply to Arena. The company is established in the European Union,
+so the GDPR applies to it as a controller wherever players live, and the plan's
+North American launch brings in California's privacy law as well.
+
+The terms carry the provider details EU rules require a service to publish, an
+explicit statement that nothing is redeemable and money never buys an
+advantage, the acceptable-use rules and what happens when they are broken, a
+notice-and-action route for reporting content, the user-content licence, the
+warranty and liability sections with the carve-outs that cannot lawfully be
+excluded from a consumer, the commitments that apply if paid features are ever
+added, a change process, and a dispute section that keeps a consumer's right to
+sue where they live rather than pretending they can be forced elsewhere.
+
+The privacy policy carries the full set of disclosures the GDPR makes
+mandatory: who the controller is, what is collected, the purpose and the legal
+basis for each use, who it is shared with by name, the basis for any transfer
+out of Europe, how long each category is kept, every data subject right and how
+to use it, the supervisory authority to complain to, and a statement on
+automated decisions. It also carries the separate California section, including
+the explicit statement that data is neither sold nor shared for advertising.
+
+Two things follow from writing them this way:
+
+- **`src/lib/company.ts` still has placeholder values.** The registered company
+  name, registry code and address are not known here. While any of them is
+  unfilled, both legal pages render a visible draft notice, so an unconfirmed
+  detail cannot quietly ship as though it were real. Fill that file in and the
+  notice disappears.
+- **Consent is now enforced in code, not just described.** The policy says
+  nothing is measured until you agree, so `track()` drops every event until
+  consent is granted, a banner asks on first visit with refusing exactly as easy
+  as accepting, and the choice can be reversed from the profile page.
+
+These documents have not been reviewed by a lawyer. That is a deliberate,
+recorded decision by the product owner, not an oversight. A lawyer is still the
+right call before taking a first payment, because the subscription and
+auto-renewal rules in section 8 of the plan carry real penalties and depend on
+facts about the business rather than on the code.

@@ -56,10 +56,91 @@ test.describe("legal", () => {
     await expect(page.getByText(/You must be 16 or older/)).toBeVisible();
   });
 
-  test("privacy offers export and deletion", async ({ page }) => {
+  test("privacy offers export, correction and deletion", async ({ page }) => {
     await page.goto("/legal/privacy");
-    await expect(page.getByText(/A copy of everything we hold about you/)).toBeVisible();
-    await expect(page.getByText(/Deletion of your account/)).toBeVisible();
+    await expect(page.getByText(/Show you what we hold/)).toBeVisible();
+    await expect(page.getByText(/Delete your account and its data/)).toBeVisible();
+    await expect(page.getByText(/Correct something that is wrong/)).toBeVisible();
+  });
+
+  test("privacy names a controller, a legal basis and a complaint route", async ({
+    page,
+  }) => {
+    await page.goto("/legal/privacy");
+
+    // The disclosures European law makes mandatory.
+    await expect(page.getByText(/is the controller of your data/)).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /Why we use it, and what allows us to/ })
+    ).toBeVisible();
+    await expect(page.getByText(/legitimate interest/).first()).toBeVisible();
+    await expect(page.getByText(/standard contractual clauses/)).toBeVisible();
+    await expect(page.getByText(/Andmekaitse Inspektsioon/)).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /How long we keep it/ })
+    ).toBeVisible();
+  });
+
+  test("privacy states plainly that data is never sold", async ({ page }) => {
+    await page.goto("/legal/privacy");
+    await expect(page.getByText(/We do not sell your data, and we never have/)).toBeVisible();
+    await expect(
+      page.getByText(/We do not sell your personal information/)
+    ).toBeVisible();
+  });
+
+  test("privacy carries the California section", async ({ page }) => {
+    await page.goto("/legal/privacy");
+    await expect(
+      page.getByRole("heading", { name: /If you live in California/ })
+    ).toBeVisible();
+    await expect(page.getByText(/authorised agent/)).toBeVisible();
+    await expect(
+      page.getByText(/never deny you service, charge you a different price/)
+    ).toBeVisible();
+  });
+
+  test("terms cover the clauses an agreement needs to be complete", async ({
+    page,
+  }) => {
+    await page.goto("/legal/terms");
+
+    for (const heading of [
+      /Who you are dealing with/,
+      /Limits on our responsibility/,
+      /Changes to these terms/,
+      /Which law applies, and where/,
+      /Ending this agreement/,
+      /Reporting something that should not be here/,
+    ]) {
+      await expect(page.getByRole("heading", { name: heading })).toBeVisible();
+    }
+  });
+
+  test("terms keep the consumer protections that cannot be signed away", async ({
+    page,
+  }) => {
+    await page.goto("/legal/terms");
+
+    // A blanket exclusion or a forced foreign forum would be unenforceable
+    // against a consumer, so the document must not claim either.
+    await expect(
+      page.getByText(/rights under the law where you live that this section cannot take away/)
+    ).toBeVisible();
+    await expect(
+      page.getByText(/bring a claim in the courts of the country you live in/)
+    ).toBeVisible();
+    await expect(
+      page.getByText(/death or personal injury caused by our negligence/)
+    ).toBeVisible();
+  });
+
+  test("terms promise cancellation is as easy as signing up", async ({ page }) => {
+    await page.goto("/legal/terms");
+    await expect(
+      page.getByText(/cancel it yourself, in the app, as easily as you signed up/)
+    ).toBeVisible();
+    await expect(page.getByText(/never make you phone or email us to cancel/)).toBeVisible();
   });
 });
 
@@ -109,6 +190,51 @@ test.describe("installable shell", () => {
   test("has an offline page for the worker to fall back to", async ({ page }) => {
     await page.goto("/offline");
     await expect(page.getByRole("heading", { name: "You are offline" })).toBeVisible();
+  });
+});
+
+test.describe("consent", () => {
+  test("asks before measuring, and refusing is as easy as allowing", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const banner = page.getByRole("dialog", { name: "Optional measurement" });
+    await expect(banner).toBeVisible();
+    await expect(banner.getByText(/Sign-in cookies always run/)).toBeVisible();
+
+    // Both choices must be equally reachable for the consent to be valid.
+    await expect(banner.getByRole("button", { name: "Allow" })).toBeVisible();
+    await expect(banner.getByRole("button", { name: "No thanks" })).toBeVisible();
+  });
+
+  test("records nothing until consent is given", async ({ page }) => {
+    await page.goto("/");
+
+    const beforeChoice = await page.evaluate(
+      () => window.localStorage.getItem("arena.consent.measurement")
+    );
+    expect(beforeChoice).toBeNull();
+
+    await page.getByRole("button", { name: "No thanks" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Optional measurement" })
+    ).toBeHidden();
+
+    const afterChoice = await page.evaluate(
+      () => window.localStorage.getItem("arena.consent.measurement")
+    );
+    expect(afterChoice).toBe("denied");
+  });
+
+  test("remembers the choice and stops asking", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Allow" }).click();
+
+    await page.reload();
+    await expect(
+      page.getByRole("dialog", { name: "Optional measurement" })
+    ).toBeHidden();
   });
 });
 
