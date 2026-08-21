@@ -79,11 +79,36 @@ erases it and nothing else. Point it at a non-default psql with
 The end-to-end suite covers what a signed-out visitor can reach, which is
 everything that runs without credentials: the landing page, the age gate,
 route protection, the legal documents, the manifest and worker, the locked
-colour tokens, and the accessibility basics. Flows behind a session are
-covered by the unit tests plus manual testing against a real project, listed
-below.
+colour tokens, and the accessibility basics.
 
-### Testing the signed-in flow by hand
+### The signed-in flow
+
+Completing a sign-in needs a link from an email, so the signed-in half is not
+part of the automated suite. It was verified by hand against a real Supabase
+project on 2026-08-21, end to end, and every step passed:
+
+1. Signing up creates exactly one profile automatically, with the name taken
+   from the email, the rating at its default and the age gate unconfirmed.
+2. A signed-in but un-onboarded account opening `/home` is sent to
+   `/onboarding`.
+3. Onboarding writes the name, the player tag and the age confirmation, and
+   lands on `/home`, which greets the real profile.
+4. `/onboarding` is no longer reachable once onboarding is done.
+5. Editing the profile saves and survives a reload, so the write passes row
+   level security.
+6. The data export returns that account's own profile and both recorded
+   agreements, and nobody else's.
+7. Closing the account erases the profile and the agreements with it, and the
+   session stops opening protected rooms. The token afterwards reports
+   `user_not_found`, so nothing is left behind.
+
+To repeat it, the quickest route is to turn off **Confirm email** in the
+Supabase dashboard under Authentication, sign up a throwaway account, walk the
+steps, then **turn Confirm email back on**. Leaving it off lets anyone register
+an address they do not own. A better long-term option is a service role key and
+the admin `generate_link` endpoint, which needs no setting changed.
+
+### Regression checklist
 
 With a project configured:
 
