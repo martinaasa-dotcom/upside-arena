@@ -3,7 +3,13 @@ import "server-only";
 import Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canWriteGame, siteUrl } from "@/lib/env";
-import { COIN_BUNDLES, PLUS, bundle } from "@/lib/billing/plan";
+import {
+  COIN_BUNDLES,
+  PLUS,
+  PLUS_PLANS,
+  bundle,
+  type PlusCadence,
+} from "@/lib/billing/plan";
 import { addCoins, grantEntitlement } from "@/lib/billing/entitlements";
 import {
   mapSubscriptionStatus,
@@ -26,8 +32,17 @@ import {
 const SECRET_KEY = process.env.STRIPE_SECRET_KEY ?? "";
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? "";
 
-/** The recurring price, made in the Stripe dashboard and referenced by id. */
-const PLUS_PRICE_ID = process.env.STRIPE_PLUS_PRICE_ID ?? "";
+/*
+  The recurring prices, made in the Stripe dashboard and referenced by id.
+
+  Monthly is the baseline: with it unset, Arena Plus is simply not on sale.
+  Yearly is optional, and an account without one shows the monthly price on
+  its own rather than a toggle with one side missing.
+*/
+const PLUS_PRICE_IDS: Record<PlusCadence, string> = {
+  monthly: process.env.STRIPE_PLUS_PRICE_ID ?? "",
+  yearly: process.env.STRIPE_PLUS_YEARLY_PRICE_ID ?? "",
+};
 
 /*
   Arena's own customer portal configuration.
@@ -44,7 +59,17 @@ const PLUS_PRICE_ID = process.env.STRIPE_PLUS_PRICE_ID ?? "";
 const PORTAL_CONFIGURATION_ID = process.env.STRIPE_PORTAL_CONFIGURATION_ID ?? "";
 
 export const stripeConfigured = Boolean(SECRET_KEY && WEBHOOK_SECRET);
-export const subscriptionConfigured = Boolean(stripeConfigured && PLUS_PRICE_ID);
+export const subscriptionConfigured = Boolean(
+  stripeConfigured && PLUS_PRICE_IDS.monthly
+);
+
+/** Which cadences can actually be bought right now. */
+export function cadencesOnSale(): PlusCadence[] {
+  if (!subscriptionConfigured) return [];
+  return (Object.keys(PLUS_PRICE_IDS) as PlusCadence[]).filter(
+    (cadence) => PLUS_PRICE_IDS[cadence]
+  );
+}
 
 let client: Stripe | null = null;
 
@@ -100,27 +125,64 @@ export type CheckoutResult =
   | { ok: true; url: string }
   | { ok: false; error: string };
 
+/**
+ * Whether the price somebody is about to be sent to is the one we advertised.
+ *
+ * A figure on our page and a figure on the card statement that disagree is
+ * not a display bug, it is a misleading price. So this is checked against
+ * Stripe every time rather than assumed, and a mismatch stops the checkout
+ * instead of opening it and hoping nobody reads the total.
+ */
+async function priceMatchesWhatWeSaid(
+  priceId: string,
+  cadence: PlusCadence
+): Promise<boolean> {
+  const plan = PLUS_PLANS[cadence];
+  const price = await stripe().prices.retrieve(priceId);
+
+  return (
+    price.active === true &&
+    price.unit_amount === plan.amount &&
+    price.currency === plan.currency &&
+    price.recurring?.interval === plan.interval &&
+    (price.recurring?.interval_count ?? 1) === 1
+  );
+}
+
 /** Starts the subscription checkout. */
 export async function startPlusCheckout(
   userId: string,
-  email: string | null
+  email: string | null,
+  cadence: PlusCadence = "monthly"
 ): Promise<CheckoutResult> {
   if (!subscriptionConfigured || !canWriteGame) {
     return { ok: false, error: "Arena Plus is not on sale yet." };
   }
 
+  // The cadence comes from a form, so it is checked against our own list
+  // rather than passed through to Stripe.
+  const priceId = PLUS_PRICE_IDS[cadence];
+  if (!priceId) return { ok: false, error: "That is not one of the plans." };
+
   try {
+    if (!(await priceMatchesWhatWeSaid(priceId, cadence))) {
+      return {
+        ok: false,
+        error: "The price is being corrected. Try again in a moment.",
+      };
+    }
+
     const customer = await customerFor(userId, email);
 
     const session = await stripe().checkout.sessions.create({
       mode: "subscription",
       customer,
-      line_items: [{ price: PLUS_PRICE_ID, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       // Sales tax and VAT worked out by Stripe rather than by us.
       automatic_tax: { enabled: true },
       customer_update: { address: "auto" },
       client_reference_id: userId,
-      metadata: { arena_user_id: userId, product: PLUS },
+      metadata: { arena_user_id: userId, product: PLUS, cadence },
       subscription_data: { metadata: { arena_user_id: userId } },
       success_url: `${siteUrl()}/plus?welcome=1`,
       cancel_url: `${siteUrl()}/plus`,

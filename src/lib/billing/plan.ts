@@ -82,6 +82,68 @@ export const PLUS_BENEFITS = [
 ] as const;
 
 /*
+  How often somebody pays.
+
+  Two cadences, the same membership. The yearly one is cheaper per month
+  because a year paid up front is worth something to us, and that is the only
+  reason: it does not carry a single thing the monthly one does not.
+
+  The amounts here are for showing, not for charging. What is charged is
+  always the Stripe price the id points at, and checkout refuses to open if
+  the two ever disagree, so an advertised figure can never drift away from
+  the one on the card statement.
+*/
+export type PlusCadence = "monthly" | "yearly";
+
+export type PlusPlan = {
+  cadence: PlusCadence;
+  /** In the smallest currency unit, so no float ever touches a price. */
+  amount: number;
+  currency: string;
+  /** How Stripe bills it, checked against the price before checkout opens. */
+  interval: "month" | "year";
+  /** As it reads after the figure: "2.99 a month". */
+  every: string;
+};
+
+export const PLUS_PLANS: Record<PlusCadence, PlusPlan> = {
+  monthly: {
+    cadence: "monthly",
+    amount: 299,
+    currency: "eur",
+    interval: "month",
+    every: "a month",
+  },
+  yearly: {
+    cadence: "yearly",
+    amount: 2990,
+    currency: "eur",
+    interval: "year",
+    every: "a year",
+  },
+};
+
+export const PLUS_CADENCES = ["monthly", "yearly"] as const;
+
+/** What a year works out at per month, for an honest comparison. */
+export function perMonth(plan: PlusPlan): number {
+  return plan.interval === "year" ? Math.round(plan.amount / 12) : plan.amount;
+}
+
+/**
+ * How much cheaper the year is, in whole percent.
+ *
+ * Rounded down rather than up. A rounded-up saving is a claim we do not quite
+ * meet, and this figure appears next to a price.
+ */
+export function yearlySaving(): number {
+  const monthly = PLUS_PLANS.monthly.amount * 12;
+  const yearly = PLUS_PLANS.yearly.amount;
+  if (monthly <= 0 || yearly >= monthly) return 0;
+  return Math.floor(((monthly - yearly) / monthly) * 100);
+}
+
+/*
   Coin bundles.
 
   Every one is a fixed number of coins for a fixed price. There is no bundle

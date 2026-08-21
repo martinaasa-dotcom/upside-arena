@@ -9,6 +9,7 @@ import {
   startPlusCheckout,
 } from "@/lib/billing/stripe";
 import { buyReward } from "@/lib/billing/entitlements";
+import { PLUS_CADENCES, type PlusCadence } from "@/lib/billing/plan";
 
 /*
   Starting a payment, and managing one already running.
@@ -29,9 +30,23 @@ async function requireUser() {
 
 export type StartResult = { ok: false; error: string };
 
-export async function startSubscription(): Promise<StartResult> {
+function asCadence(value: string): PlusCadence {
+  // Anything unrecognised falls back to the monthly price rather than being
+  // handed to Stripe. A cadence arrives from a browser like any other input.
+  return (PLUS_CADENCES as readonly string[]).includes(value)
+    ? (value as PlusCadence)
+    : "monthly";
+}
+
+export async function startSubscription(
+  cadence: string = "monthly"
+): Promise<StartResult> {
   const user = await requireUser();
-  const result = await startPlusCheckout(user.id, user.email ?? null);
+  const result = await startPlusCheckout(
+    user.id,
+    user.email ?? null,
+    asCadence(cadence)
+  );
 
   // A successful start is a redirect, so it never returns.
   if (result.ok) redirect(result.url);

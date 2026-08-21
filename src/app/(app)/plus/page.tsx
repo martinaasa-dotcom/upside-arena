@@ -8,7 +8,7 @@ import { getSession } from "@/lib/profile";
 import { getStanding, FREE_STANDING } from "@/lib/billing/entitlements";
 import { getRewards } from "@/lib/game/streaks";
 import { COIN_BUNDLES, COIN_TERMS, PLUS_BENEFITS } from "@/lib/billing/plan";
-import { stripeConfigured, subscriptionConfigured } from "@/lib/billing/stripe";
+import { cadencesOnSale, stripeConfigured } from "@/lib/billing/stripe";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatDate } from "@/lib/format";
 
@@ -99,7 +99,7 @@ export default async function PlusPage() {
             status={standing.status}
             hasPlus={standing.hasPlus}
             until={standing.until ? formatDate(standing.until) : null}
-            canSubscribe={subscriptionConfigured}
+            cadences={cadencesOnSale()}
             canManage={stripeConfigured && standing.hasPlus}
           />
         </div>

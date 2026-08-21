@@ -203,11 +203,27 @@ wrong and the fastest route to a chargeback.
 
 - Name: `Arena Plus`
 - Description: `More streak freezes, bigger leagues, your full history, and two member titles. Nothing that changes a score.`
-- Price: whatever you decide, **Recurring**, **Monthly**
+- Price: `2.99`, **Recurring**, **Monthly**
 - Tax behaviour: **Inclusive**
 
 Save, then click into the price and copy its id. It starts `price_`. That is
 `STRIPE_PLUS_PRICE_ID`.
+
+**Then add a second price to the same product**, for people who would rather
+pay once a year. On the product page, **Add another price**:
+
+- Price: `29.90`, **Recurring**, **Yearly**
+- Tax behaviour: **Inclusive**
+
+Its id is `STRIPE_PLUS_YEARLY_PRICE_ID`. That works out at 2.49 a month, which
+is what `/plus` says next to it. Leave this out and the page simply shows the
+monthly price on its own, with no picker.
+
+Both amounts are written down in `src/lib/billing/plan.ts` as well, because
+the page has to be able to say what something costs without asking Stripe on
+every render. They have to match: before checkout opens, Arena retrieves the
+price and refuses if the amount, the currency or the interval is not what it
+just advertised. If you change a price in the dashboard, change it there too.
 
 Do not put a price for coins here. Coin bundles are priced in the code, in
 `src/lib/billing/plan.ts`, because the bundle a browser asks for must be checked
@@ -264,6 +280,7 @@ Add all three together, sensitive, Production and Preview:
 | `STRIPE_SECRET_KEY` | `sk_...` |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` |
 | `STRIPE_PLUS_PRICE_ID` | `price_...` |
+| `STRIPE_PLUS_YEARLY_PRICE_ID` | `price_...`, if you made the yearly one |
 
 Redeploy.
 
@@ -320,7 +337,8 @@ Recorded so nobody has to reconstruct it from the dashboard.
 | | |
 |---|---|
 | Product | `prod_V7DVO5SBjpEe8W`, Upside Arena Plus |
-| Price | `price_1U6z460X9LyRmQJ8fJ1hM9zv`, EUR 2.99 a month |
+| Price, monthly | `price_1U6z460X9LyRmQJ8fJ1hM9zv`, EUR 2.99 a month |
+| Price, yearly | not made yet. Add it in the dashboard per 5c, then set `STRIPE_PLUS_YEARLY_PRICE_ID` |
 | Webhook | `https://upsidearena.com/api/stripe/webhook`, five events |
 | Portal | `bpc_1U6zpm0X9LyRmQJ8WC43tQkK`, named by `STRIPE_PORTAL_CONFIGURATION_ID` |
 

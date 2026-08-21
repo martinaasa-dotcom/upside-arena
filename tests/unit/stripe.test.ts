@@ -4,7 +4,11 @@ import { mapSubscriptionStatus, subscriptionEnd } from "@/lib/billing/subscripti
 import {
   COIN_BUNDLES,
   FREE,
+  PLUS_CADENCES,
   PLUS_LIMITS,
+  PLUS_PLANS,
+  perMonth,
+  yearlySaving,
   bundle,
   formatPrice,
   limitsFor,
@@ -266,5 +270,55 @@ describe("coin bundles", () => {
   it("shows a price in whole currency, never in cents", () => {
     expect(formatPrice(199, "eur")).toContain("1.99");
     expect(formatPrice(899, "eur")).toContain("8.99");
+  });
+});
+
+describe("how often somebody pays for Arena Plus", () => {
+  it("offers every cadence it names, and no others", () => {
+    expect(Object.keys(PLUS_PLANS).sort()).toEqual([...PLUS_CADENCES].sort());
+  });
+
+  it("prices every plan in whole cents of one currency", () => {
+    for (const cadence of PLUS_CADENCES) {
+      const plan = PLUS_PLANS[cadence];
+      expect(plan.amount).toBeGreaterThan(0);
+      expect(Number.isInteger(plan.amount)).toBe(true);
+      expect(plan.currency).toBe(PLUS_PLANS.monthly.currency);
+    }
+  });
+
+  it("makes the year cheaper per month than the month", () => {
+    // The only reason the yearly plan exists. If it ever stopped being true,
+    // the page would be advertising a saving that is not one.
+    expect(perMonth(PLUS_PLANS.yearly)).toBeLessThan(PLUS_PLANS.monthly.amount);
+  });
+
+  it("never claims a bigger saving than it gives", () => {
+    const saving = yearlySaving();
+    const monthlyYear = PLUS_PLANS.monthly.amount * 12;
+    const actual = ((monthlyYear - PLUS_PLANS.yearly.amount) / monthlyYear) * 100;
+
+    expect(saving).toBeGreaterThan(0);
+    expect(saving).toBeLessThanOrEqual(actual);
+  });
+
+  it("buys exactly the same membership either way", () => {
+    /*
+      Section 9 is absolute that money buys cosmetics and convenience. Paying
+      a year up front is a convenience to us, not a different game, so there
+      is deliberately nothing in a plan that could carry an entitlement.
+    */
+    const shape = Object.keys(PLUS_PLANS.monthly).sort();
+    expect(Object.keys(PLUS_PLANS.yearly).sort()).toEqual(shape);
+    expect(shape).toEqual(
+      ["amount", "cadence", "currency", "every", "interval"].sort()
+    );
+  });
+
+  it("reads the interval the same way Stripe does", () => {
+    // Checked against the retrieved price before checkout opens, so these
+    // strings have to be Stripe's own.
+    expect(PLUS_PLANS.monthly.interval).toBe("month");
+    expect(PLUS_PLANS.yearly.interval).toBe("year");
   });
 });
