@@ -5,8 +5,9 @@
 > decision, and `docs/brand/ARENA_MARK.md` wins wherever the two disagree:
 >
 > - The mark is a parted aqua stone, not a gold "A".
-> - `--primary` is that same aqua, `oklch(0.79 0.113 207)`. Arena's accent is
->   not a warm yellow, and the "do not guess" note below applies to Lab only.
+> - `--primary` is that same aqua, `oklch(0.74 0.125 207)` (`#11c0d3`). Arena's
+>   accent is not a warm yellow, and the "do not guess" note below applies to
+>   Lab only.
 > - A second brand colour exists: `--glow-secondary`, a magenta, lighting the
 >   far lobe of the ambient field. The "one accent only" rule below is Lab's.
 > - The magenta ban in section 3 is Lab's and does not bind Arena. It still
