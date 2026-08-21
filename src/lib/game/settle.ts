@@ -4,7 +4,7 @@ import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClosingPrices } from "@/lib/market/benchmark";
 import { nyDate } from "@/lib/market/session";
-import type { WeeklyCycleRow } from "@/lib/supabase/database.types";
+import type { SeasonRow, WeeklyCycleRow } from "@/lib/supabase/database.types";
 
 /*
   Settling a finished week.
@@ -61,17 +61,55 @@ export async function settleDueCycles(): Promise<SettlementResult[]> {
   const admin = createAdminClient();
 
   const { data: due, error } = await admin.rpc("due_cycles", { p_today: nyDate() });
-  if (error || !due || !Array.isArray(due) || due.length === 0) return [];
 
   const results: SettlementResult[] = [];
 
   // One at a time. These run in the background and there is never a queue of
   // them, so there is nothing to gain from doing them at once.
-  for (const row of due as WeeklyCycleRow[]) {
-    results.push(await settleCycle(row));
+  if (!error && Array.isArray(due)) {
+    for (const row of due as WeeklyCycleRow[]) {
+      results.push(await settleCycle(row));
+    }
   }
 
+  /*
+    Then any season those weeks completed. Done after, not before: the
+    database refuses to close a season with an unsettled week inside it, so
+    settling first is what lets a quarter close the moment its last Friday is
+    scored rather than a week later.
+  */
+  await closeDueSeasons();
+
   return results;
+}
+
+/**
+ * Closes every season whose quarter has ended and whose weeks are all scored.
+ *
+ * Ranks nothing itself and grants nothing itself: it hands a season id to the
+ * database, which does both in one transaction. A season half-ranked because
+ * a request was cut off would be worse than one ranked late.
+ */
+export async function closeDueSeasons(): Promise<string[]> {
+  if (!canWriteGame) return [];
+
+  const admin = createAdminClient();
+
+  const { data: due, error } = await admin.rpc("due_seasons", { p_today: nyDate() });
+  if (error || !Array.isArray(due) || due.length === 0) return [];
+
+  const closed: string[] = [];
+
+  for (const season of due as SeasonRow[]) {
+    const { error: closeError } = await admin.rpc("close_season", {
+      p_season_id: season.id,
+    });
+    // A season that would not close is left open for the next attempt. There
+    // is nothing to undo: closing is idempotent and does not part-apply.
+    if (!closeError) closed.push(season.name);
+  }
+
+  return closed;
 }
 
 async function settleCycle(cycle: WeeklyCycleRow): Promise<SettlementResult> {

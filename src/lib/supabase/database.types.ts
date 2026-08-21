@@ -41,8 +41,32 @@ export type WeeklyCycleRow = {
   benchmark_close: string | null;
   starting_balance: string;
   scoring_started_at: string | null;
+  season_id: string | null;
   created_at: string;
   closed_at: string | null;
+};
+
+export type SeasonRow = {
+  id: string;
+  starts_on: string;
+  ends_on: string;
+  name: string;
+  status: "open" | "closed";
+  created_at: string;
+  closed_at: string | null;
+};
+
+export type SeasonResultRow = {
+  id: string;
+  season_id: string;
+  user_id: string;
+  weeks_played: number;
+  weeks_ahead: number;
+  sum_return_percent: string;
+  sum_benchmark_diff: string;
+  best_week_return: string | null;
+  final_rank: number | null;
+  updated_at: string;
 };
 
 export type PortfolioRow = {
@@ -287,6 +311,8 @@ export type Database = {
       profiles: Table<ProfileRow>;
       terms_acceptances: Table<TermsAcceptanceRow>;
       weekly_cycles: Table<WeeklyCycleRow>;
+      seasons: Table<SeasonRow>;
+      season_results: Table<SeasonResultRow>;
       portfolios: Table<PortfolioRow>;
       holdings: Table<HoldingRow>;
       trades: Table<TradeRow>;
@@ -358,6 +384,31 @@ export type Database = {
       release_cycle_claim: {
         Args: { p_cycle_id: string };
         Returns: undefined;
+      };
+      season_for: {
+        Args: { p_monday: string };
+        Returns: SeasonRow;
+      };
+      record_season_week: {
+        Args: {
+          p_season_id: string;
+          p_user_id: string;
+          p_return_percent: number;
+          p_benchmark_diff: number;
+        };
+        Returns: undefined;
+      };
+      close_season: {
+        Args: {
+          p_season_id: string;
+          p_min_weeks?: number;
+          p_regular_weeks?: number;
+        };
+        Returns: number;
+      };
+      due_seasons: {
+        Args: { p_today: string };
+        Returns: SeasonRow[];
       };
       is_league_member: {
         Args: { p_league_id: string; p_user_id: string };
