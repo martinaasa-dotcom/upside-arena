@@ -1,70 +1,48 @@
 /*
-  Arena mark concepts, round three.
+  Arena mark concepts, round four.
 
-  Construction is unchanged from src/components/brand/ArenaMark.tsx: flat
-  facets, no strokes, each facet scaled toward its own centroid so the cuts
-  read as hairline gaps, all on the same 64 grid.
+  Round three narrowed to two: Quorum, a honeycomb of stones with one lit, and
+  Cleave, a solid parted along its diagonal. Both are hexagonal, faceted and
+  systematic, so this round treats them as one family and works inside it.
+  Concepts 1 to 5 develop Quorum, 6 to 9 develop Cleave with the tighter gap
+  the review asked for, and 10 crosses them.
 
-  Round three develops the two directions that survived review: Field, a grid
-  of repeated units with one lit, and Split, one solid divided and offset so
-  the gap becomes the subject. Both are systematic rather than symbolic, which
-  is what the rejected rounds were not. Concepts 1 to 5 extend Field, 6 to 9
-  extend Split, and 10 crosses them. Sapphire is the primary family; teal and
-  emerald are generated alongside it as a palette study.
+  Construction is still exactly ArenaMark.tsx: flat facets, no strokes, each
+  facet scaled toward its own centroid, all on the 64 grid. The palette is now
+  a teal family, with two neighbouring teals generated as a study.
   Run with `node scripts/logo-concepts.mjs`.
 */
 import { mkdir, writeFile, rm } from "node:fs/promises";
 import path from "node:path";
 
 /*
-  The warm family is Lab's, untouched. The cool family is built to match it
-  step for step so the two read as the same milled metal in different alloys,
-  which is what keeps a two-tone mark from looking like two stickers.
-*/
-/*
-  Each family runs polished rim, lit face, body, shadow, so a facet cluster
-  keeps the same light-to-dark logic the gold mark uses. The rim step is
-  deliberately desaturated: a jewel reads as cut stone only if something on it
-  catches light like metal.
+  Each family runs polished rim, lit face, body, shadow. The rim stays
+  desaturated: a jewel only reads as cut stone if something on it catches
+  light like metal.
 */
 const PALETTES = {
-  sapphire: {
-    label: "Sapphire",
-    note: "No collision with any semantic token. Furthest from Lab's gold while staying premium.",
-    stops: [
-      ["#d9e9ff", "#a9c8f0"],
-      ["#6aa6f0", "#3f74c8"],
-      ["#2d5cb5", "#1a3a84"],
-      ["#17306b", "#0c1a3d"],
-    ],
-  },
   teal: {
     label: "Teal",
-    note: "Sits beside --cat-1 and --cat-6, so it already belongs to the system. Coolest and calmest of the three.",
-    stops: [
-      ["#d4f4f2", "#a2ddd9"],
-      ["#5fc9c4", "#34998f"],
-      ["#1f8b86", "#12615f"],
-      ["#0f4d4c", "#07302f"],
-    ],
+    note: "The primary. Sits beside --cat-1 and --cat-6, so it already belongs to the system.",
+    stops: [["#d4f4f2", "#a2ddd9"], ["#5fc9c4", "#34998f"], ["#1f8b86", "#12615f"], ["#0f4d4c", "#07302f"]],
   },
-  emerald: {
-    label: "Emerald",
-    note: "Richest of the three, but it lands on --gain green. A stock game whose logo reads as profit is a problem.",
-    stops: [
-      ["#d6f5e2", "#a3e0bd"],
-      ["#4fd18c", "#2ba565"],
-      ["#16904f", "#0b6537"],
-      ["#0a4d2a", "#052e19"],
-    ],
+  aqua: {
+    label: "Aqua",
+    note: "The same teal pushed toward cyan. Brighter and more game-like, and it holds up better at 16px.",
+    stops: [["#d9f7ff", "#a6e4f2"], ["#4fd0e0", "#2a9fb5"], ["#17879c", "#0d6070"], ["#0b4a58", "#052e36"]],
+  },
+  petrol: {
+    label: "Petrol",
+    note: "Teal pulled toward blue and darkened. Quietest of the three, and the closest in mood to Lab's gold.",
+    stops: [["#cfe6e8", "#9cc4c9"], ["#4d9fa8", "#2b7580"], ["#175f6b", "#0c414b"], ["#093139", "#041d22"]],
   },
 };
 
 const gradientsFor = (key) =>
   PALETTES[key].stops
     .map(([a, b], i) => {
-      const [x2, y2] = i < 2 ? [0.6, 1] : [1, 1];
       const x1 = i < 2 ? 0 : 0.2;
+      const [x2, y2] = i < 2 ? [0.6, 1] : [1, 1];
       return `<linearGradient id="${key}-${i + 1}" x1="${x1}" y1="0" x2="${x2}" y2="${y2}">` +
         `<stop offset="0%" stop-color="${a}"/><stop offset="100%" stop-color="${b}"/></linearGradient>`;
     })
@@ -80,17 +58,6 @@ function facet(coords, shade) {
   return { points: pts.map((p) => `${r1(p[0])},${r1(p[1])}`).join(" "), c: [cx, cy], shade };
 }
 
-const seg = (i, n, outer, inner, shade, squash = 1) => {
-  const a0 = ((i / n) * 360 - 90) * (Math.PI / 180);
-  const a1 = (((i + 1) / n) * 360 - 90) * (Math.PI / 180);
-  const p = (r, a) => [32 + r * Math.cos(a), 32 + r * squash * Math.sin(a)];
-  return facet([...p(outer, a0), ...p(outer, a1), ...p(inner, a1), ...p(inner, a0)], shade);
-};
-
-// A unit stone. Every Field-branch concept is built from these.
-const diamond = (cx, cy, r, shade) =>
-  facet([cx, cy - r, cx + r, cy, cx, cy + r, cx - r, cy], shade);
-
 // Pointy-top hexagon, so a cluster tiles without gaps of its own.
 const hexPoints = (cx, cy, r) => {
   const out = [];
@@ -101,98 +68,120 @@ const hexPoints = (cx, cy, r) => {
   return out;
 };
 
-// Regular polygon vertex, used to cut the octagon concepts.
 const poly = (n, r, i, cx = 32, cy = 32, offset = 0) => {
   const a = (((i / n) * 360 + offset) * Math.PI) / 180;
   return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+};
+
+// The seven centres every Quorum-branch concept is built on.
+const cluster = (r) => {
+  const dx = Math.sqrt(3) * r;
+  const dy = 1.5 * r;
+  return [
+    [32, 32], [32 - dx, 32], [32 + dx, 32],
+    [32 - dx / 2, 32 - dy], [32 + dx / 2, 32 - dy],
+    [32 - dx / 2, 32 + dy], [32 + dx / 2, 32 + dy],
+  ];
+};
+
+/*
+  Cleave, parameterised by gap. Round three shipped gap 3, which read as two
+  stones rather than one parted stone; 1.5 keeps the cut visible without
+  letting the halves drift apart.
+*/
+const cleaveFacets = (gap) => {
+  const v = [];
+  for (let i = 0; i < 8; i++) v.push(poly(8, 26, i, 32, 32, 22.5));
+  const up = (p) => [p[0] + gap, p[1] - gap];
+  const dn = (p) => [p[0] - gap, p[1] + gap];
+  return [
+    facet([...up(v[5]), ...up(v[6]), ...up(v[7])], 1),
+    facet([...up(v[5]), ...up(v[7]), ...up(v[0]), ...up(v[1])], 2),
+    facet([...dn(v[1]), ...dn(v[2]), ...dn(v[3])], 3),
+    facet([...dn(v[1]), ...dn(v[3]), ...dn(v[4]), ...dn(v[5])], 4),
+  ];
 };
 
 const CONCEPTS = [
   {
     id: "quorum",
     name: "Quorum",
-    idea: "Seven stones packed as a honeycomb, one of them lit. Field's idea with a unit that tiles perfectly.",
-    facets: (() => {
-      const r = 9;
-      const dx = Math.sqrt(3) * r;
-      const cells = [
-        [32, 32, 3], [32 - dx, 32, 4], [32 + dx, 32, 3],
-        [32 - dx / 2, 32 - 1.5 * r, 4], [32 + dx / 2, 32 - 1.5 * r, 1],
-        [32 - dx / 2, 32 + 1.5 * r, 4], [32 + dx / 2, 32 + 1.5 * r, 3],
-      ];
-      return cells.map(([cx, cy, shade]) => facet(hexPoints(cx, cy, r), shade));
-    })(),
+    idea: "Seven stones packed as a honeycomb with one lit at the edge. Unchanged from round three except the metal.",
+    facets: cluster(9).map(([cx, cy], i) =>
+      facet(hexPoints(cx, cy, 9), [3, 4, 3, 4, 1, 4, 3][i])),
   },
   {
-    id: "rank",
-    name: "Rank",
-    idea: "Six stones stacked into a wedge with the apex lit. Selection and standing in one shape, without drawing a podium.",
+    id: "pack",
+    name: "Pack",
+    idea: "The same seven stones with the cuts tightened, so the cluster reads as one solid before it reads as seven.",
+    scale: 0.965,
+    facets: cluster(9).map(([cx, cy], i) =>
+      facet(hexPoints(cx, cy, 9), [3, 4, 3, 4, 1, 4, 3][i])),
+  },
+  {
+    id: "hive",
+    name: "Hive",
+    idea: "The light moved to the centre. Reads as the pick surrounded by the field rather than one stone standing out of it.",
+    facets: cluster(9).map(([cx, cy], i) =>
+      facet(hexPoints(cx, cy, 9), [1, 4, 3, 4, 3, 3, 4][i])),
+  },
+  {
+    id: "break",
+    name: "Break",
+    idea: "One stone pushed out of formation and lit. The gap it leaves is the whole idea.",
+    facets: cluster(9).map(([cx, cy], i) => {
+      const out = i === 4;
+      return facet(hexPoints(cx + (out ? 5 : 0), cy + (out ? -4 : 0), 9), [3, 4, 4, 4, 1, 4, 3][i]);
+    }),
+  },
+  {
+    id: "triad",
+    name: "Triad",
+    idea: "Three large stones instead of seven small ones. The boldest version of the honeycomb, and the only one that stays clean at 16px.",
     facets: [
-      diamond(32, 13, 7, 1),
-      diamond(24, 29, 7, 3), diamond(40, 29, 7, 3),
-      diamond(16, 45, 7, 4), diamond(32, 45, 7, 4), diamond(48, 45, 7, 4),
-    ],
-  },
-  {
-    id: "board",
-    name: "Board",
-    idea: "Sixteen stones with two lit side by side. The whole field of picks, and the one matchup that matters this week.",
-    facets: (() => {
-      const at = [11, 25, 39, 53];
-      const lit = new Set(["25,25", "39,25"]);
-      const out = [];
-      for (const cy of at) {
-        for (const cx of at) {
-          const key = `${cx},${cy}`;
-          out.push(diamond(cx, cy, 6, lit.has(key) ? (cx === 25 ? 1 : 2) : cy < 32 ? 4 : 3));
-        }
-      }
-      return out;
-    })(),
-  },
-  {
-    id: "focus",
-    name: "Focus",
-    idea: "One lit stone ringed by six dark ones. Reads as the pick and the field around it at any size.",
-    facets: (() => {
-      const out = [diamond(32, 32, 9, 1)];
-      for (let i = 0; i < 6; i++) {
-        const [cx, cy] = poly(6, 20, i, 32, 32, 0);
-        out.push(diamond(cx, cy, 7, i % 2 ? 4 : 3));
-      }
-      return out;
-    })(),
-  },
-  {
-    id: "drift",
-    name: "Drift",
-    idea: "Five stones climbing, each larger and brighter than the last. Field's unit carrying motion instead of a grid.",
-    facets: [
-      diamond(10, 52, 4, 4), diamond(20, 44, 5.5, 4), diamond(31, 35, 7, 3),
-      diamond(43, 25, 8.5, 2), diamond(52, 15, 9, 1),
-    ],
-  },
-  {
-    id: "shear",
-    name: "Shear",
-    idea: "Split turned on its side. A six-sided stone cut across and slid, so both halves stay slabs instead of collapsing into triangles.",
-    facets: [
-      facet([38, 3, 58, 17, 58, 31, 38, 31], 1),
-      facet([38, 3, 38, 31, 18, 31, 18, 17], 2),
-      facet([6, 33, 26, 33, 26, 59, 6, 45], 3),
-      facet([26, 33, 46, 33, 46, 45, 26, 59], 4),
+      facet(hexPoints(21, 23, 13), 1),
+      facet(hexPoints(43, 23, 13), 3),
+      facet(hexPoints(32, 42, 13), 4),
     ],
   },
   {
     id: "cleave",
     name: "Cleave",
-    idea: "An eight-sided stone parted along its diagonal, the halves sliding apart in opposite directions.",
+    idea: "Round three's Cleave with the gap halved. The halves stay one stone instead of drifting into two.",
+    facets: cleaveFacets(1.5),
+  },
+  {
+    id: "facet",
+    name: "Facet",
+    idea: "The same parting on a six-sided stone, so the silhouette agrees with the honeycomb concepts above.",
+    facets: (() => {
+      const v = [[32, 4], [56.2, 18], [56.2, 46], [32, 60], [7.8, 46], [7.8, 18]];
+      // Offset runs along the normal to the v1-v4 seam, so the halves part rather than slide.
+      const up = (p) => [p[0] - 0.75, p[1] - 1.3];
+      const dn = (p) => [p[0] + 0.75, p[1] + 1.3];
+      return [
+        facet([...up(v[4]), ...up(v[5]), ...up(v[0])], 1),
+        facet([...up(v[4]), ...up(v[0]), ...up(v[1])], 2),
+        facet([...dn(v[1]), ...dn(v[2]), ...dn(v[3])], 3),
+        facet([...dn(v[1]), ...dn(v[3]), ...dn(v[4])], 4),
+      ];
+    })(),
+  },
+  {
+    id: "twist",
+    name: "Twist",
+    idea: "The halves rotated apart rather than slid. The cut opens like a hinge, which reads as motion without an arrow.",
     facets: (() => {
       const v = [];
       for (let i = 0; i < 8; i++) v.push(poly(8, 26, i, 32, 32, 22.5));
-      const shift = (pt, dx, dy) => [pt[0] + dx, pt[1] + dy];
-      const up = (pt) => shift(pt, 3, -3);
-      const dn = (pt) => shift(pt, -3, 3);
+      const spin = (p, deg) => {
+        const a = (deg * Math.PI) / 180;
+        const dx = p[0] - 32;
+        const dy = p[1] - 32;
+        return [32 + dx * Math.cos(a) - dy * Math.sin(a), 32 + dx * Math.sin(a) + dy * Math.cos(a)];
+      };
+      const up = (p) => spin(p, -5);
+      const dn = (p) => spin(p, 5);
       return [
         facet([...up(v[5]), ...up(v[6]), ...up(v[7])], 1),
         facet([...up(v[5]), ...up(v[7]), ...up(v[0]), ...up(v[1])], 2),
@@ -202,50 +191,31 @@ const CONCEPTS = [
     })(),
   },
   {
-    id: "trio",
-    name: "Trio",
-    idea: "One stone cut into three slabs and staggered. Split with a third part, so it reads as a field rather than a duel.",
-    facets: [
-      facet([8, 13, 24, 3.67, 24, 50.33, 8, 41], 1),
-      facet([24, 12.67, 32, 8, 40, 12.67, 40, 32, 24, 32], 2),
-      facet([24, 32, 40, 32, 40, 59.33, 32, 64, 24, 59.33], 3),
-      facet([40, 3.67, 56, 13, 56, 41, 40, 50.33], 4),
-    ],
-  },
-  {
-    id: "rift",
-    name: "Rift",
-    idea: "Split pushed further, with both inner edges lit so the gap itself glows. The negative space is the mark.",
-    facets: [
-      facet([8, 16, 24, 6.4, 24, 57.6, 8, 48], 3),
-      facet([24, 6.4, 28, 4, 28, 60, 24, 57.6], 1),
-      facet([36, 4, 40, 6.4, 40, 57.6, 36, 60], 2),
-      facet([40, 6.4, 56, 16, 56, 48, 40, 57.6], 4),
-    ],
-  },
-  {
-    id: "mosaic",
-    name: "Mosaic",
-    idea: "Field and Split crossed. Nine stones assembled into one larger stone, then broken along the diagonal.",
+    id: "chip",
+    name: "Chip",
+    idea: "One corner struck off a whole stone. The smallest possible cut, and the one that survives shrinking best.",
     facets: (() => {
-      const rows = [
-        [[32, 12]],
-        [[26, 22], [38, 22]],
-        [[19, 32], [32, 32], [45, 32]],
-        [[26, 42], [38, 42]],
-        [[32, 52]],
+      const v = [];
+      for (let i = 0; i < 8; i++) v.push(poly(8, 26, i, 32, 32, 22.5));
+      const off = (p) => [p[0] + 3, p[1] - 3];
+      return [
+        facet([...off(v[5]), ...off(v[6]), ...off(v[7])], 1),
+        facet([...v[7], ...v[0], ...v[1], ...v[5]], 2),
+        facet([...v[1], ...v[2], ...v[3], ...v[5]], 3),
+        facet([...v[3], ...v[4], ...v[5]], 4),
       ];
-      const out = [];
-      for (const row of rows) {
-        for (const [cx, cy] of row) {
-          const sum = cx + cy;
-          const d = sum < 64 ? -2.5 : sum > 64 ? 2.5 : 0;
-          const shade = sum === 64 ? 1 : sum < 64 ? 2 : 4;
-          out.push(diamond(cx + d, cy + d, 6.5, shade));
-        }
-      }
-      return out;
     })(),
+  },
+  {
+    id: "quarry",
+    name: "Quarry",
+    idea: "The honeycomb itself parted along the diagonal, with the stone on the seam left lit. Both directions in one mark.",
+    facets: cluster(9).map(([cx, cy], i) => {
+      const sum = cx + cy;
+      const d = sum < 63.5 ? -2 : sum > 64.5 ? 2 : 0;
+      const shade = d === 0 ? 1 : d < 0 ? 3 : 4;
+      return facet(hexPoints(cx + d, cy + d, 9), shade);
+    }),
   },
 ];
 
@@ -256,22 +226,26 @@ const facetMarkup = (facets, palette, scale = 0.93) =>
     )
     .join("\n  ");
 
-const svgFor = (concept, palette = "sapphire") => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+const wrap = (facets, palette, scale) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
   ${gradientsFor(palette)}</defs>
-  ${facetMarkup(concept.facets, palette)}
+  ${facetMarkup(facets, palette, scale)}
 </svg>
 `;
+
+const svgFor = (concept, palette = "teal") => wrap(concept.facets, palette, concept.scale ?? 0.93);
 
 const outDir = path.join(process.cwd(), "docs", "brand", "concepts");
 await rm(outDir, { recursive: true, force: true });
 await mkdir(outDir, { recursive: true });
 for (const c of CONCEPTS) await writeFile(path.join(outDir, `${c.id}.svg`), svgFor(c));
 
-/*
-  The palette study runs one silhouette through all three families, so the
-  colour decision can be made independently of the shape decision.
-*/
+// How far apart the halves should sit, shown rather than argued about.
+const GAPS = [0.75, 1.5, 2.25, 3];
+for (const g of GAPS) {
+  await writeFile(path.join(outDir, `gap-${String(g).replace(".", "-")}.svg`), wrap(cleaveFacets(g), "teal"));
+}
+
 const STUDY_ON = "cleave";
 const study = CONCEPTS.find((c) => c.id === STUDY_ON);
 for (const key of Object.keys(PALETTES)) {
@@ -282,13 +256,11 @@ await writeFile(
   path.join(outDir, "concepts.json"),
   JSON.stringify(
     {
-      palette: "sapphire",
+      palette: "teal",
       concepts: CONCEPTS.map((c) => ({ id: c.id, name: c.name, idea: c.idea, svg: svgFor(c).trim() })),
+      gaps: GAPS.map((g) => ({ gap: g, svg: wrap(cleaveFacets(g), "teal").trim() })),
       study: Object.entries(PALETTES).map(([key, v]) => ({
-        id: key,
-        label: v.label,
-        note: v.note,
-        svg: svgFor(study, key).trim(),
+        id: key, label: v.label, note: v.note, svg: svgFor(study, key).trim(),
       })),
     },
     null,
@@ -296,4 +268,4 @@ await writeFile(
   )
 );
 
-console.log(`Wrote ${CONCEPTS.length} concepts and ${Object.keys(PALETTES).length} palette studies`);
+console.log(`Wrote ${CONCEPTS.length} concepts, ${GAPS.length} gap steps, ${Object.keys(PALETTES).length} palette studies`);

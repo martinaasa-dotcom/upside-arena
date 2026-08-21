@@ -4,8 +4,8 @@
   <linearGradient id="teal-2" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0%" stop-color="#5fc9c4"/><stop offset="100%" stop-color="#34998f"/></linearGradient>
   <linearGradient id="teal-3" x1="0.2" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1f8b86"/><stop offset="100%" stop-color="#12615f"/></linearGradient>
   <linearGradient id="teal-4" x1="0.2" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0f4d4c"/><stop offset="100%" stop-color="#07302f"/></linearGradient></defs>
-  <polygon points="23.55,6.48 43.45,6.48 57.52,20.55" fill="url(#teal-1)" transform="translate(41.51 11.17) scale(0.93) translate(-41.51 -11.17)"/>
-  <polygon points="23.55,6.48 57.52,20.55 57.52,40.45 43.45,54.52" fill="url(#teal-2)" transform="translate(45.51 30.5) scale(0.93) translate(-45.51 -30.5)"/>
-  <polygon points="40.45,57.52 20.55,57.52 6.48,43.45" fill="url(#teal-3)" transform="translate(22.49 52.83) scale(0.93) translate(-22.49 -52.83)"/>
-  <polygon points="40.45,57.52 6.48,43.45 6.48,23.55 20.55,9.48" fill="url(#teal-4)" transform="translate(18.49 33.5) scale(0.93) translate(-18.49 -33.5)"/>
+  <polygon points="22.8,7.23 42.7,7.23 56.77,21.3" fill="url(#teal-1)" transform="translate(40.76 11.92) scale(0.93) translate(-40.76 -11.92)"/>
+  <polygon points="22.8,7.23 56.77,21.3 56.77,41.2 42.7,55.27" fill="url(#teal-2)" transform="translate(44.76 31.25) scale(0.93) translate(-44.76 -31.25)"/>
+  <polygon points="41.2,56.77 21.3,56.77 7.23,42.7" fill="url(#teal-3)" transform="translate(23.24 52.08) scale(0.93) translate(-23.24 -52.08)"/>
+  <polygon points="41.2,56.77 7.23,42.7 7.23,22.8 21.3,8.73" fill="url(#teal-4)" transform="translate(19.24 32.75) scale(0.93) translate(-19.24 -32.75)"/>
 </svg>
