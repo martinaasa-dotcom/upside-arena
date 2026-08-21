@@ -25,7 +25,7 @@ Production and Preview both. None of them belongs in the repository.
 | `NEXT_PUBLIC_SUPABASE_URL` | the Arena project URL | Public. Safe in a browser. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the publishable key | Public. Row level security protects it. |
 | `SUPABASE_SERVICE_ROLE_KEY` | the secret key | **Server only.** Bypasses row level security. Never prefix it with `NEXT_PUBLIC_`. |
-| `NEXT_PUBLIC_SITE_URL` | `https://upsidearena.com` | Used to build sign-in links. Set it. If it is unset, production now falls back to the project's production domain rather than to a deployment url or to localhost, but that is a safety net, not the setting. |
+| `NEXT_PUBLIC_SITE_URL` | `https://upsidearena.com` | Set, on All Environments. Builds sign-in links, notification emails and share urls. If it were ever unset, production falls back to the project's production domain rather than to a deployment url, but that is a safety net rather than the setting. |
 | `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH` | `false` | Turn to `true` only once the Google provider is enabled in Supabase. |
 | `CRON_SECRET` | a long random string | **Server only.** Shared with the GitHub workflows below. |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | the VAPID public key | Public. It is handed to the browser to subscribe with. |
@@ -71,34 +71,51 @@ Leave the nameservers alone.
 
 ## After the domain resolves
 
-Two things must be updated or sign-in silently breaks.
+### 1. Site url — done
 
-1. **`NEXT_PUBLIC_SITE_URL`** in Vercel becomes `https://upsidearena.com`.
-   Sign-in links, notification emails and share urls are built from it.
+`NEXT_PUBLIC_SITE_URL` is set to `https://upsidearena.com` in the Vercel
+project, scoped to All Environments. Sign-in links, notification emails and
+share urls are built from it, and this used to be the outstanding item here.
 
-   `siteUrl()` in `src/lib/env.ts` resolves this in order: the explicit
-   variable, then on production the project's production domain
-   (`VERCEL_PROJECT_PRODUCTION_URL`), then on a preview the deployment url
-   (`VERCEL_URL`), then localhost.
+Two notes on it rather than an action.
 
-   Production deliberately never falls through to `VERCEL_URL`. That names one
-   deployment, changes on every push, and is not on Supabase's redirect allow
-   list, so a link built from it would look plausible and fail. Before this
-   fallback existed, an unset variable in production produced `localhost`
-   links, which is what the note here used to warn about.
+**All Environments includes Development.** Anyone pulling the project's
+variables to run locally gets the production origin rather than
+`http://localhost:3000`, so a sign-in email triggered from a local run points
+at production. That is a footgun rather than a bug: nothing breaks, but the
+link does not come back to the machine you are testing on. Narrow the variable
+to Production and Preview if that ever gets annoying.
 
-   Set the variable anyway. The fallback keeps an unset variable from emailing
-   people a broken link; it does not make the setting optional, and the
-   explicit value is the only one that survives moving off Vercel.
+**Preview deployments report the production origin too.** That is the right
+trade while Supabase's allow list names only `upsidearena.com`, since a preview
+origin would be refused anyway. It does mean auth cannot be exercised end to
+end on a preview url.
 
-2. **Supabase redirect allow list**, under Authentication, URL Configuration:
-   - Site URL: `https://upsidearena.com`
-   - Redirect URLs: `https://upsidearena.com/auth/confirm`,
-     `https://upsidearena.com/auth/callback`, and the same two on
-     `http://localhost:3000` for local work.
+### The fallback, if the variable is ever unset
 
-   Supabase refuses to redirect anywhere not on this list, which is what stops
-   a sign-in link being redirected to somewhere it should not go.
+`siteUrl()` in `src/lib/env.ts` resolves in order: the explicit variable, then
+on production the project's production domain (`VERCEL_PROJECT_PRODUCTION_URL`),
+then on a preview the deployment url (`VERCEL_URL`), then localhost.
+
+Production deliberately never falls through to `VERCEL_URL`. That names one
+deployment, changes on every push, and is not on Supabase's allow list, so a
+link built from it would look plausible and fail.
+
+This is defence in depth, not a substitute for the variable. The explicit value
+is the only one a person controls and the only one that survives moving off
+Vercel.
+
+### 2. Supabase redirect allow list
+
+Under Authentication, URL Configuration:
+
+- Site URL: `https://upsidearena.com`
+- Redirect URLs: `https://upsidearena.com/auth/confirm`,
+  `https://upsidearena.com/auth/callback`, and the same two on
+  `http://localhost:3000` for local work.
+
+Supabase refuses to redirect anywhere not on this list, which is what stops a
+sign-in link being redirected to somewhere it should not go.
 
 ## Settling the week, without paying for a scheduler
 
