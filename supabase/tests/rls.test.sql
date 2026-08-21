@@ -9,20 +9,6 @@
 -- Assertions report through notices on stderr, so silence result rows.
 \o /dev/null
 
-create or replace function public.assert(condition boolean, label text)
-returns void
-language plpgsql
-as $$
-begin
-  if condition is not true then
-    raise exception 'FAILED: %', label;
-  end if;
-  raise notice 'ok: %', label;
-end;
-$$;
-
-grant execute on function public.assert(boolean, text) to authenticated, anon;
-
 -- Two players, created the way Supabase creates them.
 insert into auth.users (id, email, raw_user_meta_data)
 values

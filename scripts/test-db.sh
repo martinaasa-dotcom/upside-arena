@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# Tests the migration, its triggers and its row level security against a plain
-# Postgres. No Docker and no hosted project needed, so the security rules can
-# be checked anywhere.
+# Tests the migrations, their triggers and their row level security against a
+# plain Postgres. No Docker and no hosted project needed, so the rules that
+# protect the game can be checked anywhere.
 #
 #   ./scripts/test-db.sh
 #
@@ -15,24 +15,27 @@ PSQL="${PSQL:-psql}"
 DB="${ARENA_TEST_DB:-arena_test}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-echo "Rebuilding $DB"
-$PSQL -q -c "drop database if exists $DB;" -c "create database $DB;"
-
 run() {
   $PSQL -q -d "$DB" -v ON_ERROR_STOP=1 -f "$1"
 }
 
-echo "Applying the Supabase shim"
-run "$ROOT/supabase/tests/shim.sql"
+# Each suite gets a database of its own. Sharing one lets a suite that seeds
+# players change what the next suite counts, which turns a passing test red
+# for a reason that has nothing to do with the code.
+prepare() {
+  $PSQL -q -c "drop database if exists $DB;" -c "create database $DB;"
+  run "$ROOT/supabase/tests/shim.sql"
+  for migration in "$ROOT"/supabase/migrations/*.sql; do
+    run "$migration"
+  done
+  run "$ROOT/supabase/tests/helpers.sql"
+}
 
-echo "Applying migrations"
-for migration in "$ROOT"/supabase/migrations/*.sql; do
-  echo "  $(basename "$migration")"
-  run "$migration"
+for suite in "$ROOT"/supabase/tests/*.test.sql; do
+  echo "== $(basename "$suite")"
+  prepare
+  run "$suite"
 done
-
-echo "Running tests"
-run "$ROOT/supabase/tests/rls.test.sql"
 
 echo
 echo "Database tests passed."

@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import { Toaster } from "@/components/ui/sonner";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { ConsentBanner } from "@/components/ConsentBanner";
+import { Analytics } from "@/components/Analytics";
 import { siteUrl } from "@/lib/env";
 import "./globals.css";
 
@@ -69,6 +70,7 @@ export default function RootLayout({
         {children}
         <Toaster />
         <ConsentBanner />
+        <Analytics />
         <ServiceWorker />
       </body>
     </html>

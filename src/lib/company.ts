@@ -70,8 +70,17 @@ export const PROCESSORS = [
   },
   {
     name: "Vercel",
-    role: "Hosting. Keeps short-lived server logs.",
+    role:
+      "Hosting. Keeps short-lived server logs, and measures page views and " +
+      "load times if you allow it.",
     where: "European Union and the United States",
+  },
+  {
+    name: "Yahoo Finance",
+    role:
+      "Share prices. We send it a ticker symbol and nothing else: no account, " +
+      "no name, and nothing about what you hold.",
+    where: "United States",
   },
 ] as const;
 

@@ -10,6 +10,7 @@ import type { Profile } from "@/lib/types";
 
 const ROOM_TITLES: Record<string, string> = {
   "/home": "Home",
+  "/trade": "Trade",
   "/profile": "Profile",
 };
 

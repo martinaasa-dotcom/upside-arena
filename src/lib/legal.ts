@@ -8,3 +8,4 @@ export const PRIVACY_VERSION = "2026-08-21";
 
 /** Minimum age to hold an account. Matches Upside Lab exactly. */
 export const MINIMUM_AGE = 16;
+

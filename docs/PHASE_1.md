@@ -166,7 +166,7 @@ distrust every number in the product.
 Section 13 of the plan lists three open decisions. None of them blocked phase
 1, and all three are needed before the phase they belong to:
 
-- **Starting virtual balance** ($10k or $100k). Needed for phase 2.
+- ~~Starting virtual balance~~. Settled at **$100,000**, in `src/lib/game.ts`.
 - **What earns a streak day** (opening the app, or making a trade). Needed for
   phase 4.
 - **Season length** (monthly or quarterly). Needed after the weekly loop is
@@ -174,10 +174,12 @@ Section 13 of the plan lists three open decisions. None of them blocked phase
 
 Two more that phase 1 has surfaced:
 
-- **A market data vendor** must be picked before phase 2. The plan lists
-  Finnhub, IEX Cloud and Alpha Vantage as candidates.
-- **An analytics vendor** must be picked before events are worth collecting.
-  `src/lib/analytics.ts` is the only call site, so this is a small change.
+- ~~A market data vendor~~. Settled on **Yahoo Finance**, through the same
+  `yahoo-finance2` library Upside Lab uses, with Finnhub available as a
+  fallback once a key is set. Note that IEX Cloud, which the plan lists, was
+  retired in 2024 and is not an option.
+- ~~An analytics vendor~~. Settled on **Vercel Analytics**, matching Lab. It
+  loads only after consent is given.
 
 ## Legal
 
