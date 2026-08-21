@@ -50,3 +50,7 @@ next-env.d.ts
 # supabase local stack
 /supabase/.branches
 /supabase/.temp
+
+# next.config regenerates these agent rule files on every dev and build run
+/AGENTS.md
+/CLAUDE.md
