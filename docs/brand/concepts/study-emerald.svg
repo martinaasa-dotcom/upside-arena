@@ -4,8 +4,8 @@
   <linearGradient id="emerald-2" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0%" stop-color="#4fd18c"/><stop offset="100%" stop-color="#2ba565"/></linearGradient>
   <linearGradient id="emerald-3" x1="0.2" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#16904f"/><stop offset="100%" stop-color="#0b6537"/></linearGradient>
   <linearGradient id="emerald-4" x1="0.2" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0a4d2a"/><stop offset="100%" stop-color="#052e19"/></linearGradient></defs>
-  <polygon points="32,4 40,22 24,40 6,32" fill="url(#emerald-1)" transform="translate(25.5 24.5) scale(0.93) translate(-25.5 -24.5)"/>
-  <polygon points="6,32 24,40 32,60" fill="url(#emerald-2)" transform="translate(20.67 44) scale(0.93) translate(-20.67 -44)"/>
-  <polygon points="32,4 58,32 40,22" fill="url(#emerald-3)" transform="translate(43.33 19.33) scale(0.93) translate(-43.33 -19.33)"/>
-  <polygon points="40,22 58,32 32,60 24,40" fill="url(#emerald-4)" transform="translate(38.5 38.5) scale(0.93) translate(-38.5 -38.5)"/>
+  <polygon points="25.05,4.98 44.95,4.98 59.02,19.05" fill="url(#emerald-1)" transform="translate(43.01 9.67) scale(0.93) translate(-43.01 -9.67)"/>
+  <polygon points="25.05,4.98 59.02,19.05 59.02,38.95 44.95,53.02" fill="url(#emerald-2)" transform="translate(47.01 29) scale(0.93) translate(-47.01 -29)"/>
+  <polygon points="38.95,59.02 19.05,59.02 4.98,44.95" fill="url(#emerald-3)" transform="translate(20.99 54.33) scale(0.93) translate(-20.99 -54.33)"/>
+  <polygon points="38.95,59.02 4.98,44.95 4.98,25.05 19.05,10.98" fill="url(#emerald-4)" transform="translate(16.99 35) scale(0.93) translate(-16.99 -35)"/>
 </svg>

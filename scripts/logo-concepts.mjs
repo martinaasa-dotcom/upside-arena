@@ -1,15 +1,17 @@
 /*
-  Arena mark concepts, round two.
+  Arena mark concepts, round three.
 
   Construction is unchanged from src/components/brand/ArenaMark.tsx: flat
   facets, no strokes, each facet scaled toward its own centroid so the cuts
   read as hairline gaps, all on the same 64 grid.
 
-  What changed is the palette and the idea. The marks are cut from a jewel
-  family rather than Lab's warm gold, and every silhouette is about a
-  relationship between two parts rather than a trophy shape. Sapphire is the
-  primary family; teal and emerald are generated alongside it as a palette
-  study. Run with `node scripts/logo-concepts.mjs`.
+  Round three develops the two directions that survived review: Field, a grid
+  of repeated units with one lit, and Split, one solid divided and offset so
+  the gap becomes the subject. Both are systematic rather than symbolic, which
+  is what the rejected rounds were not. Concepts 1 to 5 extend Field, 6 to 9
+  extend Split, and 10 crosses them. Sapphire is the primary family; teal and
+  emerald are generated alongside it as a palette study.
+  Run with `node scripts/logo-concepts.mjs`.
 */
 import { mkdir, writeFile, rm } from "node:fs/promises";
 import path from "node:path";
@@ -85,125 +87,165 @@ const seg = (i, n, outer, inner, shade, squash = 1) => {
   return facet([...p(outer, a0), ...p(outer, a1), ...p(inner, a1), ...p(inner, a0)], shade);
 };
 
+// A unit stone. Every Field-branch concept is built from these.
+const diamond = (cx, cy, r, shade) =>
+  facet([cx, cy - r, cx + r, cy, cx, cy + r, cx - r, cy], shade);
+
+// Pointy-top hexagon, so a cluster tiles without gaps of its own.
+const hexPoints = (cx, cy, r) => {
+  const out = [];
+  for (let i = 0; i < 6; i++) {
+    const a = ((i * 60 - 90) * Math.PI) / 180;
+    out.push(cx + r * Math.cos(a), cy + r * Math.sin(a));
+  }
+  return out;
+};
+
+// Regular polygon vertex, used to cut the octagon concepts.
+const poly = (n, r, i, cx = 32, cy = 32, offset = 0) => {
+  const a = (((i / n) * 360 + offset) * Math.PI) / 180;
+  return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+};
+
 const CONCEPTS = [
   {
-    id: "clash",
-    name: "Clash",
-    idea: "A big wedge and a smaller one driving past each other. Deliberately unequal, because a matchup rarely is.",
-    facets: [
-      facet([4, 6, 34, 24, 34, 28, 4, 28], 1),
-      facet([4, 28, 34, 28, 34, 32, 4, 52], 2),
-      facet([60, 26, 30, 36, 30, 39, 60, 42], 3),
-      facet([60, 42, 30, 39, 30, 42, 60, 58], 4),
-    ],
-  },
-  {
-    id: "split",
-    name: "Split",
-    idea: "One stone cut down the middle and pulled apart. Same shape twice, offset, with the gap doing the talking.",
-    facets: [
-      facet([31, 3, 31, 27, 9, 16], 1),
-      facet([31, 27, 31, 51, 9, 38, 9, 16], 2),
-      facet([33, 9, 55, 22, 33, 33], 3),
-      facet([33, 33, 55, 22, 55, 44, 33, 57], 4),
-    ],
-  },
-  {
-    id: "bracket",
-    name: "Bracket",
-    idea: "Two brackets facing off. The empty middle is the floor, so the mark frames whatever sits in it.",
-    facets: [
-      facet([5, 8, 19, 8, 19, 56, 5, 56], 2),
-      facet([19, 8, 31, 8, 31, 22, 19, 22], 1),
-      facet([19, 42, 31, 42, 31, 56, 19, 56], 3),
-      facet([45, 8, 59, 8, 59, 56, 45, 56], 4),
-      facet([33, 8, 45, 8, 45, 22, 33, 22], 3),
-      facet([33, 42, 45, 42, 45, 56, 33, 56], 4),
-    ],
-  },
-  {
-    id: "cross",
-    name: "Cross",
-    idea: "Two blades crossing, the cool one passing behind. The only concept here with real depth in it.",
-    facets: [
-      facet([56, 8, 52, 4, 6, 48, 10, 52], 3),
-      facet([56, 8, 10, 52, 14, 56, 60, 12], 4),
-      facet([8, 8, 12, 4, 58, 48, 54, 52], 1),
-      facet([8, 8, 54, 52, 50, 56, 4, 12], 2),
-    ],
-  },
-  {
-    id: "pivot",
-    name: "Pivot",
-    idea: "A scale caught mid tip. Nobody has won yet, which is the state a live round is actually in.",
-    facets: [
-      facet([6, 34, 32, 24, 32, 36, 8, 46], 2),
-      facet([32, 24, 58, 14, 58, 26, 32, 36], 1),
-      facet([32, 30, 32, 58, 14, 58], 4),
-      facet([32, 30, 50, 58, 32, 58], 3),
-    ],
-  },
-  {
-    id: "orbit",
-    name: "Orbit",
-    idea: "Two arcs chasing each other round a common centre. Neither one leads, and the gaps read as motion.",
-    facets: [
-      seg(0, 8, 30, 18, 1), seg(1, 8, 30, 18, 2), seg(2, 8, 30, 18, 2),
-      seg(4, 8, 30, 18, 3), seg(5, 8, 30, 18, 4), seg(6, 8, 30, 18, 4),
-    ],
-  },
-  {
-    id: "field",
-    name: "Field",
-    idea: "Nine stones, one lit. The only concept that shows what a player actually does, which is pick one out of many.",
+    id: "quorum",
+    name: "Quorum",
+    idea: "Seven stones packed as a honeycomb, one of them lit. Field's idea with a unit that tiles perfectly.",
     facets: (() => {
-      const shades = [4, 3, 1, 3, 4, 3, 4, 3, 4];
+      const r = 9;
+      const dx = Math.sqrt(3) * r;
+      const cells = [
+        [32, 32, 3], [32 - dx, 32, 4], [32 + dx, 32, 3],
+        [32 - dx / 2, 32 - 1.5 * r, 4], [32 + dx / 2, 32 - 1.5 * r, 1],
+        [32 - dx / 2, 32 + 1.5 * r, 4], [32 + dx / 2, 32 + 1.5 * r, 3],
+      ];
+      return cells.map(([cx, cy, shade]) => facet(hexPoints(cx, cy, r), shade));
+    })(),
+  },
+  {
+    id: "rank",
+    name: "Rank",
+    idea: "Six stones stacked into a wedge with the apex lit. Selection and standing in one shape, without drawing a podium.",
+    facets: [
+      diamond(32, 13, 7, 1),
+      diamond(24, 29, 7, 3), diamond(40, 29, 7, 3),
+      diamond(16, 45, 7, 4), diamond(32, 45, 7, 4), diamond(48, 45, 7, 4),
+    ],
+  },
+  {
+    id: "board",
+    name: "Board",
+    idea: "Sixteen stones with two lit side by side. The whole field of picks, and the one matchup that matters this week.",
+    facets: (() => {
+      const at = [11, 25, 39, 53];
+      const lit = new Set(["25,25", "39,25"]);
       const out = [];
-      for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 3; col++) {
-          const cx = 16 + col * 16;
-          const cy = 16 + row * 16;
-          out.push(facet([cx, cy - 8, cx + 8, cy, cx, cy + 8, cx - 8, cy], shades[row * 3 + col]));
+      for (const cy of at) {
+        for (const cx of at) {
+          const key = `${cx},${cy}`;
+          out.push(diamond(cx, cy, 6, lit.has(key) ? (cx === 25 ? 1 : 2) : cy < 32 ? 4 : 3));
         }
       }
       return out;
     })(),
   },
   {
-    id: "fracture",
-    name: "Fracture",
-    idea: "A single diamond broken along a lightning seam. The break is jagged, so the two halves can never be swapped.",
+    id: "focus",
+    name: "Focus",
+    idea: "One lit stone ringed by six dark ones. Reads as the pick and the field around it at any size.",
+    facets: (() => {
+      const out = [diamond(32, 32, 9, 1)];
+      for (let i = 0; i < 6; i++) {
+        const [cx, cy] = poly(6, 20, i, 32, 32, 0);
+        out.push(diamond(cx, cy, 7, i % 2 ? 4 : 3));
+      }
+      return out;
+    })(),
+  },
+  {
+    id: "drift",
+    name: "Drift",
+    idea: "Five stones climbing, each larger and brighter than the last. Field's unit carrying motion instead of a grid.",
     facets: [
-      facet([32, 4, 40, 22, 24, 40, 6, 32], 1),
-      facet([6, 32, 24, 40, 32, 60], 2),
-      facet([32, 4, 58, 32, 40, 22], 3),
-      facet([40, 22, 58, 32, 32, 60, 24, 40], 4),
+      diamond(10, 52, 4, 4), diamond(20, 44, 5.5, 4), diamond(31, 35, 7, 3),
+      diamond(43, 25, 8.5, 2), diamond(52, 15, 9, 1),
     ],
   },
   {
-    id: "trade",
-    name: "Trade",
-    idea: "Two arrows passing in opposite directions. Reads as a swap, a matchup and a market all at once.",
+    id: "shear",
+    name: "Shear",
+    idea: "Split turned on its side. A six-sided stone cut across and slid, so both halves stay slabs instead of collapsing into triangles.",
     facets: [
-      facet([8, 14, 46, 14, 46, 26, 8, 26], 2),
-      facet([46, 10, 60, 20, 46, 30], 1),
-      facet([18, 38, 56, 38, 56, 50, 18, 50], 4),
-      facet([18, 34, 4, 44, 18, 54], 3),
+      facet([38, 3, 58, 17, 58, 31, 38, 31], 1),
+      facet([38, 3, 38, 31, 18, 31, 18, 17], 2),
+      facet([6, 33, 26, 33, 26, 59, 6, 45], 3),
+      facet([26, 33, 46, 33, 46, 45, 26, 59], 4),
     ],
   },
   {
-    id: "contest",
-    name: "Contest",
-    idea: "A cool ring with a warm stone held inside it. The only one that shows the arena and the player at once.",
+    id: "cleave",
+    name: "Cleave",
+    idea: "An eight-sided stone parted along its diagonal, the halves sliding apart in opposite directions.",
+    facets: (() => {
+      const v = [];
+      for (let i = 0; i < 8; i++) v.push(poly(8, 26, i, 32, 32, 22.5));
+      const shift = (pt, dx, dy) => [pt[0] + dx, pt[1] + dy];
+      const up = (pt) => shift(pt, 3, -3);
+      const dn = (pt) => shift(pt, -3, 3);
+      return [
+        facet([...up(v[5]), ...up(v[6]), ...up(v[7])], 1),
+        facet([...up(v[5]), ...up(v[7]), ...up(v[0]), ...up(v[1])], 2),
+        facet([...dn(v[1]), ...dn(v[2]), ...dn(v[3])], 3),
+        facet([...dn(v[1]), ...dn(v[3]), ...dn(v[4]), ...dn(v[5])], 4),
+      ];
+    })(),
+  },
+  {
+    id: "trio",
+    name: "Trio",
+    idea: "One stone cut into three slabs and staggered. Split with a third part, so it reads as a field rather than a duel.",
     facets: [
-      seg(0, 8, 30, 22, 3), seg(1, 8, 30, 22, 3), seg(2, 8, 30, 22, 4),
-      seg(3, 8, 30, 22, 4), seg(4, 8, 30, 22, 4), seg(5, 8, 30, 22, 4),
-      seg(6, 8, 30, 22, 3), seg(7, 8, 30, 22, 3),
-      facet([32, 18, 44, 32, 32, 32], 1),
-      facet([32, 32, 44, 32, 32, 46], 2),
-      facet([32, 18, 32, 32, 20, 32], 1),
-      facet([32, 32, 32, 46, 20, 32], 2),
+      facet([8, 13, 24, 3.67, 24, 50.33, 8, 41], 1),
+      facet([24, 12.67, 32, 8, 40, 12.67, 40, 32, 24, 32], 2),
+      facet([24, 32, 40, 32, 40, 59.33, 32, 64, 24, 59.33], 3),
+      facet([40, 3.67, 56, 13, 56, 41, 40, 50.33], 4),
     ],
+  },
+  {
+    id: "rift",
+    name: "Rift",
+    idea: "Split pushed further, with both inner edges lit so the gap itself glows. The negative space is the mark.",
+    facets: [
+      facet([8, 16, 24, 6.4, 24, 57.6, 8, 48], 3),
+      facet([24, 6.4, 28, 4, 28, 60, 24, 57.6], 1),
+      facet([36, 4, 40, 6.4, 40, 57.6, 36, 60], 2),
+      facet([40, 6.4, 56, 16, 56, 48, 40, 57.6], 4),
+    ],
+  },
+  {
+    id: "mosaic",
+    name: "Mosaic",
+    idea: "Field and Split crossed. Nine stones assembled into one larger stone, then broken along the diagonal.",
+    facets: (() => {
+      const rows = [
+        [[32, 12]],
+        [[26, 22], [38, 22]],
+        [[19, 32], [32, 32], [45, 32]],
+        [[26, 42], [38, 42]],
+        [[32, 52]],
+      ];
+      const out = [];
+      for (const row of rows) {
+        for (const [cx, cy] of row) {
+          const sum = cx + cy;
+          const d = sum < 64 ? -2.5 : sum > 64 ? 2.5 : 0;
+          const shade = sum === 64 ? 1 : sum < 64 ? 2 : 4;
+          out.push(diamond(cx + d, cy + d, 6.5, shade));
+        }
+      }
+      return out;
+    })(),
   },
 ];
 
@@ -230,7 +272,7 @@ for (const c of CONCEPTS) await writeFile(path.join(outDir, `${c.id}.svg`), svgF
   The palette study runs one silhouette through all three families, so the
   colour decision can be made independently of the shape decision.
 */
-const STUDY_ON = "fracture";
+const STUDY_ON = "cleave";
 const study = CONCEPTS.find((c) => c.id === STUDY_ON);
 for (const key of Object.keys(PALETTES)) {
   await writeFile(path.join(outDir, `study-${key}.svg`), svgFor(study, key));

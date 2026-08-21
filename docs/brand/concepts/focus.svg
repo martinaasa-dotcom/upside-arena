@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+  <linearGradient id="sapphire-1" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0%" stop-color="#d9e9ff"/><stop offset="100%" stop-color="#a9c8f0"/></linearGradient>
+  <linearGradient id="sapphire-2" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0%" stop-color="#6aa6f0"/><stop offset="100%" stop-color="#3f74c8"/></linearGradient>
+  <linearGradient id="sapphire-3" x1="0.2" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2d5cb5"/><stop offset="100%" stop-color="#1a3a84"/></linearGradient>
+  <linearGradient id="sapphire-4" x1="0.2" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#17306b"/><stop offset="100%" stop-color="#0c1a3d"/></linearGradient></defs>
+  <polygon points="32,23 41,32 32,41 23,32" fill="url(#sapphire-1)" transform="translate(32 32) scale(0.93) translate(-32 -32)"/>
+  <polygon points="52,25 59,32 52,39 45,32" fill="url(#sapphire-3)" transform="translate(52 32) scale(0.93) translate(-52 -32)"/>
+  <polygon points="42,42.32 49,49.32 42,56.32 35,49.32" fill="url(#sapphire-4)" transform="translate(42 49.32) scale(0.93) translate(-42 -49.32)"/>
+  <polygon points="22,42.32 29,49.32 22,56.32 15,49.32" fill="url(#sapphire-3)" transform="translate(22 49.32) scale(0.93) translate(-22 -49.32)"/>
+  <polygon points="12,25 19,32 12,39 5,32" fill="url(#sapphire-4)" transform="translate(12 32) scale(0.93) translate(-12 -32)"/>
+  <polygon points="22,7.68 29,14.68 22,21.68 15,14.68" fill="url(#sapphire-3)" transform="translate(22 14.68) scale(0.93) translate(-22 -14.68)"/>
+  <polygon points="42,7.68 49,14.68 42,21.68 35,14.68" fill="url(#sapphire-4)" transform="translate(42 14.68) scale(0.93) translate(-42 -14.68)"/>
+</svg>

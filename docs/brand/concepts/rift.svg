@@ -4,8 +4,8 @@
   <linearGradient id="sapphire-2" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0%" stop-color="#6aa6f0"/><stop offset="100%" stop-color="#3f74c8"/></linearGradient>
   <linearGradient id="sapphire-3" x1="0.2" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2d5cb5"/><stop offset="100%" stop-color="#1a3a84"/></linearGradient>
   <linearGradient id="sapphire-4" x1="0.2" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#17306b"/><stop offset="100%" stop-color="#0c1a3d"/></linearGradient></defs>
-  <polygon points="31,3 31,27 9,16" fill="url(#sapphire-1)" transform="translate(23.67 15.33) scale(0.93) translate(-23.67 -15.33)"/>
-  <polygon points="31,27 31,51 9,38 9,16" fill="url(#sapphire-2)" transform="translate(20 33) scale(0.93) translate(-20 -33)"/>
-  <polygon points="33,9 55,22 33,33" fill="url(#sapphire-3)" transform="translate(40.33 21.33) scale(0.93) translate(-40.33 -21.33)"/>
-  <polygon points="33,33 55,22 55,44 33,57" fill="url(#sapphire-4)" transform="translate(44 39) scale(0.93) translate(-44 -39)"/>
+  <polygon points="8,16 24,6.4 24,57.6 8,48" fill="url(#sapphire-3)" transform="translate(16 32) scale(0.93) translate(-16 -32)"/>
+  <polygon points="24,6.4 28,4 28,60 24,57.6" fill="url(#sapphire-1)" transform="translate(26 32) scale(0.93) translate(-26 -32)"/>
+  <polygon points="36,4 40,6.4 40,57.6 36,60" fill="url(#sapphire-2)" transform="translate(38 32) scale(0.93) translate(-38 -32)"/>
+  <polygon points="40,6.4 56,16 56,48 40,57.6" fill="url(#sapphire-4)" transform="translate(48 32) scale(0.93) translate(-48 -32)"/>
 </svg>
