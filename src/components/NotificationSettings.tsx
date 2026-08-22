@@ -165,7 +165,19 @@ export function NotificationSettings({
   function turnPushOff() {
     startTransition(async () => {
       const endpoint = (await unsubscribe()) ?? "";
-      await unsubscribeFromPush(endpoint);
+      const done = await unsubscribeFromPush(endpoint);
+
+      /*
+        Checked, where turning them on already was. Off is the direction worth
+        checking hardest: somebody told a channel is closed while it is still
+        open does not come back and ask again, and the screen would have gone
+        on saying off while the next notification arrived.
+      */
+      if (!done.ok) {
+        toast.error("We could not turn those off. Try again.");
+        return;
+      }
+
       setSubscribed(false);
       track("push_disabled");
       setDevice((current) => (current ? { ...current, hasEndpoint: false } : current));

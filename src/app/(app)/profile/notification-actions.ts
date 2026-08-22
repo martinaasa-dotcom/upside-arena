@@ -44,13 +44,13 @@ export async function submitNotificationSettings(
   const user = await requireUser();
   if (!user) return { ok: false };
 
-  await saveNotificationSettings(user.id, {
+  const saved = await saveNotificationSettings(user.id, {
     ...next,
     timezone: validTimezone(next.timezone ?? null) ?? undefined,
   });
 
   revalidatePath("/profile");
-  return { ok: true };
+  return { ok: saved != null };
 }
 
 export async function subscribeToPush(subscription: {
@@ -74,13 +74,13 @@ export async function subscribeToPush(subscription: {
     here as well means the two can never disagree, which is what produces the
     "I said yes and nothing arrives" complaint.
   */
-  await saveNotificationSettings(user.id, {
+  const settings = await saveNotificationSettings(user.id, {
     push: true,
     timezone: validTimezone(subscription.timezone ?? null) ?? undefined,
   });
 
   revalidatePath("/profile");
-  return { ok: true };
+  return { ok: settings != null };
 }
 
 export async function unsubscribeFromPush(endpoint: string): Promise<{ ok: boolean }> {
@@ -88,8 +88,20 @@ export async function unsubscribeFromPush(endpoint: string): Promise<{ ok: boole
   if (!user) return { ok: false };
 
   if (endpoint) await removePushSubscription(endpoint);
-  await saveNotificationSettings(user.id, { push: false });
+
+  /*
+    This is the one that decides it. Delivery is gated on the preference row,
+    not on whether a device is still registered, so the answer to "are they
+    off" is whether this saved — and it used to be reported as yes whatever
+    happened. Somebody who asks to stop being messaged, is told it worked, and
+    keeps being messaged does not ask again; they report it as spam, which is
+    what the note at the top of this file is about.
+
+    A device left registered with the preference off receives nothing, and the
+    next send that reaches a dead endpoint clears the row on a 410.
+  */
+  const saved = await saveNotificationSettings(user.id, { push: false });
 
   revalidatePath("/profile");
-  return { ok: true };
+  return { ok: saved != null };
 }

@@ -57,14 +57,24 @@ export async function getNotificationSettings(
   return data ? fromRow(data as NotificationSettingsRow) : DEFAULT_SETTINGS;
 }
 
+/**
+ * Saves what somebody wants to be sent, and returns null if it did not save.
+ *
+ * Null rather than the defaults, which is what this used to hand back when
+ * the write failed. The defaults have push and email switched on, so the one
+ * call that matters — somebody turning a channel off — answered a failure
+ * with a value saying the channel was on, and every caller took it for the
+ * saved state. A preference that did not save has to be distinguishable from
+ * one that did, because this is the row delivery is gated on.
+ */
 export async function saveNotificationSettings(
   userId: string,
   next: Partial<NotificationSettings>
-): Promise<NotificationSettings> {
-  if (!canWriteGame) return DEFAULT_SETTINGS;
+): Promise<NotificationSettings | null> {
+  if (!canWriteGame) return null;
 
   const admin = createAdminClient();
-  const { data } = await admin.rpc("save_notification_settings", {
+  const { data, error } = await admin.rpc("save_notification_settings", {
     p_user_id: userId,
     p_push_enabled: next.push ?? null,
     p_email_enabled: next.email ?? null,
@@ -74,7 +84,12 @@ export async function saveNotificationSettings(
     p_timezone: next.timezone ?? null,
   });
 
-  return data ? fromRow(data as NotificationSettingsRow) : DEFAULT_SETTINGS;
+  if (error || !data) {
+    console.error("notification settings not saved", error);
+    return null;
+  }
+
+  return fromRow(data as NotificationSettingsRow);
 }
 
 /** How many browsers this player currently has listening. */

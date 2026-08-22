@@ -60,7 +60,9 @@ export function CoinShop({
 
       if (!result.ok) {
         track("cosmetic_purchase_refused");
-        toast.error(result.error ?? "We could not do that. Nothing was taken.");
+        // The server decides what to say about the coins, because only it
+        // knows whether the database answered. See purchaseRefusal.
+        toast.error(result.error ?? "We could not do that. Try again.");
         return;
       }
 
