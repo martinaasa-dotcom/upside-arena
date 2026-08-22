@@ -151,19 +151,39 @@ export async function signOut() {
  * Records that the signed-in account agreed to the current documents. Called
  * once at the end of onboarding, and again whenever a version is bumped.
  */
-export async function recordAcceptance() {
+/**
+ * Writes down which documents this account agreed to, and says whether it
+ * worked.
+ *
+ * It used to throw the answer away. That table is the only durable record that
+ * anybody accepted anything — it is what an account export returns when
+ * somebody asks what we hold on them — so a write that quietly did not happen
+ * left a player who had agreed to the terms with nothing saying so, and no
+ * way for anyone to find out.
+ *
+ * Safe to call again: the rows are unique on account, document and version,
+ * and a repeat is ignored rather than duplicated.
+ */
+export async function recordAcceptance(): Promise<boolean> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return;
+  if (!user) return false;
 
-  await supabase.from("terms_acceptances").upsert(
+  const { error } = await supabase.from("terms_acceptances").upsert(
     [
       { user_id: user.id, document: "terms", version: TERMS_VERSION },
       { user_id: user.id, document: "privacy", version: PRIVACY_VERSION },
     ],
     { onConflict: "user_id,document,version", ignoreDuplicates: true }
   );
+
+  if (error) {
+    console.error("terms acceptance not recorded", error);
+    return false;
+  }
+
+  return true;
 }

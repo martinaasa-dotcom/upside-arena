@@ -93,14 +93,22 @@ export async function withdrawGoal(
   userId: string,
   leagueId: string,
   cycleId: string
-): Promise<void> {
-  if (!canWriteGame) return;
+): Promise<boolean> {
+  if (!canWriteGame) return false;
 
   const admin = createAdminClient();
-  await admin
+
+  /*
+    Whether it actually went is worth returning. A goal is visible to everybody
+    in the league, so somebody told it was taken back while it is still on the
+    screen beside their name has been told the opposite of what happened.
+  */
+  const { error } = await admin
     .from("weekly_goals")
     .delete()
     .eq("user_id", userId)
     .eq("league_id", leagueId)
     .eq("cycle_id", cycleId);
+
+  return !error;
 }
