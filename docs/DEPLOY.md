@@ -438,11 +438,34 @@ curl -sS -H "Authorization: Bearer $VERCEL_TOKEN" \
 # fra1
 ```
 
-Confirm which region actually served a request by reading the header:
+Confirming it on a live request takes some care, because `x-vercel-id` names
+the **edge** first and the compute region second, and most requests never
+reach a function at all:
 
 ```bash
+# Wrong. `/` is prerendered and served from the CDN, so this only ever names
+# the edge nearest to whoever is asking -- from a US machine, iad1, whatever
+# the functions are doing.
 curl -sSI https://upsidearena.com/ | grep -i x-vercel-id
-# x-vercel-id: fra1::...
+# x-vercel-id: iad1::qglk5-...          <- one segment: an edge, not a function
+
+# Right. Ask for something that has to run.
+curl -sSI https://upsidearena.com/w/0123456789abcdef0123456789abcdef/opengraph-image \
+  | grep -i x-vercel-id
+# x-vercel-id: iad1::fra1::ftgqg-...    <- edge iad1, function fra1
+```
+
+Two segments means a function ran, and the **second** is the one this section
+is about. The middleware is not a useful probe either: it runs at the edge, so
+a redirect out of `/home` comes back single-segment as well.
+
+The deployment record settles it without any of this:
+
+```bash
+curl -sS -H "Authorization: Bearer $VERCEL_TOKEN" \
+  "https://api.vercel.com/v13/deployments/$DEPLOYMENT_UID?teamId=$VERCEL_TEAM_ID" \
+  | jq -r '.regions[]'
+# fra1
 ```
 
 ## Migrations
