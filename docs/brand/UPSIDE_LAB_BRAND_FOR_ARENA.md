@@ -10,6 +10,12 @@
 >   Lab only.
 > - A second brand colour exists: `--glow-secondary`, a magenta, lighting the
 >   far lobe of the ambient field. The "one accent only" rule below is Lab's.
+> - **The colour tables below are Lab's, not Arena's.** Arena levelled every
+>   accent to one lightness, `L 0.74`, so `--gain`, `--loss`, `--warning` and
+>   `--destructive` all differ from the values in section 3. `--cat-1` and
+>   `--cat-6` moved from hue 195 to 182, because `--chart-1` is `--primary` and
+>   at 195 they sat 12 degrees off Arena's aqua. Read `src/app/globals.css` for
+>   what Arena actually ships.
 > - The magenta ban in section 3 is Lab's and does not bind Arena. It still
 >   holds for anything semantic: hues near `--loss`, `--destructive`,
 >   `--warning` and `--gain` stay reserved, which is why the counter-accent is
