@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { CalendarRange } from "lucide-react";
 import { Panel, Well } from "@/components/Panel";
@@ -25,7 +26,24 @@ import { formatDate, formatPercent, plural } from "@/lib/format";
 
 export const metadata = { title: "Season" };
 
-export default async function SeasonPage() {
+/*
+  The heading is the room, and the quarter's figures stream under it. Nothing
+  here changes during a week -- every number was settled on a Friday -- so the
+  wait is a database read rather than a price, but the frame still arrives
+  first.
+*/
+export default function SeasonPage() {
+  return (
+    <div className={`${PAGE} ${STACK}`}>
+      <h1>Season</h1>
+      <Suspense fallback={null}>
+        <Season />
+      </Suspense>
+    </div>
+  );
+}
+
+async function Season() {
   const { user } = await getSession();
   if (!user) redirect("/");
 
@@ -33,13 +51,10 @@ export default async function SeasonPage() {
 
   if (!view) {
     return (
-      <div className={`${PAGE} ${STACK}`}>
-        <h1>Season</h1>
-        <Panel
-          title="The season starts with your first settled week"
-          description="A season is a quarter of weeks added up. There is nothing in this one yet, because no week inside it has been scored. Play this week and it will be here on Friday."
-        />
-      </div>
+      <Panel
+        title="The season starts with your first settled week"
+        description="A season is a quarter of weeks added up. There is nothing in this one yet, because no week inside it has been scored. Play this week and it will be here on Friday."
+      />
     );
   }
 
@@ -47,11 +62,16 @@ export default async function SeasonPage() {
   const closed = season.status === "closed";
 
   return (
-    <div className={`${PAGE} ${STACK}`}>
+    <>
       <TrackView event="season_viewed" properties={{ season: season.name }} />
 
+      {/*
+        The quarter's name sits beside the dates rather than in the heading.
+        The heading is prerendered and says "Season"; swapping it to "Q3 2026"
+        once the data landed would be a word changing under somebody's eye.
+      */}
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1>{season.name}</h1>
+        <p className="text-sm font-medium">{season.name}</p>
         <p className="text-sm text-muted-foreground">
           {formatDate(season.startsOn)} to {formatDate(season.endsOn)}
         </p>
@@ -155,6 +175,6 @@ export default async function SeasonPage() {
           </li>
         </ul>
       </Panel>
-    </div>
+    </>
   );
 }

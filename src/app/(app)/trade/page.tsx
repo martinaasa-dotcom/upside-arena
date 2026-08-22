@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { Panel } from "@/components/Panel";
 import { TradeForm } from "@/components/TradeForm";
@@ -10,8 +11,55 @@ import { isWeekend } from "@/lib/market/session";
 
 export const metadata = { title: "Trade" };
 
+/*
+  The heading and the panel are the room, and neither needs to know anything,
+  so both are prerendered and arrive with the tap. What is priced -- the cash
+  line and the form's own limits -- streams into them.
+*/
+export default function TradePage() {
+  return (
+    <div className={`${PAGE} ${STACK}`}>
+      <TrackView event="trade_screen_viewed" />
 
-export default async function TradePage() {
+      <div className="flex items-baseline justify-between gap-4">
+        <h1>Trade</h1>
+        <span className="figure text-sm text-muted-foreground">
+          <Suspense fallback={null}>
+            <CashLine />
+          </Suspense>
+        </span>
+      </div>
+
+      <Panel>
+        <Suspense fallback={<FormPending />}>
+          <Form />
+        </Suspense>
+      </Panel>
+    </div>
+  );
+}
+
+async function CashLine() {
+  const { user } = await getSession();
+  if (!user) return null;
+
+  const view = await getPortfolioView(user.id);
+  return view ? <>{formatMoney(view.cash)} cash</> : null;
+}
+
+/*
+  The form's shape while its numbers are on the way. Same height as the real
+  one, so the panel does not resize under somebody's thumb once it lands.
+*/
+function FormPending() {
+  return (
+    <div className="flex min-h-64 flex-col gap-4" aria-busy="true">
+      <span className="sr-only">Loading the trade form</span>
+    </div>
+  );
+}
+
+async function Form() {
   const { user } = await getSession();
   if (!user) redirect("/");
 
@@ -19,14 +67,10 @@ export default async function TradePage() {
 
   if (!view) {
     return (
-      <div className={`${PAGE} ${STACK}`}>
-      <TrackView event="trade_screen_viewed" />
-        <h1>Trade</h1>
-        <Panel
-          title="Trading is not switched on yet"
-          description="The game engine needs its server key before trades can be placed. Nothing you do here is lost in the meantime."
-        />
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Trading is not switched on yet. The game engine needs its server key
+        before trades can be placed, and nothing you do here is lost meanwhile.
+      </p>
     );
   }
 
@@ -35,22 +79,11 @@ export default async function TradePage() {
     : "The market is closed right now. Trading runs from 09:30 to 16:00 New York time.";
 
   return (
-    <div className={`${PAGE} ${STACK}`}>
-      <div className="flex items-baseline justify-between gap-4">
-        <h1>Trade</h1>
-        <span className="figure text-sm text-muted-foreground">
-          {formatMoney(view.cash)} cash
-        </span>
-      </div>
-
-      <Panel>
-        <TradeForm
-          cash={view.cash}
-          ownedSymbols={view.positions.map((p) => p.symbol)}
-          tradingOpen={view.tradingOpen}
-          closedReason={closedReason}
-        />
-      </Panel>
-    </div>
+    <TradeForm
+      cash={view.cash}
+      ownedSymbols={view.positions.map((p) => p.symbol)}
+      tradingOpen={view.tradingOpen}
+      closedReason={closedReason}
+    />
   );
 }

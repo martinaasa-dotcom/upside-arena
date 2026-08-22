@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronRight } from "lucide-react";
@@ -12,29 +13,55 @@ import { PAGE, STACK } from "@/lib/page-shell";
 
 export const metadata = { title: "Leagues" };
 
-export default async function LeaguesPage() {
-  const { user } = await getSession();
-  if (!user) redirect("/");
-
-  /*
-    The pod, when there is one. Section 2.2 keeps these switched off until
-    enough people are playing to fill them, so this is usually nothing and
-    the page reads exactly as it did before. It sits above the private
-    leagues because it is the one somebody did not choose to be in, so it is
-    the one they have not already seen.
-  */
-  const [leagues, cycle] = await Promise.all([
-    getLeagues(user.id),
-    getCurrentCycle(),
-  ]);
-  const pod = cycle ? await getPodView(user.id, cycle.id, null) : null;
-
+/*
+  The heading and the two forms are the room and need nothing, so they are
+  prerendered and land with the tap. Which leagues somebody is in, and the pod
+  they were placed in, stream into the middle.
+*/
+export default function LeaguesPage() {
   return (
     <div className={`${PAGE} ${STACK}`}>
       <h1>Leagues</h1>
 
-      {pod ? <PodStandings view={pod} /> : null}
+      <Suspense fallback={null}>
+        <Pod />
+      </Suspense>
 
+      <Suspense fallback={<Panel title="Your leagues" />}>
+        <Leagues />
+      </Suspense>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <CreateLeagueForm />
+        <JoinLeagueForm />
+      </div>
+    </div>
+  );
+}
+
+/*
+  Section 2.2 keeps pods switched off until enough people are playing to fill
+  them, so this is usually nothing and the page reads as it did before. It sits
+  above the private leagues because it is the one somebody did not choose to be
+  in, so it is the one they have not already seen.
+*/
+async function Pod() {
+  const { user } = await getSession();
+  if (!user) return null;
+
+  const cycle = await getCurrentCycle();
+  const pod = cycle ? await getPodView(user.id, cycle.id, null) : null;
+  return pod ? <PodStandings view={pod} /> : null;
+}
+
+async function Leagues() {
+  const { user } = await getSession();
+  if (!user) redirect("/");
+
+  const leagues = await getLeagues(user.id);
+
+  return (
+    <>
       {leagues.length > 0 ? (
         <Panel title="Your leagues">
           <div className="flex flex-col gap-2">
@@ -68,11 +95,6 @@ export default async function LeaguesPage() {
           description="A league is where the game happens. Start one and invite a couple of friends, or put in a code someone sent you. Two people is enough."
         />
       )}
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <CreateLeagueForm />
-        <JoinLeagueForm />
-      </div>
-    </div>
+    </>
   );
 }
