@@ -39,6 +39,13 @@ The schema is not applied automatically. Every file under
 `supabase/migrations` has to be run against the Supabase project before the app
 will work — see [Migrations](docs/DEPLOY.md#migrations).
 
+## Email
+
+Sign-in is a magic link, so an address that cannot receive mail is a bounce
+against the project's sending reputation rather than a small mistake. What the
+app checks before sending, and the dashboard settings that cannot be done in
+code, are in [`docs/EMAIL.md`](docs/EMAIL.md).
+
 ## Stack
 
 Next.js App Router, Supabase (Postgres, auth, row level security), Tailwind v4,

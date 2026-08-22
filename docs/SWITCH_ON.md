@@ -131,6 +131,14 @@ If mail is configured but not arriving, the cause is almost always an
 unverified domain. Vercel, the deployment, **Logs**, and look for
 `email refused by the provider`. That line exists specifically for this.
 
+### While you are in Resend, point sign-in at it too
+
+The sign-in link is sent by Supabase, not by Resend, and Supabase's built-in
+mail is shared infrastructure with a small hourly allowance and a reputation
+Arena does not control. Moving it onto the same Resend account is one screen of
+settings and it is what stops a run of bounced links from taking sign-in down
+for everybody. [EMAIL.md](EMAIL.md#move-auth-email-onto-resend) has the fields.
+
 ---
 
 ## 3. The hourly pass
