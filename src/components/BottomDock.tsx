@@ -9,7 +9,17 @@ import { cn } from "@/lib/utils";
   Bottom dock, on desktop and phone alike. Active tab is the aqua pill
   with black type. Rooms are added here as later phases land, never before the
   room exists: a dead tab is worse than a short dock.
+
+  The labels hide below LABELS_FIT rather than below a stock breakpoint,
+  because what decides whether they fit is the width the row actually needs,
+  and that changes every time a room is added. Measured with the labels on:
+  five cells come to 526px, so anything narrower has to drop to icons or the
+  dock runs off the side of the screen. A fifth room is what pushed it past
+  the 30rem it used to hide at, which nothing caught because a dock that
+  overflows still renders. Re-measure when a sixth lands.
 */
+const LABELS_FIT = "max-[544px]:sr-only";
+
 const ROOMS = [
   { href: "/home", label: "Home", icon: Home },
   { href: "/trade", label: "Trade", icon: ArrowLeftRight },
@@ -43,7 +53,7 @@ export function BottomDock() {
               )}
             >
               <Icon className="size-4" aria-hidden="true" />
-              <span className="max-xs:sr-only">{label}</span>
+              <span className={LABELS_FIT}>{label}</span>
             </Link>
           );
         })}
