@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -54,9 +55,18 @@ function PressedFill() {
   );
 }
 
-export function BottomDock() {
-  const pathname = usePathname();
+/*
+  The dock itself is the same on every room, so it is part of the prerendered
+  shell. Which tab is lit is not: that is the URL, and one shell is served for
+  all of them. So the row of tabs waits behind a boundary and the fallback
+  draws the same row with none of them lit.
 
+  On a tap between rooms this resolves in the same frame -- the router already
+  holds the new pathname, so the hook does not suspend at all. It is only a
+  cold arrival that ever sees the unlit row, and only for as long as the first
+  bytes take.
+*/
+export function BottomDock() {
   return (
     <nav
       aria-label="Rooms"
@@ -80,28 +90,43 @@ export function BottomDock() {
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[max(1rem,env(safe-area-inset-bottom))]"
     >
       <div className="card-sheen glass pointer-events-auto flex items-center gap-1 rounded-xl p-1 ring-1 ring-foreground/20">
-        {ROOMS.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
-          return (
-            <Link
-              key={href}
-              href={href}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "relative flex h-11 items-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors",
-                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                active
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              )}
-            >
-              {active ? null : <PressedFill />}
-              <Icon className="relative size-4" aria-hidden="true" />
-              <span className={cn("relative", LABELS_FIT)}>{label}</span>
-            </Link>
-          );
-        })}
+        <Suspense fallback={<Tabs pathname={null} />}>
+          <ActiveTabs />
+        </Suspense>
       </div>
     </nav>
+  );
+}
+
+function ActiveTabs() {
+  return <Tabs pathname={usePathname()} />;
+}
+
+function Tabs({ pathname }: { pathname: string | null }) {
+  return (
+    <>
+      {ROOMS.map(({ href, label, icon: Icon }) => {
+        const active =
+          pathname != null && (pathname === href || pathname.startsWith(`${href}/`));
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "relative flex h-11 items-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors",
+              "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+              active
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            )}
+          >
+            {active ? null : <PressedFill />}
+            <Icon className="relative size-4" aria-hidden="true" />
+            <span className={cn("relative", LABELS_FIT)}>{label}</span>
+          </Link>
+        );
+      })}
+    </>
   );
 }

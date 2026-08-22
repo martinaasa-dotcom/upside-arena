@@ -1,46 +1,45 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
+import { ArenaTheme } from "@/components/ArenaTheme";
 import { BottomDock } from "@/components/BottomDock";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toaster } from "@/components/ui/sonner";
 import { getSession, isOnboarded } from "@/lib/profile";
 import { themeStyleKey } from "@/lib/game/cosmetics";
+import { initials } from "@/lib/format";
 import { PAGE_FRAME } from "@/lib/page-shell";
 
 /*
-  Allowed to block, for now.
+  The chrome every room sits in, prerendered.
 
-  This layout establishes who is asking before it renders anything, and two
-  redirects hang off the answer: a signed-out visitor goes to the sign-in
-  page, and somebody who has not finished onboarding goes to finish it. Both
-  have to happen before a room is shown, not streamed in after it.
+  Nothing in the frame, the header bar or the dock belongs to one player: they
+  are the same markup for everybody, and they are what a room is recognisable
+  as before any of its figures arrive. So they are the shell, and the two
+  things that really are personal -- the avatar and the theme -- stream into
+  it.
 
-  Giving these rooms a static shell means moving the session read below the
-  chrome and letting the gates run inside a boundary, which changes when a
-  redirect fires and what has already been painted when it does. That is its
-  own piece of work with its own testing, and it is not folded into the pass
-  that turned Cache Components on. The public routes, which are where a cold
-  visitor actually lands, are converted.
+  This matters most where it is least visible. Moving between rooms was
+  already instant, because the layout stays mounted and each room's
+  loading.tsx paints on the tap. What was not instant was arriving: opening
+  the installed app from the home screen, or following a push notification.
+  Both are cold loads of a room, and both used to wait on a session read
+  before a single pixel could be sent.
 */
-export const instant = false;
 
-export default async function AppLayout({
+export default function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const { user, profile } = await getSession();
-
-  if (!user) redirect("/");
-  if (!isOnboarded(profile)) redirect("/onboarding");
-
-  /*
-    How this player has chosen to light their own screens. Only they see it:
-    a theme changes the ambient glow and nothing that anybody else looks at.
-  */
-  const theme = await themeStyleKey(profile?.equipped_theme ?? null);
-
   return (
-    <div className={PAGE_FRAME} data-arena-theme={theme ?? undefined}>
-      <AppHeader profile={profile} />
+    <div className={PAGE_FRAME}>
+      <AppHeader
+        avatar={
+          <Suspense fallback={<AvatarPending />}>
+            <PlayerAvatar />
+          </Suspense>
+        }
+      />
 
       {/* Bottom padding clears the dock. */}
       <main id="main" className="pt-8 pb-32">
@@ -48,7 +47,10 @@ export default async function AppLayout({
       </main>
 
       <BottomDock />
-      <InstallPrompt weeksPlayed={profile?.weeks_played ?? 0} />
+
+      <Suspense fallback={null}>
+        <PlayerChrome />
+      </Suspense>
 
       {/*
         Toasts belong to the rooms, so the toaster does too.
@@ -62,5 +64,64 @@ export default async function AppLayout({
       */}
       <Toaster />
     </div>
+  );
+}
+
+/** The avatar's own outline, at its own size, so the bar does not reflow. */
+function AvatarPending() {
+  return (
+    <Avatar>
+      <AvatarFallback>
+        <span className="sr-only">Loading your profile</span>
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
+async function PlayerAvatar() {
+  const { profile } = await getSession();
+  const name = profile?.display_name ?? "Player";
+
+  return (
+    <Avatar>
+      {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt="" /> : null}
+      <AvatarFallback>{initials(name)}</AvatarFallback>
+    </Avatar>
+  );
+}
+
+/*
+  Who is asking, and what follows from the answer.
+
+  Both gates are still here and still run on every room. What has changed is
+  that they no longer stand in front of the chrome: the shell goes out, and
+  this resolves behind it.
+
+  Neither redirect is the thing keeping anybody out. proxy.ts refuses every
+  room to a request without a session before it reaches this file at all, so
+  the first gate is the second lock on the same door. The onboarding gate is
+  this file's own, and what it now interrupts is a screen of empty
+  placeholders rather than a blank one -- the same nothing, arriving sooner.
+
+  getSession is cached for the request, so this and the avatar above are one
+  read between them however they are ordered.
+*/
+async function PlayerChrome() {
+  const { user, profile } = await getSession();
+
+  if (!user) redirect("/");
+  if (!isOnboarded(profile)) redirect("/onboarding");
+
+  /*
+    How this player has chosen to light their own screens. Only they see it:
+    a theme changes the ambient glow and nothing that anybody else looks at.
+  */
+  const theme = await themeStyleKey(profile?.equipped_theme ?? null);
+
+  return (
+    <>
+      <ArenaTheme theme={theme} />
+      <InstallPrompt weeksPlayed={profile?.weeks_played ?? 0} />
+    </>
   );
 }
