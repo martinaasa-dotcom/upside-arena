@@ -1,0 +1,116 @@
+name: Check
+
+# Nothing ran on a pull request before this file existed.
+#
+# That is not a hypothetical gap. A change moved the room list out of
+# BottomDock into lib/rooms and left the width probe in dock.spec.ts reading
+# the old place, so it matched nothing, measured an empty row, and passed --
+# and the guard test written for exactly that case went red on main and stayed
+# red, because nobody was running it. It was found by hand, two merges later.
+#
+# So: every pull request, and every push to main.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A new push to a branch makes the run in progress pointless.
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Types, lint, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # v5 of setup-node started caching on its own from package.json's
+      # packageManager field. `cache: npm` is still the explicit answer and
+      # this repo has no packageManager field, so it stays spelled out.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Separately rather than through `npm run check`, so the summary says
+      # which one failed instead of just that something did.
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+
+      # The build is its own failure mode: a route can typecheck and still
+      # refuse to compile.
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3100
+
+  e2e:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # These drive a real signed-out app, and the proxy that redirects a
+      # signed-out visitor to the sign-in page is switched off when Supabase
+      # is unconfigured -- so without these two the suite fails on the
+      # redirect tests for a reason that has nothing to do with the change
+      # under review.
+      #
+      # Both are public values: the project URL, and the publishable client
+      # key that ships to every browser anyway. They are secrets here only
+      # because that is the mechanism for getting a value into a workflow.
+      #
+      # Gated at the step rather than on the job, because the secrets context
+      # is not readable from a job-level `if` -- written there the condition
+      # is always false and the job never runs, which looks exactly like
+      # having no browser tests at all.
+      - id: creds
+        env:
+          URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -n "$URL" ] && [ -n "$KEY" ]; then
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Says so out loud rather than reporting a pass it did not earn. Set
+      # NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in the
+      # repository's Actions secrets to turn the browser tests on.
+      - if: steps.creds.outputs.have != 'true'
+        run: |
+          echo "::warning title=Browser tests skipped::Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Actions secrets to run them."
+          echo "### Browser tests skipped" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Playwright needs the Supabase project URL and publishable key to exercise the signed-out redirects. Add them as Actions secrets." >> "$GITHUB_STEP_SUMMARY"
+
+      - if: steps.creds.outputs.have == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - if: steps.creds.outputs.have == 'true'
+        run: npx playwright test
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3100
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
