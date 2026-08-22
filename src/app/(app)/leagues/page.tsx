@@ -11,7 +11,6 @@ import { PodStandings } from "@/components/PodStandings";
 import { PAGE, STACK } from "@/lib/page-shell";
 
 export const metadata = { title: "Leagues" };
-export const dynamic = "force-dynamic";
 
 export default async function LeaguesPage() {
   const { user } = await getSession();

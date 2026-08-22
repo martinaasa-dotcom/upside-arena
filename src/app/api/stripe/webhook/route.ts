@@ -18,7 +18,6 @@ import { handleWebhook, stripeConfigured, verifyWebhook } from "@/lib/billing/st
      permanent failure retried for days is noise that hides a real one.
 */
 
-export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {

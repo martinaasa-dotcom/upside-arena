@@ -6,6 +6,13 @@ import { PAGE, PAGE_FRAME } from "@/lib/page-shell";
 
 export const metadata = { title: "Set up your profile" };
 
+/*
+  Allowed to block, for the same reason the app layout is: this page decides
+  whether somebody should be here at all, and sends them away if not. A gate
+  that streams in after the page has painted is not a gate.
+*/
+export const instant = false;
+
 export default async function OnboardingPage() {
   const { user, profile } = await getSession();
 

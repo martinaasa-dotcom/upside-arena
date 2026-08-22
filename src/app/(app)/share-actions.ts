@@ -1,8 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { revokeCard, shareLatestWeek } from "@/lib/game/share";
+import { revokeCard, shareCardTag, shareLatestWeek } from "@/lib/game/share";
 import { shareText } from "@/lib/share/card";
 
 /*
@@ -70,10 +70,21 @@ export async function unshareCard(cardId: string): Promise<{ ok: boolean }> {
   const user = await requireUser();
   if (!user) return { ok: false };
 
-  const done = await revokeCard(user.id, cardId);
+  const { ok, token } = await revokeCard(user.id, cardId);
+
+  /*
+    The cached card, expired the moment it is taken down.
+
+    updateTag rather than revalidateTag: this is somebody watching their own
+    change land, so the next request waits for fresh data rather than being
+    handed the stale copy one last time. That is what makes the promise on the
+    profile screen -- that a revoked card is gone as far as anyone holding the
+    link is concerned -- true with no window at all.
+  */
+  if (token) updateTag(shareCardTag(token));
 
   revalidatePath("/home");
   revalidatePath("/profile");
 
-  return { ok: done };
+  return { ok };
 }

@@ -35,7 +35,6 @@ import * as fixture from "./fixtures";
   page itself answers 404 to anybody who gets past that with a session. Both
   were checked against a production build rather than reasoned about.
 */
-export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Gallery", robots: { index: false, follow: false } };
 

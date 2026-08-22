@@ -18,7 +18,6 @@ import { PAGE, STACK } from "@/lib/page-shell";
 import { TrackView } from "@/components/TrackView";
 import { formatGap, formatPercent } from "@/lib/format";
 
-export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

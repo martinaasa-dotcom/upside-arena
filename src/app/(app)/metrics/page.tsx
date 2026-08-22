@@ -22,7 +22,6 @@ import { plural } from "@/lib/format";
 */
 
 export const metadata = { title: "Numbers" };
-export const dynamic = "force-dynamic";
 
 /** A percentage, or the honest answer when there is nothing to divide. */
 function Percent({ part, whole }: { part: number; whole: number }) {

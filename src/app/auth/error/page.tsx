@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/Panel";
@@ -26,7 +27,32 @@ const REASONS: Record<string, string> = {
 
 export const KNOWN_REASONS = Object.keys(REASONS);
 
-export default async function AuthErrorPage({
+export default function AuthErrorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reason?: string }>;
+}) {
+  /*
+    The frame is the same whatever went wrong, so it is prerendered and only
+    the sentence explaining which thing went wrong waits for the URL. Somebody
+    who could not sign in has already had one thing fail on them; the page
+    telling them so should not also arrive late.
+  */
+  return (
+    <div className={PAGE_FRAME}>
+      <main id="main" className={`${PAGE} flex min-h-dvh flex-col justify-center py-16`}>
+        <div className="mx-auto w-full max-w-md">
+          <ArenaWordmark className="mb-8" />
+          <Suspense fallback={<Panel title="We could not sign you in" />}>
+            <Reason searchParams={searchParams} />
+          </Suspense>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+async function Reason({
   searchParams,
 }: {
   searchParams: Promise<{ reason?: string }>;
@@ -35,17 +61,10 @@ export default async function AuthErrorPage({
   const message = REASONS[reason ?? ""] ?? "Something went wrong signing you in.";
 
   return (
-    <div className={PAGE_FRAME}>
-      <main id="main" className={`${PAGE} flex min-h-dvh flex-col justify-center py-16`}>
-        <div className="mx-auto w-full max-w-md">
-          <ArenaWordmark className="mb-8" />
-          <Panel title="We could not sign you in" description={message}>
-            <Button asChild className="mt-2">
-              <Link href="/">Back to sign in</Link>
-            </Button>
-          </Panel>
-        </div>
-      </main>
-    </div>
+    <Panel title="We could not sign you in" description={message}>
+      <Button asChild className="mt-2">
+        <Link href="/">Back to sign in</Link>
+      </Button>
+    </Panel>
   );
 }
