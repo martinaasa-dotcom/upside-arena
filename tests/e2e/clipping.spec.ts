@@ -107,9 +107,25 @@ function report(clips: Clip[]): string {
   because they are the only screens a visitor sees before deciding whether to
   play at all.
 */
-const PAGES = ["/gallery", "/", "/legal/privacy", "/legal/terms", "/offline"];
+const PAGES: { path: string; status?: number }[] = [
+  { path: "/gallery" },
+  { path: "/" },
+  { path: "/legal/privacy" },
+  { path: "/legal/terms" },
+  { path: "/offline" },
+  /*
+    The address with nothing behind it, reached the way a person reaches it
+    rather than by rendering the component.
 
-for (const path of PAGES) {
+    Under /auth/ because that is one of the few prefixes the proxy treats as
+    public: everywhere else an unknown path is redirected to sign-in and never
+    reaches a 404 at all, which is what this assertion originally measured
+    without noticing.
+  */
+  { path: "/auth/no-such-page", status: 404 },
+];
+
+for (const { path, status = 200 } of PAGES) {
   test.describe(path, () => {
     for (const width of WIDTHS) {
       test(`shows all of itself at ${width}px`, async ({ page }) => {
@@ -121,7 +137,7 @@ for (const path of PAGES) {
         });
 
         const response = await page.goto(path);
-        expect(response?.status(), `${path} is reachable`).toBeLessThan(400);
+        expect(response?.status(), `${path} answers as expected`).toBe(status);
 
         const clips = await clipped(page);
         expect(clips, `\n${report(clips)}\n`).toEqual([]);
