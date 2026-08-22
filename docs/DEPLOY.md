@@ -399,14 +399,14 @@ gh run list --branch main --limit 5
 ```
 
 No run for a commit that was definitely pushed means the webhook, not the
-plan. Both are fixed the same way — trigger the work by hand — and neither
-loses anything, because a production deploy builds `main`'s head and catches
-up every merge since the last one.
+plan. Re-run the checks with `gh workflow run check.yml --ref <branch>`, which
+works when the trigger did not.
 
-Once there is capacity, **one production deploy catches up every merge since
-the last one**, because it builds `main`'s head rather than a single commit.
-Nothing is lost by the wait. To trigger it: press **Redeploy** on the latest
-`main` deployment in the Vercel dashboard, or merge the next pull request.
+Either way — cap or webhook — **one production deploy catches up every merge
+since the last one**, because it builds `main`'s head rather than a single
+commit. Nothing is lost by the wait. To trigger it: press **Redeploy** on the
+latest `main` deployment in the Vercel dashboard, or merge the next pull
+request once deploys are being created again.
 
 ## Where it runs
 
