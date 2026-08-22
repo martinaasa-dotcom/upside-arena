@@ -72,6 +72,29 @@ const maskableSvgAt = (size) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox
 </svg>`;
 
 /*
+  The consent-screen logo, for Google's OAuth sign-in dialogue.
+
+  Its own size because Google's is its own shape of problem: 120px square, on
+  a surface we do not control and cannot predict the colour of, and cropped to
+  a circle in some of Google's dialogues and left square in others.
+
+  So it carries the true-black plate rather than being transparent like the
+  favicon, and the mark is inset enough that a circular crop never clips a
+  facet. Less inset than the Android maskable icon, which reserves a wider
+  safe zone than Google's dialogue needs and would leave the mark looking
+  lost in the middle of a 120px tile.
+*/
+const CONSENT_INSET = 0.78;
+
+const consentSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>${GRADIENTS}</defs>
+  <rect width="64" height="64" fill="#000000"/>
+  <g transform="translate(32 32) scale(${CONSENT_INSET}) translate(-32 -32)">
+    ${facetMarkup(cutForSize(120 * CONSENT_INSET))}
+  </g>
+</svg>`;
+
+/*
   The social card is product chrome, so its ambient field follows the app:
   the near lobe in --primary aqua, the far one in the magenta counter-accent.
   Headline is set on two lines:
@@ -135,6 +158,11 @@ await sharp(Buffer.from(markSvgAt(32)), { density: 512 })
   .resize(32, 32)
   .toFormat("png")
   .toFile(path.join(outDir, "favicon.png"));
+
+await sharp(Buffer.from(consentSvg), { density: 512 })
+  .resize(120, 120)
+  .png()
+  .toFile(path.join(outDir, "icons", "consent-120.png"));
 
 await sharp(Buffer.from(ogSvg), { density: 192 })
   .resize(1200, 630)
