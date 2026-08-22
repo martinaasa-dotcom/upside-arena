@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { Swords } from "lucide-react";
 import { Panel, Well } from "@/components/Panel";
 import { Button } from "@/components/ui/button";
+import { Segmented } from "@/components/Segmented";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
 import { FORMATS, type FormatId } from "@/lib/game/formats";
@@ -34,6 +35,7 @@ export function StartBattleForm({ leagueId }: { leagueId: string }) {
   const [length, setLength] = useState<LengthId>("week");
 
   const chosen = FORMATS.find((entry) => entry.id === format);
+  const chosenLength = LENGTHS.find((entry) => entry.id === length) ?? LENGTHS[1];
 
   return (
     <Panel
@@ -45,6 +47,16 @@ export function StartBattleForm({ leagueId }: { leagueId: string }) {
         <input type="hidden" name="format" value={format} />
         <input type="hidden" name="length" value={length} />
 
+        {/*
+          Twelve tiles rather than twelve cards.
+
+          This was a card each with a name and a line under it, and six more
+          for the lengths, which on a 390px screen came to two thousand pixels
+          of scrolling before the button. Nobody reads eighteen descriptions to
+          make two choices. The tiles carry the icon and the name, and what the
+          chosen one actually means is said once, underneath, where somebody is
+          looking after they have chosen it.
+        */}
         <div className="flex flex-col gap-2">
           <span id="battle-format-label" className="text-sm leading-none font-medium">
             The rule book
@@ -52,7 +64,7 @@ export function StartBattleForm({ leagueId }: { leagueId: string }) {
           <div
             role="radiogroup"
             aria-labelledby="battle-format-label"
-            className="grid gap-2 sm:grid-cols-2"
+            className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
           >
             {FORMATS.map((entry) => {
               const active = entry.id === format;
@@ -64,20 +76,18 @@ export function StartBattleForm({ leagueId }: { leagueId: string }) {
                   aria-checked={active}
                   onClick={() => setFormat(entry.id)}
                   className={cn(
-                    "flex items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors",
+                    "flex min-h-14 items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                     active
                       ? "border-primary bg-primary/10"
                       : "border-border hover:bg-foreground/5"
                   )}
                 >
-                  <span className="text-lg leading-none" aria-hidden="true">
+                  <span className="shrink-0 text-lg leading-none" aria-hidden="true">
                     {entry.icon}
                   </span>
-                  <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="text-sm font-medium">{entry.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {entry.tagline}
-                    </span>
+                  <span className="min-w-0 text-sm leading-tight font-medium">
+                    {entry.name}
                   </span>
                 </button>
               );
@@ -88,11 +98,14 @@ export function StartBattleForm({ leagueId }: { leagueId: string }) {
         {chosen ? (
           <Well className="flex flex-col gap-1 py-3">
             <p className="text-sm">
-              <span className="font-medium">The rule:</span> {chosen.rule}
+              <span className="font-medium">{chosen.name}.</span> {chosen.rule}
             </p>
             <p className="text-sm text-muted-foreground">
               Measured against {chosen.benchmark}, so beating the whole market in a
               week your corner of it ran is not a result.
+              {chosen.tradingHours === "always"
+                ? " This one runs through the weekend."
+                : ""}
             </p>
           </Well>
         ) : null}
@@ -101,35 +114,19 @@ export function StartBattleForm({ leagueId }: { leagueId: string }) {
           <span id="battle-length-label" className="text-sm leading-none font-medium">
             How long
           </span>
-          <div
-            role="radiogroup"
-            aria-labelledby="battle-length-label"
-            className="grid gap-2 sm:grid-cols-3"
-          >
-            {LENGTHS.map((entry) => {
-              const active = entry.id === length;
-              return (
-                <button
-                  key={entry.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => setLength(entry.id)}
-                  className={cn(
-                    "flex flex-col items-start gap-0.5 rounded-lg border px-4 py-3 text-left transition-colors",
-                    active
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:bg-foreground/5"
-                  )}
-                >
-                  <span className="text-sm font-medium">{entry.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {entry.tagline}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <Segmented
+            label="How long the battle runs"
+            options={LENGTHS.map((entry) => ({
+              value: entry.id,
+              label: entry.short,
+            }))}
+            value={length}
+            onValueChange={setLength}
+          />
+          <p className="text-sm text-muted-foreground">
+            <span className="text-foreground">{chosenLength.name}.</span>{" "}
+            {chosenLength.tagline}
+          </p>
         </div>
 
         {state.error ? (

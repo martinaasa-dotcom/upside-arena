@@ -109,21 +109,40 @@ export function Lineup({ view }: { view: LineupView }) {
           </p>
         ) : (
           <div className="flex flex-col gap-2">
+            {/*
+              Two lines on a phone, one on anything wider.
+
+              In a single row at 390px the ticker, the share count, the company
+              name, the estimate and the remove button left the name about
+              twenty pixels, so "Alphabet Inc." rendered as "A…". A name
+              truncated to one letter is not a shorter name, it is a missing
+              one.
+            */}
             {waiting.map((order) => (
               <Well
                 key={order.id}
                 className="flex items-center gap-3 py-3"
               >
-                <span className="figure w-16 shrink-0 text-sm font-semibold">
-                  {order.symbol}
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
+                  <span className="flex items-baseline gap-3 sm:contents">
+                    <span className="figure shrink-0 text-sm font-semibold sm:w-16">
+                      {order.symbol}
+                    </span>
+                    <span className="figure shrink-0 text-sm text-muted-foreground sm:w-24">
+                      {order.quantity} {order.quantity === 1 ? "share" : "shares"}
+                    </span>
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+                    {order.name ?? ""}
+                  </span>
                 </span>
-                <span className="figure hidden w-24 shrink-0 text-sm text-muted-foreground sm:block">
-                  {order.quantity} {order.quantity === 1 ? "share" : "shares"}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-                  {order.name ?? ""}
-                </span>
-                <span className="figure shrink-0 text-sm">
+                {/*
+                  Against the first line, not floating between the two. Centred
+                  in a two-line row it sat level with neither the ticker above
+                  it nor the company name below, which reads as a number that
+                  belongs to some other row.
+                */}
+                <span className="figure shrink-0 self-start text-right text-sm sm:self-center">
                   {order.estimate == null ? "—" : `about ${formatMoney(order.estimate)}`}
                 </span>
                 {view.locked ? null : (

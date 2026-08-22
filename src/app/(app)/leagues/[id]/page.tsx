@@ -11,6 +11,8 @@ import { WeeklyGoal } from "@/components/WeeklyGoal";
 import { getSession } from "@/lib/profile";
 import { getLeagueStandings } from "@/lib/game/leagues";
 import { getLeagueBattle } from "@/lib/game/battles";
+import { FORM_WEEKS, getLeagueRecord } from "@/lib/game/record";
+import { FormStrip } from "@/components/LeagueRecord";
 import { BattleCard } from "@/components/BattleCard";
 import { StartBattleForm } from "@/components/StartBattleForm";
 import { getGoals } from "@/lib/game/goals";
@@ -18,10 +20,9 @@ import { goalLabel, goalMet } from "@/lib/game/goal-kinds";
 import { getWeekStreaks } from "@/lib/game/streaks";
 import { tradingDaysSoFarThisWeek } from "@/lib/market/session";
 import { submitLeaveLeague } from "@/app/(app)/leagues/actions";
-import { PAGE, STACK } from "@/lib/page-shell";
+import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
 import { TrackView } from "@/components/TrackView";
 import { formatGap, formatPercent } from "@/lib/format";
-
 
 export async function generateMetadata({
   params,
@@ -36,7 +37,19 @@ export async function generateMetadata({
 
 /*
   The way back is the room. It is the same for every league and needs nothing,
-  so it is prerendered and on screen with the tap; the table streams under it.
+  so it is prerendered and on screen with the tap; everything else streams
+  under it.
+
+  Four regions rather than one, and the split is by what they read rather than
+  by how the page looks. The table is the expensive one -- every member's book,
+  priced from live quotes -- and the two things that used to sit behind it in
+  the same region are not: a league's battle is one row, and its record is a
+  handful of indexed counts. Sharing a boundary meant nothing appeared until
+  the slowest of the three had finished.
+
+  They are ordered here rather than nested, so each starts at once and lands in
+  the right place. The reads inside them are memoised for the request, so four
+  regions asking for the same league cost one read of it.
 */
 export default function LeaguePage({
   params,
@@ -55,13 +68,97 @@ export default function LeaguePage({
       </div>
 
       <Suspense fallback={null}>
-        <League params={params} />
+        <Heading params={params} />
       </Suspense>
+
+      {/*
+        The week and what it remembers on the left, what to do next on the
+        right. One column under lg, in this order.
+      */}
+      <div className={SPLIT}>
+        <div className={COLUMN}>
+          <Suspense fallback={null}>
+            <Battle params={params} />
+          </Suspense>
+
+          <Suspense fallback={<Panel title="This week" />}>
+            <ThisWeek params={params} />
+          </Suspense>
+
+          <Suspense fallback={null}>
+            <Form params={params} />
+          </Suspense>
+        </div>
+
+        <div className={COLUMN}>
+          <Suspense fallback={null}>
+            <Aside params={params} />
+          </Suspense>
+        </div>
+      </div>
     </div>
   );
 }
 
-async function League({ params }: { params: Promise<{ id: string }> }) {
+type Params = { params: Promise<{ id: string }> };
+
+/**
+ * The league behind this route, or nothing.
+ *
+ * Every region asks through here rather than being handed one. It is memoised
+ * for the length of the request, so the four of them share one read of the
+ * roster, the profiles, the portfolios and the batch of quotes.
+ */
+async function standingsFor(params: Promise<{ id: string }>) {
+  const { user } = await getSession();
+  if (!user) return null;
+
+  const { id } = await params;
+  return getLeagueStandings(user.id, id);
+}
+
+async function Heading({ params }: Params) {
+  const data = await standingsFor(params);
+  if (!data) return null;
+
+  const { league, benchmarkReturnPercent } = data;
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h1 className="flex items-center gap-2">
+        <span aria-hidden="true">{league.icon ?? "\u{1F3C6}"}</span>
+        {league.name}
+      </h1>
+      <div className="flex items-center gap-2">
+        <Badge variant="outline">
+          {league.memberCount} of {league.maxMembers}
+        </Badge>
+        {benchmarkReturnPercent != null ? (
+          <Badge variant={benchmarkReturnPercent >= 0 ? "gain" : "loss"}>
+            Market {formatPercent(benchmarkReturnPercent)}
+          </Badge>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/*
+  The league's own contest, above the week. The week is the race everybody is
+  in anyway; the battle is the one this league chose.
+*/
+async function Battle({ params }: Params) {
+  const { user } = await getSession();
+  if (!user) return null;
+
+  const { id } = await params;
+  const battle = await getLeagueBattle(user.id, id);
+  if (!battle) return null;
+
+  return <BattleCard battle={battle} href={`/leagues/${id}/battle`} />;
+}
+
+async function ThisWeek({ params }: Params) {
   const { user } = await getSession();
   if (!user) redirect("/");
 
@@ -72,22 +169,17 @@ async function League({ params }: { params: Promise<{ id: string }> }) {
   // telling them apart would confirm a league exists to someone guessing.
   if (!data) notFound();
 
-  const { league, cycle, standings, benchmarkReturnPercent, rival } = data;
+  const { league, cycle, standings, rival } = data;
   const you = standings.find((s) => s.isYou);
 
   /*
     What everybody said they would do this week, and how it is going. Worked
     out here from the standings that were just computed rather than stored,
     so a goal is never a second opinion about a result.
-
-    And the league's own battle, if it has one. That sits above the week on
-    the page: the week is the race everybody is in anyway, and the battle is
-    the one this league chose.
   */
-  const [goals, weekStreaks, battle] = await Promise.all([
+  const [goals, weekStreaks] = await Promise.all([
     getGoals(league.id, cycle.id),
     getWeekStreaks(standings.map((row) => row.userId)),
-    getLeagueBattle(user.id, league.id),
   ]);
 
   const tradingDaysSoFar = tradingDaysSoFarThisWeek();
@@ -111,24 +203,6 @@ async function League({ params }: { params: Promise<{ id: string }> }) {
   return (
     <>
       <TrackView event="standings_viewed" />
-      <div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="flex items-center gap-2">
-            <span aria-hidden="true">{league.icon ?? "\u{1F3C6}"}</span>
-            {league.name}
-          </h1>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline">
-              {league.memberCount} of {league.maxMembers}
-            </Badge>
-            {benchmarkReturnPercent != null ? (
-              <Badge variant={benchmarkReturnPercent >= 0 ? "gain" : "loss"}>
-                Market {formatPercent(benchmarkReturnPercent)}
-              </Badge>
-            ) : null}
-          </div>
-        </div>
-      </div>
 
       {/*
         The named rival, before the table. A list of names is something to
@@ -156,10 +230,6 @@ async function League({ params }: { params: Promise<{ id: string }> }) {
         </Panel>
       ) : null}
 
-      {battle ? (
-        <BattleCard battle={battle} href={`/leagues/${league.id}/battle`} />
-      ) : null}
-
       <Panel title="This week" description="Everyone started Monday with the same money.">
         <StandingsTable standings={standings} goalFor={goalFor} />
       </Panel>
@@ -168,7 +238,51 @@ async function League({ params }: { params: Promise<{ id: string }> }) {
         leagueId={league.id}
         declared={goals.get(user.id)?.kind ?? null}
       />
+    </>
+  );
+}
 
+/*
+  The last few weeks, and who won them.
+
+  A league resets every Monday and used to remember nothing, which is right for
+  the game and exactly wrong for the reason people stay: nobody argues about a
+  table that forgets. This is the reminder that there was a last week; the
+  record room behind it is where somebody goes looking.
+*/
+async function Form({ params }: Params) {
+  const { user } = await getSession();
+  if (!user) return null;
+
+  const { id } = await params;
+  const record = await getLeagueRecord(user.id, id);
+  if (!record || record.weeks.length === 0) return null;
+
+  return (
+    <FormStrip
+      weeks={record.weeks.slice(0, FORM_WEEKS)}
+      you={record.you}
+      href={`/leagues/${id}/record`}
+    />
+  );
+}
+
+/** Starting a battle, the invite code, and the way out. */
+async function Aside({ params }: Params) {
+  const { user } = await getSession();
+  if (!user) return null;
+
+  const { id } = await params;
+  const [data, battle] = await Promise.all([
+    getLeagueStandings(user.id, id),
+    getLeagueBattle(user.id, id),
+  ]);
+
+  if (!data) return null;
+  const { league } = data;
+
+  return (
+    <>
       {/*
         A league with a battle running does not get offered another. One at a
         time is the whole point: four contests at once is four scoreboards and

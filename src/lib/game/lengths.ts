@@ -25,6 +25,14 @@ export type LengthId = "day" | "week" | "fortnight" | "month" | "quarter" | "yea
 export type RunLength = {
   id: LengthId;
   name: string;
+  /**
+   * The name again, short enough for a pill in a row of six.
+   *
+   * A separate string rather than a truncation, because "A quarter" clipped is
+   * "A quart…" and the whole reason the picker is a row is that six of these
+   * have to fit across a phone.
+   */
+  short: string;
   /** One line on the card. */
   tagline: string;
   /**
@@ -38,6 +46,7 @@ export type RunLength = {
 export const LENGTHS: readonly RunLength[] = [
   {
     id: "day",
+    short: "Day",
     name: "One day",
     tagline: "Settled at tonight's close. Nothing to think about tomorrow.",
     weeks: 0,
@@ -45,6 +54,7 @@ export const LENGTHS: readonly RunLength[] = [
   },
   {
     id: "week",
+    short: "Week",
     name: "One week",
     tagline: "The usual shape, with a different rule book.",
     weeks: 1,
@@ -52,6 +62,7 @@ export const LENGTHS: readonly RunLength[] = [
   },
   {
     id: "fortnight",
+    short: "2 weeks",
     name: "Two weeks",
     tagline: "Long enough that one bad Tuesday is not the whole story.",
     weeks: 2,
@@ -59,6 +70,7 @@ export const LENGTHS: readonly RunLength[] = [
   },
   {
     id: "month",
+    short: "Month",
     name: "A month",
     tagline: "Four weeks. Now it matters what you own, not when you clicked.",
     weeks: 4,
@@ -66,6 +78,7 @@ export const LENGTHS: readonly RunLength[] = [
   },
   {
     id: "quarter",
+    short: "Quarter",
     name: "A quarter",
     tagline: "Thirteen weeks. Pick well and go and live your life.",
     weeks: 13,
@@ -73,6 +86,7 @@ export const LENGTHS: readonly RunLength[] = [
   },
   {
     id: "year",
+    short: "Year",
     name: "A year",
     tagline: "Fifty-two weeks. The one you will still be arguing about at Christmas.",
     weeks: 52,

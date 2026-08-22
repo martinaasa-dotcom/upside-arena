@@ -13,6 +13,12 @@ import { WeeklyGoal, GoalMark } from "@/components/WeeklyGoal";
 import { BattleCard } from "@/components/BattleCard";
 import { StartBattleForm } from "@/components/StartBattleForm";
 import { Lineup, LineupReport } from "@/components/Lineup";
+import {
+  FormStrip,
+  HeadToHeadTable,
+  HonoursBoard,
+  WeekLog,
+} from "@/components/LeagueRecord";
 import { FirstRun } from "@/components/FirstRun";
 import { Scoreboard, Score } from "@/components/Scoreboard";
 import { InviteCode } from "@/components/InviteCode";
@@ -27,7 +33,7 @@ import { BottomDock } from "@/components/BottomDock";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ErrorPreview } from "./ErrorPreview";
 import { COIN_BUNDLES } from "@/lib/billing/plan";
-import { PAGE, STACK } from "@/lib/page-shell";
+import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
 import * as fixture from "./fixtures";
 
 /*
@@ -279,6 +285,64 @@ export default function GalleryPage() {
           hasGoal={false}
           hasBattle={false}
         />
+      </Case>
+
+      {/*
+        What a league remembers. The strip is five cells across a phone, the
+        board carries a name against two figures, and the head-to-head puts a
+        scoreline where the figures usually are -- three different ways for a
+        row to run out of room.
+      */}
+      {/*
+        The two-column room, which is the shape every screen actually ships in
+        on a wide display.
+
+        Worth a case of its own rather than trusting the panels above it. Each
+        one measured on its own gets the whole page width, which is not a width
+        any of them is ever drawn at once there is something beside it -- and a
+        row that reads fine at 1150px can be the one that wraps at 700.
+      */}
+      <Case name="room-split">
+        <div className={SPLIT}>
+          <div className={COLUMN}>
+            <Panel title="This week" description="Everyone started Monday with the same money.">
+              <StandingsTable standings={fixture.leagueStandings} />
+            </Panel>
+            <Panel title="Weeks won">
+              <HonoursBoard honours={fixture.honours} />
+            </Panel>
+          </div>
+          <div className={COLUMN}>
+            <Panel title="You against each of them">
+              <HeadToHeadTable rows={fixture.headToHead} />
+            </Panel>
+            <Panel title="What you own">
+              <Holdings positions={fixture.positions} />
+            </Panel>
+          </div>
+        </div>
+      </Case>
+
+      <Case name="form-strip">
+        <FormStrip weeks={fixture.recordedWeeks} you={fixture.honours[1]} href="#" />
+      </Case>
+
+      <Case name="honours-board">
+        <Panel title="Weeks won">
+          <HonoursBoard honours={fixture.honours} />
+        </Panel>
+      </Case>
+
+      <Case name="head-to-head">
+        <Panel title="You against each of them">
+          <HeadToHeadTable rows={fixture.headToHead} />
+        </Panel>
+      </Case>
+
+      <Case name="week-log">
+        <Panel title="Every week">
+          <WeekLog weeks={fixture.recordedWeeks} />
+        </Panel>
       </Case>
 
       <Case name="invite-code">

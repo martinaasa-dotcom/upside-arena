@@ -14,7 +14,7 @@ import { getSession } from "@/lib/profile";
 import { getBattleView, getLeagueBattle } from "@/lib/game/battles";
 import { allowedSymbols } from "@/lib/game/formats";
 import { submitCancelBattle } from "@/app/(app)/leagues/battle-actions";
-import { PAGE, STACK } from "@/lib/page-shell";
+import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
 import { formatGap, formatMoney, formatPercent } from "@/lib/format";
 
 /*
@@ -250,6 +250,16 @@ async function Rest({ params }: Params) {
 
       <p className="-mt-2 text-sm text-muted-foreground">{format.rule}</p>
 
+      {/*
+        The table on the left, the way to trade under its rules on the right.
+
+        This is the room the split was worth building for: on a wide screen the
+        standings and the form are side by side, so placing an order and seeing
+        what it did to the table is one glance rather than a scroll each way.
+      */}
+      <div className={SPLIT}>
+        <div className={COLUMN}>
+
       {ahead && you ? (
         <Panel>
           <p className="text-sm">
@@ -271,6 +281,10 @@ async function Rest({ params }: Params) {
       >
         <StandingsTable standings={standings} />
       </Panel>
+
+        </div>
+
+        <div className={COLUMN}>
 
       {positions.length > 0 ? (
         <Panel
@@ -318,6 +332,9 @@ async function Rest({ params }: Params) {
           </form>
         </Panel>
       ) : null}
+
+        </div>
+      </div>
     </>
   );
 }

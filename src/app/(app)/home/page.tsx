@@ -26,7 +26,7 @@ import { BattleCard } from "@/components/BattleCard";
 import { LineupReport } from "@/components/Lineup";
 import { considerHandoff, labUrl } from "@/lib/billing/handoff";
 import { plural } from "@/lib/format";
-import { PAGE, STACK } from "@/lib/page-shell";
+import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
 import { formatGap, formatMoney, formatPercent } from "@/lib/format";
 import { sessionLabel } from "@/lib/market/session";
 
@@ -288,131 +288,148 @@ async function Rest() {
       {activity ? <EarnedToast earned={activity.earned} /> : null}
       {activity ? <BonusToast bonuses={activity.bonuses} /> : null}
 
-      {view.versusMarket != null ? (
-        <Panel>
-          <p className="text-sm">
-            {view.versusMarket >= 0 ? (
-              <>
-                You are{" "}
-                <span className="figure text-gain">
-                  {formatGap(view.versusMarket)}
-                </span>{" "}
-                ahead of the market this week.
-              </>
-            ) : (
-              <>
-                You are{" "}
-                <span className="figure text-loss">
-                  {formatGap(view.versusMarket)}
-                </span>{" "}
-                behind the market this week.
-              </>
-            )}{" "}
-            <span className="text-muted-foreground">
-              Beating a falling market still counts as a good week.
-            </span>
-          </p>
-        </Panel>
-      ) : null}
-
-      {inviteReason ? (
-        <NotificationInvite
-          reason={inviteReason}
-          kind={inviteKind}
-          publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
-        />
-      ) : null}
-
-      {activity ? (
-        <>
-          <TrackView
-            event="streak_viewed"
-            properties={{ counted: activity.streak.countedToday }}
-          />
-          <StreakCard streak={activity.streak} />
-        </>
-      ) : null}
-
       {/*
-        The first week's list, while it is still their first week.
+        How the week is going on the left, what to do about it on the right.
 
-        Bounded by weeks played rather than left to run until the last box is
-        ticked. A player two months in who has never declared a goal has not
-        failed to finish anything -- they have decided they do not want that
-        part -- and a panel telling them so every Monday would be nagging.
+        The left column is the wider of the two and holds what somebody opened
+        the app to see: whether they are beating the market, their streak, and
+        what they own. The right holds what they might do next, which is where
+        a first-week list, a battle and last week's card belong.
+
+        One column under lg, in this order, which is the order they were in
+        when there was only one.
       */}
-      {showFirstWeek ? (
-        <FirstRun
-          startingBalance={view.startingBalance}
-          leagueName={starter?.name ?? null}
-          inviteCode={starter?.inviteCode ?? null}
-          leagueHref={starter ? `/leagues/${starter.id}` : "/leagues"}
-          hasTraded={!brandNew}
-          hasCompany={Boolean(rival)}
-          hasGoal={declaredGoal}
-          hasBattle={playedBattle}
-        />
-      ) : null}
+      <div className={SPLIT}>
+        <div className={COLUMN}>
+          {view.versusMarket != null ? (
+            <Panel>
+              <p className="text-sm">
+                {view.versusMarket >= 0 ? (
+                  <>
+                    You are{" "}
+                    <span className="figure text-gain">
+                      {formatGap(view.versusMarket)}
+                    </span>{" "}
+                    ahead of the market this week.
+                  </>
+                ) : (
+                  <>
+                    You are{" "}
+                    <span className="figure text-loss">
+                      {formatGap(view.versusMarket)}
+                    </span>{" "}
+                    behind the market this week.
+                  </>
+                )}{" "}
+                <span className="text-muted-foreground">
+                  Beating a falling market still counts as a good week.
+                </span>
+              </p>
+            </Panel>
+          ) : null}
 
-      {/* What a lineup did this week, said once and then not again. */}
-      {lineupReport ? (
-        <LineupReport
-          filled={lineupReport.filled}
-          missed={lineupReport.missed.map((order) => ({
-            symbol: order.symbol,
-            detail: order.detail,
-          }))}
-        />
-      ) : null}
+          {inviteReason ? (
+            <NotificationInvite
+              reason={inviteReason}
+              kind={inviteKind}
+              publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
+            />
+          ) : null}
 
-      {battles.map((battle) => (
-        <BattleCard
-          key={battle.cycleId}
-          battle={battle}
-          href={`/leagues/${battle.leagueId}/battle`}
-        />
-      ))}
+          {activity ? (
+            <>
+              <TrackView
+                event="streak_viewed"
+                properties={{ counted: activity.streak.countedToday }}
+              />
+              <StreakCard streak={activity.streak} />
+            </>
+          ) : null}
 
-      {handoff ? (
-        <>
-          <TrackView event="lab_handoff_shown" />
-          <LabHandoff
-            token={handoff.token}
-            weeksPlayed={handoff.weeksPlayed}
-            weeksAhead={handoff.weeksAhead}
-            url={labUrl(handoff.token)}
-          />
-        </>
-      ) : null}
+          <Panel
+            title="What you own"
+            description={
+              view.positions.length === 0
+                ? "Nothing yet. Your money is all sitting in cash, which earns nothing."
+                : undefined
+            }
+            action={
+              <Button asChild size="sm">
+                <Link href="/trade">
+                  {view.positions.length === 0 ? "Make your first trade" : "Trade"}
+                </Link>
+              </Button>
+            }
+          >
+            {view.positions.length > 0 ? <Holdings positions={view.positions} /> : null}
+          </Panel>
+        </div>
 
-      {lastWeek ? (
-        <>
+        <div className={COLUMN}>
           {/*
-            Shares are measured against recaps seen, not against players. A
-            player with no finished week has not declined to share one.
-          */}
-          <TrackView event="week_recap_viewed" />
-          <WeekRecap recap={lastWeek.recap} />
-        </>
-      ) : null}
+            The first week's list, while it is still their first week.
 
-      <Panel
-        title="What you own"
-        description={
-          view.positions.length === 0
-            ? "Nothing yet. Your money is all sitting in cash, which earns nothing."
-            : undefined
-        }
-        action={
-          <Button asChild size="sm">
-            <Link href="/trade">
-              {view.positions.length === 0 ? "Make your first trade" : "Trade"}
-            </Link>
-          </Button>
-        }
-      >
-        {view.positions.length > 0 ? <Holdings positions={view.positions} /> : null}
-      </Panel>
+            Bounded by weeks played rather than left to run until the last box is
+            ticked. A player two months in who has never declared a goal has not
+            failed to finish anything -- they have decided they do not want that
+            part -- and a panel telling them so every Monday would be nagging.
+          */}
+          {showFirstWeek ? (
+            <FirstRun
+              startingBalance={view.startingBalance}
+              leagueName={starter?.name ?? null}
+              inviteCode={starter?.inviteCode ?? null}
+              leagueHref={starter ? `/leagues/${starter.id}` : "/leagues"}
+              hasTraded={!brandNew}
+              hasCompany={Boolean(rival)}
+              hasGoal={declaredGoal}
+              hasBattle={playedBattle}
+            />
+          ) : null}
+
+          {/* What a lineup did this week, said once and then not again. */}
+          {lineupReport ? (
+            <LineupReport
+              filled={lineupReport.filled}
+              missed={lineupReport.missed.map((order) => ({
+                symbol: order.symbol,
+                detail: order.detail,
+              }))}
+            />
+          ) : null}
+
+          {battles.map((battle) => (
+            <BattleCard
+              key={battle.cycleId}
+              battle={battle}
+              href={`/leagues/${battle.leagueId}/battle`}
+            />
+          ))}
+
+          {handoff ? (
+            <>
+              <TrackView event="lab_handoff_shown" />
+              <LabHandoff
+                token={handoff.token}
+                weeksPlayed={handoff.weeksPlayed}
+                weeksAhead={handoff.weeksAhead}
+                url={labUrl(handoff.token)}
+              />
+            </>
+          ) : null}
+
+          {lastWeek ? (
+            <>
+              {/*
+                Shares are measured against recaps seen, not against players. A
+                player with no finished week has not declined to share one.
+              */}
+              <TrackView event="week_recap_viewed" />
+              <WeekRecap recap={lastWeek.recap} />
+            </>
+          ) : null}
+        </div>
+      </div>
     </>
   );
 }

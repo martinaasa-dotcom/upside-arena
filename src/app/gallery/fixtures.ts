@@ -6,6 +6,7 @@ import type { PodView } from "@/lib/game/pods";
 import type { Recap } from "@/lib/share/card";
 import type { Battle } from "@/lib/game/battles";
 import type { LineupView } from "@/lib/game/lineup";
+import type { HeadToHead, Honour, RecordedWeek } from "@/lib/game/record";
 import { formatById } from "@/lib/game/formats";
 import { lengthById } from "@/lib/game/lengths";
 
@@ -366,4 +367,93 @@ export const lineupMissed = [
     detail:
       "There was not enough cash left by the time this one came round, so nothing was bought.",
   },
+];
+
+/*
+  A league's record, with the two shapes that break it: somebody who did not
+  play a week at all, and a week nobody in the league was scored in.
+*/
+export const recordedWeeks: RecordedWeek[] = [
+  {
+    cycleId: "w1",
+    monday: "2026-08-17",
+    players: 6,
+    benchmarkReturn: -1.35,
+    winner: { userId: "s1", displayName: LONG_NAME, returnPercent: 12.4 },
+    you: { rank: 4, returnPercent: -2.1, versusMarket: -0.75 },
+  },
+  {
+    cycleId: "w2",
+    monday: "2026-08-10",
+    players: 6,
+    benchmarkReturn: 0.9,
+    winner: { userId: "you", displayName: "You", returnPercent: 6.8 },
+    you: { rank: 1, returnPercent: 6.8, versusMarket: 5.9 },
+  },
+  {
+    cycleId: "w3",
+    monday: "2026-08-03",
+    players: 5,
+    benchmarkReturn: 2.4,
+    winner: { userId: "s2", displayName: "Bo", returnPercent: 3.1 },
+    you: null,
+  },
+  {
+    cycleId: "w4",
+    monday: "2026-07-27",
+    players: 5,
+    benchmarkReturn: null,
+    winner: { userId: "s2", displayName: "Bo", returnPercent: 128.5 },
+    you: { rank: 2, returnPercent: 0.04, versusMarket: null },
+  },
+  {
+    cycleId: "w5",
+    monday: "2026-07-20",
+    players: 4,
+    benchmarkReturn: -0.2,
+    winner: { userId: "you", displayName: "You", returnPercent: 1.2 },
+    you: { rank: 1, returnPercent: 1.2, versusMarket: 1.4 },
+  },
+];
+
+export const honours: Honour[] = [
+  {
+    userId: "s1",
+    displayName: LONG_NAME,
+    handle: LONG_HANDLE,
+    wins: 14,
+    weeks: 31,
+    weeksAhead: 19,
+    averageVersusMarket: 2.41,
+    bestWeek: 128.5,
+    isYou: false,
+  },
+  {
+    userId: "you",
+    displayName: "You",
+    handle: "you",
+    wins: 2,
+    weeks: 31,
+    weeksAhead: 12,
+    averageVersusMarket: -0.36,
+    bestWeek: 6.8,
+    isYou: true,
+  },
+  {
+    userId: "s3",
+    displayName: "Bo",
+    handle: "bo",
+    wins: 0,
+    weeks: 1,
+    weeksAhead: 0,
+    averageVersusMarket: -14.2,
+    bestWeek: null,
+    isYou: false,
+  },
+];
+
+export const headToHead: HeadToHead[] = [
+  { userId: "s1", displayName: LONG_NAME, won: 9, lost: 21, together: 30 },
+  { userId: "s2", displayName: "Bo", won: 4, lost: 4, together: 9 },
+  { userId: "s3", displayName: "Priya", won: 1, lost: 0, together: 1 },
 ];
