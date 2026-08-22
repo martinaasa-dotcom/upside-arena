@@ -87,15 +87,31 @@ SMTP* is on:
 | Host | `smtp.resend.com` |
 | Port | `465` |
 | Username | `resend` |
-| Password | a Resend API key with sending access |
-| Sender email | the same verified address as `RESEND_FROM` |
+| Password | a Resend API key with sending access, named `supabase-auth` |
+| Sender email | `arena@upsidearena.com` |
 | Sender name | `Upside Arena` |
+| Minimum interval per user | `60` seconds |
 
 The API key is a separate one from the notification key, named `supabase-auth`,
 so either can be revoked without taking the other down.
 
 The sender address has to be on a domain verified in Resend. An unverified one
 does not bounce, it fails outright, which is worse: nobody can sign in at all.
+upsidearena.com is verified — DKIM at `resend._domainkey`, a return path at
+`send.upsidearena.com`, and a `p=none` DMARC record — and those are worth
+checking with `dig` rather than trusting, because a DNS record removed at the
+registrar takes sign-in down with it and nothing in the app will say so.
+
+Set `RESEND_FROM` to the same address, `Upside Arena
+<arena@upsidearena.com>`, in Vercel. The code defaults to `arena@upthink.ee`,
+so an unset variable means the sign-in link and the notification mail leave
+from two different domains, building two reputations where the point of this
+was to have one.
+
+The domain sends but does not receive: it has no MX record of its own, so a
+reply to a sign-in link reaches nobody. That is normal for transactional mail
+and it is why the app names `app.support@upthink.ee`, a mailbox that does
+receive, wherever it invites somebody to get in touch.
 
 **Confirm it worked.** Request a sign-in link, then look in Resend's **Emails**
 list. The message should be there. If it is not, Supabase is still sending it

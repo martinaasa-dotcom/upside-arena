@@ -485,9 +485,21 @@ see whether it names the current quarter.
 
 Set on 2026-08-22. **Supabase, Project Settings, Authentication, SMTP
 Settings**, custom SMTP on: `smtp.resend.com` on port 465, username `resend`,
-password a Resend API key of its own, sender name Upside Arena and the sender
-address the same verified Resend domain as `RESEND_FROM`. Minimum interval per
-user, 60 seconds.
+password a Resend API key of its own, sender `Upside Arena
+<arena@upsidearena.com>`, minimum interval per user 60 seconds.
+
+upsidearena.com is verified in Resend: the DKIM key is published at
+`resend._domainkey`, the return path at `send.upsidearena.com` points to
+Resend, and there is a `p=none` DMARC record. The domain sends but does not
+receive — it has no MX of its own — so a reply to a sign-in link goes nowhere.
+Support is `app.support@upthink.ee`, which does receive, and that is the
+address the app tells people to use.
+
+**`RESEND_FROM` has to be set to match.** The notification fallback defaults to
+`arena@upthink.ee`, so leaving the variable unset means auth mail leaves from
+one domain and notifications from another, splitting the sending reputation
+this whole change exists to consolidate. In Vercel, Production and Preview:
+`RESEND_FROM` = `Upside Arena <arena@upsidearena.com>`. Redeploy after.
 
 So the sign-in link and the notification fallback now leave from one account
 with one reputation, and a bounce is something Resend names rather than
