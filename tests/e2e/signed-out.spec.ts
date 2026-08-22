@@ -473,6 +473,55 @@ test.describe("brand shell", () => {
     expect(styles.family).toMatch(/Geist Mono|ui-monospace|monospace/);
     expect(styles.numeric).toContain("tabular-nums");
   });
+
+  /*
+    Themes are bought and equipped, so they have to actually do something.
+
+    They did not. The rules are written
+    `[data-arena-theme="house"] .page-frame::before` -- a descendant selector
+    -- and the layout put the attribute and the class on the same div, which a
+    descendant combinator never matches. Every theme in the shop equipped
+    cleanly and changed nothing, and nothing anywhere said so: no error, no
+    failing test, just the shipped glow.
+
+    ArenaTheme puts the attribute on the document element instead. This asks
+    the browser to confirm the arrangement it depends on, which is the only
+    way this fault is visible at all.
+  */
+  test("an equipped theme changes the field, and only from an ancestor", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const painted = await page.evaluate(() => {
+      const frame = document.querySelector(".page-frame");
+      if (!frame) return null;
+
+      const glow = () => getComputedStyle(frame, "::before").backgroundImage;
+      const root = document.documentElement;
+
+      const unthemed = glow();
+
+      // Where ArenaTheme puts it.
+      root.setAttribute("data-arena-theme", "house");
+      const fromAncestor = glow();
+      root.removeAttribute("data-arena-theme");
+
+      // Where the layout used to put it, on the frame itself.
+      frame.setAttribute("data-arena-theme", "house");
+      const fromSameElement = glow();
+      frame.removeAttribute("data-arena-theme");
+
+      return { unthemed, fromAncestor, fromSameElement };
+    });
+
+    expect(painted).not.toBeNull();
+    // The theme has to reach the field from where it is actually set.
+    expect(painted!.fromAncestor).not.toBe(painted!.unthemed);
+    // And the arrangement that silently did nothing still does nothing, which
+    // is why it must not be set there.
+    expect(painted!.fromSameElement).toBe(painted!.unthemed);
+  });
 });
 
 test.describe("accessibility basics", () => {
