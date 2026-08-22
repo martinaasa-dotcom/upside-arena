@@ -8,6 +8,7 @@ import {
 } from "@/lib/notify/timing";
 import { emailHtml, emailText, escapeHtml } from "@/lib/notify/email-template";
 import { decodeVapidKey } from "@/lib/notify/browser";
+import { weekResultMessage } from "@/lib/notify/events";
 
 /*
   The rules about when and what, tested on their own.
@@ -175,5 +176,89 @@ describe("the VAPID key the browser is handed", () => {
     // "-" and "_" stand in for "+" and "/", and there is no padding.
     const bytes = decodeVapidKey("-_-_");
     expect(Array.from(bytes)).toEqual([0xfb, 0xff, 0xbf]);
+  });
+});
+
+/*
+  What a settled week actually says, read back as text.
+
+  The ladder is the part worth pinning. Section 3 leans on relegation for loss
+  aversion, and the line between reporting a drop and nagging somebody about it
+  is a sentence — so the sentence is the test. A promotion and a relegation are
+  the same message with two words changed, on purpose: the moment the losing
+  version grows a call to action the winning one does not have, this file has
+  started chasing losses on the player's behalf.
+*/
+describe("the week result message", () => {
+  const pod = {
+    podName: "Bronze pod 3",
+    finalRank: 2,
+    members: 24,
+    moved: "promoted" as const,
+    tierNow: "silver" as const,
+  };
+
+  it("says how the week went against the market, and nothing else", () => {
+    const { title, body, href } = weekResultMessage(1.2);
+    expect(title).toBe("Your week is in");
+    expect(body).toBe(
+      "You finished 1.2% ahead of the market. " +
+        "A new week starts Monday with the same money for everyone."
+    );
+    expect(href).toBe("/home");
+  });
+
+  it("reports a bad week without asking for anything", () => {
+    const { body } = weekResultMessage(-3.4);
+    expect(body).toContain("3.4% behind the market");
+    // No urgency, no invitation to make it back. Both are the loss-chasing
+    // mechanic this whole file exists to stay away from.
+    expect(body).not.toMatch(/back|hurry|last chance|don't miss|still time/i);
+  });
+
+  it("leads with the rung when somebody went up one", () => {
+    const { title, body, href } = weekResultMessage(2.0, pod);
+    expect(title).toBe("You went up a rung");
+    expect(body).toContain("You finished 2nd of 24 in Bronze pod 3 and go up.");
+    expect(body).toContain("You are in Silver now.");
+    // Still says how the week went. The ladder is added to the result, not
+    // swapped in for it.
+    expect(body).toContain("2.0% ahead of the market");
+    expect(href).toBe("/leagues");
+  });
+
+  it("says a drop as plainly as a climb", () => {
+    const dropped = weekResultMessage(-1.0, {
+      ...pod,
+      finalRank: 23,
+      moved: "relegated" as const,
+      tierNow: "bronze" as const,
+    });
+
+    expect(dropped.title).toBe("You dropped a rung");
+    expect(dropped.body).toContain("You finished 23rd of 24 in Bronze pod 3 and go down.");
+    expect(dropped.body).toContain("You are in Bronze now.");
+    expect(dropped.body).not.toMatch(/back|hurry|last chance|don't miss|still time/i);
+  });
+
+  it("is the same sentence either way, give or take the direction", () => {
+    // If these two ever diverge in shape, one of them has grown a nudge.
+    const up = weekResultMessage(1, { ...pod, moved: "promoted" });
+    const down = weekResultMessage(1, { ...pod, moved: "relegated" });
+    expect(up.body.replace(" and go up.", " and go X.")).toBe(
+      down.body.replace(" and go down.", " and go X.")
+    );
+  });
+
+  it("says less rather than something wrong when a placing is missing", () => {
+    const { body } = weekResultMessage(0, { ...pod, finalRank: 0, members: 0 });
+    expect(body).toContain("You finished in Bronze pod 3 and go up.");
+    expect(body).not.toContain("0th");
+  });
+
+  it("leaves out the rung when the ladder cannot name one", () => {
+    const { body } = weekResultMessage(0, { ...pod, tierNow: null });
+    expect(body).not.toContain("You are in");
+    expect(body).toContain("and go up.");
   });
 });

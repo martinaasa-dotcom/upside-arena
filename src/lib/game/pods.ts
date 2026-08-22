@@ -193,6 +193,100 @@ export async function settleDuePods(): Promise<number> {
   return settled;
 }
 
+/** Where a settled week left somebody, for the message that tells them. */
+export type PodOutcome = {
+  /** The pod they played, named as the screen names it. */
+  podName: string;
+  /** Where they finished in it. */
+  finalRank: number;
+  members: number;
+  moved: "promoted" | "held" | "relegated";
+  /** The rung the ladder puts them on now, if it changed. */
+  tierNow: PodTier | null;
+};
+
+/**
+ * What each of these players' settled pods did to them last week.
+ *
+ * Only somebody who actually moved is in the result. A week that left you
+ * where you were is not news, and a notification that says nothing happened is
+ * the kind section 3 rules out.
+ */
+export async function podOutcomesFor(
+  cycleId: string,
+  userIds: string[]
+): Promise<Map<string, PodOutcome>> {
+  const out = new Map<string, PodOutcome>();
+  if (!canWriteGame || userIds.length === 0) return out;
+
+  const admin = createAdminClient();
+
+  /*
+    Anything that goes wrong here leaves the map empty, and an empty map is the
+    week result exactly as it read before pods existed. A ladder line that
+    cannot be built is worth losing; the week result is not.
+  */
+  const { data: rows } = await admin
+    .from("pod_members")
+    .select("user_id, final_rank, outcome, pods!inner(id, tier, number, cycle_id, settled_at)")
+    .in("user_id", userIds)
+    .eq("pods.cycle_id", cycleId)
+    .not("pods.settled_at", "is", null)
+    .in("outcome", ["promoted", "relegated"]);
+
+  type Row = {
+    user_id: string;
+    final_rank: number | null;
+    outcome: "promoted" | "relegated";
+    pods: { id: string; tier: string; number: number };
+  };
+
+  const settled = (rows ?? []) as unknown as Row[];
+  if (settled.length === 0) return out;
+
+  /*
+    Two lookups the rows do not carry: how big each pod was, which is what
+    makes a placing mean something, and where each player's rating sits now,
+    which is the rung they actually moved onto. The ladder is read from the
+    table rather than repeated here, so moving a threshold in a migration
+    moves it in the message too.
+  */
+  const podIds = [...new Set(settled.map((row) => row.pods.id))];
+  const [{ data: sizes }, { data: profiles }, { data: ladder }] = await Promise.all([
+    admin.from("pod_members").select("pod_id").in("pod_id", podIds),
+    admin.from("profiles").select("id, rating").in("id", settled.map((r) => r.user_id)),
+    admin.from("pod_tiers").select("tier, min_rating").order("min_rating", { ascending: false }),
+  ]);
+
+  const sizeOf = new Map<string, number>();
+  for (const row of (sizes ?? []) as { pod_id: string }[]) {
+    sizeOf.set(row.pod_id, (sizeOf.get(row.pod_id) ?? 0) + 1);
+  }
+
+  const ratingOf = new Map(
+    ((profiles ?? []) as { id: string; rating: number | null }[]).map((p) => [
+      p.id,
+      p.rating ?? 0,
+    ])
+  );
+
+  const rungs = (ladder ?? []) as { tier: string; min_rating: number }[];
+  const tierFor = (rating: number): PodTier | null =>
+    (rungs.find((rung) => rung.min_rating <= Math.max(rating, 0))?.tier as PodTier) ?? null;
+
+  for (const row of settled) {
+    out.set(row.user_id, {
+      podName: `${TIER_NAMES[row.pods.tier as PodTier]} pod ${row.pods.number}`,
+      finalRank: row.final_rank ?? 0,
+      members: sizeOf.get(row.pods.id) ?? 0,
+      moved: row.outcome,
+      tierNow: tierFor(ratingOf.get(row.user_id) ?? 0),
+    });
+  }
+
+  return out;
+}
+
 function num(value: string | number | null | undefined): number {
   if (value == null) return 0;
   return typeof value === "number" ? value : Number(value);
