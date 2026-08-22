@@ -405,6 +405,34 @@
     }
   }
 
+  /*
+    The shape of a room while it is still on its way.
+
+    A tab that does nothing for half a second reads as a broken tab, and the
+    fix is not a spinner: a spinner says "something is happening" and nothing
+    about what. These are the same boxes, at the same sizes, in the same
+    places as the real thing, so the screen is already laid out when the
+    numbers land and nothing jumps when they do.
+
+    The pulse is a fade rather than a sweep, and it stops entirely under
+    prefers-reduced-motion via the block at the end of this file.
+  */
+  .skeleton {
+    background-color: color-mix(in oklab, var(--muted-foreground) 22%, transparent);
+    border-radius: var(--radius-sm);
+    animation: skeleton 1.6s ease-in-out infinite;
+  }
+
+  @keyframes skeleton {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+
   /* Money, percents, tickers, counts. */
   .figure {
     font-family: var(--font-mono);

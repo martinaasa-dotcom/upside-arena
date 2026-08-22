@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { canWriteGame, siteUrl } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getMarks } from "@/lib/game/marks";
@@ -297,7 +299,16 @@ export async function shareLatestWeek(userId: string): Promise<ShareOutcome> {
 }
 
 /** The card behind a public link, or null when there is nothing to show. */
-export async function getSharedCard(token: string): Promise<ShareCard | null> {
+/*
+  Cached for the length of one request.
+
+  Rendering /w/<token> asks for the same card twice: once to build the page's
+  metadata and once to draw the page itself. That was two identical queries
+  for one view of one frozen week.
+*/
+export const getSharedCard = cache(async function getSharedCard(
+  token: string
+): Promise<ShareCard | null> {
   if (!canWriteGame || !token) return null;
 
   const admin = createAdminClient();
@@ -313,7 +324,7 @@ export async function getSharedCard(token: string): Promise<ShareCard | null> {
   if (!row || row.revoked_at != null) return null;
 
   return toCard(row);
-}
+});
 
 /** Every card this player has made, newest first. */
 export async function getMyCards(userId: string): Promise<ShareCard[]> {

@@ -110,37 +110,6 @@ export async function getLeagues(userId: string): Promise<League[]> {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function getLeague(
-  userId: string,
-  leagueId: string
-): Promise<League | null> {
-  if (!canWriteGame) return null;
-
-  const admin = createAdminClient();
-
-  // Membership is checked here, not assumed from the URL. A league id is not
-  // a secret, and guessing one must not show you a private league.
-  const { data: member } = await admin
-    .from("league_members")
-    .select("id")
-    .eq("league_id", leagueId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (!member) return null;
-
-  const [{ data: league }, { count }] = await Promise.all([
-    admin.from("leagues").select("*").eq("id", leagueId).maybeSingle(),
-    admin
-      .from("league_members")
-      .select("id", { count: "exact", head: true })
-      .eq("league_id", leagueId),
-  ]);
-
-  if (!league) return null;
-  return toLeague(league as LeagueRow, count ?? 1, userId);
-}
-
 /**
  * The league table for the week in progress, priced now.
  *
@@ -152,21 +121,42 @@ export async function getLeagueStandings(
   userId: string,
   leagueId: string
 ): Promise<LeagueStandings | null> {
-  const league = await getLeague(userId, leagueId);
-  if (!league) return null;
-
-  const cycle = await getCurrentCycle();
-  if (!cycle) return null;
+  if (!canWriteGame) return null;
 
   const admin = createAdminClient();
 
-  const { data: members } = await admin
-    .from("league_members")
-    .select("user_id")
-    .eq("league_id", leagueId);
+  /*
+    The roster, the league and the week, asked for together.
+
+    This used to walk: check that the viewer is a member, then count the
+    members, then read the league, then find the week, then list the members
+    again. Three of those five are the same question and none of them needs
+    an answer from any other, so they go out at once and the roster is read
+    once instead of twice.
+
+    Reading the league row before the membership check leaks nothing: it is
+    read with the service role, on the server, and discarded unread if the
+    viewer turns out not to belong here.
+  */
+  const [{ data: members }, { data: leagueRow }, cycle] = await Promise.all([
+    admin.from("league_members").select("user_id").eq("league_id", leagueId),
+    admin.from("leagues").select("*").eq("id", leagueId).maybeSingle(),
+    getCurrentCycle(),
+  ]);
 
   const memberIds = (members ?? []).map((m) => m.user_id as string);
   if (memberIds.length === 0) return null;
+
+  /*
+    Membership is established here, from the roster we already have, rather
+    than assumed from the URL. A league id is not a secret, and guessing one
+    must not show you a private league.
+  */
+  if (!memberIds.includes(userId)) return null;
+  if (!leagueRow) return null;
+  if (!cycle) return null;
+
+  const league = toLeague(leagueRow as LeagueRow, memberIds.length, userId);
 
   const [{ data: profiles }, { data: portfolios }] = await Promise.all([
     admin
@@ -226,13 +216,19 @@ export async function getLeagueStandings(
     )
   );
 
-  const rows = memberIds.map((memberId) => {
-    const portfolio = ((portfolios ?? []) as {
+  // Indexed once rather than scanned per member, which was a full pass over
+  // the league for every row of it.
+  const portfolioByUser = new Map(
+    ((portfolios ?? []) as {
       id: string;
       user_id: string;
       cash: string;
       starting_balance: string;
-    }[]).find((p) => p.user_id === memberId);
+    }[]).map((p) => [p.user_id, p])
+  );
+
+  const rows = memberIds.map((memberId) => {
+    const portfolio = portfolioByUser.get(memberId);
 
     const profile = profileById.get(memberId);
 

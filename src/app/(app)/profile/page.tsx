@@ -28,28 +28,38 @@ export const metadata = { title: "Profile" };
 export default async function ProfilePage() {
   const { user, profile } = await getSession();
   const name = profile?.display_name ?? "Player";
-  const rewards = user
-    ? await getRewards(user.id)
-    : {
-        owned: [],
-        locked: [],
-        forSale: [],
-        equipped: { title: null, flair: null, theme: null },
-      };
 
-  const leagues = user ? await getLeagues(user.id) : [];
-  const seasons = user ? await getSeasonHistory(user.id) : [];
-  const cards = user ? await getMyCards(user.id) : [];
-  const standing = user ? await getStanding(user.id) : FREE_STANDING;
+  /*
+    Six independent reads, asked for together.
 
-  const notifications = user
-    ? await getNotificationState(user.id)
-    : {
-        settings: DEFAULT_SETTINGS,
-        devices: 0,
-        pushAvailable: false,
-        emailAvailable: false,
-      };
+    None of these needs an answer from any of the others, and asked one after
+    another they added up: the page waited for the reward catalogue before it
+    would even ask about leagues. Issued at once the screen costs the slowest
+    of the six rather than the sum of all of them.
+  */
+  const [rewards, leagues, seasons, cards, standing, notifications] =
+    await Promise.all([
+      user
+        ? getRewards(user.id)
+        : {
+            owned: [],
+            locked: [],
+            forSale: [],
+            equipped: { title: null, flair: null, theme: null },
+          },
+      user ? getLeagues(user.id) : [],
+      user ? getSeasonHistory(user.id) : [],
+      user ? getMyCards(user.id) : [],
+      user ? getStanding(user.id) : FREE_STANDING,
+      user
+        ? getNotificationState(user.id)
+        : {
+            settings: DEFAULT_SETTINGS,
+            devices: 0,
+            pushAvailable: false,
+            emailAvailable: false,
+          },
+    ]);
 
   const wearing = rewards.owned.find(
     (item) => item.kind === "title" && item.equipped

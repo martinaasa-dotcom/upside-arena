@@ -85,18 +85,29 @@ export function sessionLabel(state: string | null | undefined): string {
   }
 }
 
+/*
+  Built once, not once per question.
+
+  Constructing an Intl.DateTimeFormat is the expensive half of using one, and
+  every function below that needs to know the New York time asks through here:
+  is it a weekday, what is the date, what is the Monday, how far to the close.
+  Rendering one screen asked a dozen times and built a dozen formatters to
+  answer. The formatter is stateless, so one lasts the life of the process.
+*/
+const NY_FORMAT = new Intl.DateTimeFormat("en-US", {
+  timeZone: MARKET_TIMEZONE,
+  weekday: "short",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
 /** The parts of the New York wall clock, whatever timezone the caller is in. */
 function nyParts(now: Date) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: MARKET_TIMEZONE,
-    weekday: "short",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(now);
+  const parts = NY_FORMAT.formatToParts(now);
 
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
 

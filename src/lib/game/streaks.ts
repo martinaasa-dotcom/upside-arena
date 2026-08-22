@@ -1,5 +1,7 @@
 import "server-only";
 
+import { after } from "next/server";
+
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordDailyActive } from "@/lib/metrics";
@@ -137,11 +139,22 @@ export async function recordVisit(userId: string): Promise<VisitResult | null> {
   const today = nyDate();
 
   /*
-    Noted as a visit before anything else, and on every day rather than only
-    on trading days. A streak deliberately ignores the weekend; retention must
-    not, because somebody who came back on a Saturday came back.
+    Noted as a visit on every day rather than only on trading days. A streak
+    deliberately ignores the weekend; retention must not, because somebody who
+    came back on a Saturday came back.
+
+    Written after the response rather than before the rest of this function.
+    It is a counter nobody on this screen reads, and the home screen used to
+    wait on it before it would ask a single question it actually needed the
+    answer to.
   */
-  await recordDailyActive(userId);
+  after(async () => {
+    try {
+      await recordDailyActive(userId);
+    } catch {
+      // A missed tally line costs a row in a chart only I ever look at.
+    }
+  });
 
   /*
     A visit at the weekend is not a missed day and not a credited one either.
@@ -152,11 +165,24 @@ export async function recordVisit(userId: string): Promise<VisitResult | null> {
     return readStreak(userId);
   }
 
-  const { data: existing } = await admin
-    .from("streaks")
-    .select("last_active_date")
-    .eq("user_id", userId)
-    .maybeSingle();
+  /*
+    What is known before anything is written, all asked at once.
+
+    The streak row decides how many days were missed, the owned set is the
+    "before" that later tells a new reward from one they already had, and the
+    subscription decides the freeze grant. None of the three depends on
+    another, and they used to be three round trips in a row on the one screen
+    every player opens every day.
+  */
+  const [{ data: existing }, before, plus] = await Promise.all([
+    admin
+      .from("streaks")
+      .select("last_active_date")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    ownedRewardIds(userId),
+    hasPlus(userId),
+  ]);
 
   const lastActive = (existing as { last_active_date: string | null } | null)
     ?.last_active_date;
@@ -168,15 +194,13 @@ export async function recordVisit(userId: string): Promise<VisitResult | null> {
   */
   const missed = lastActive ? tradingDaysBetween(lastActive, today) : 0;
 
-  const before = await ownedRewardIds(userId);
-
   /*
     How many freezes the weekly grant lifts them to. A subscriber gets more,
     which is convenience rather than advantage: a freeze covers a day nobody
     opened the app, and a streak has never touched a standing or a lifetime
     figure.
   */
-  const limits = limitsFor(await hasPlus(userId));
+  const limits = limitsFor(plus);
 
   const { data, error } = await admin.rpc("record_activity", {
     p_user_id: userId,
@@ -201,9 +225,11 @@ export async function recordVisit(userId: string): Promise<VisitResult | null> {
     p_streak: streakRow.current_streak,
   });
 
-  const milestones = await getCatalogue();
-  const after = await ownedRewardIds(userId);
-  const fresh = [...after].filter((id) => !before.has(id));
+  const [milestones, owned] = await Promise.all([
+    getCatalogue(),
+    ownedRewardIds(userId),
+  ]);
+  const fresh = [...owned].filter((id) => !before.has(id));
 
   const describe = (id: string | null): EarnedReward | null => {
     const item = id ? milestones.find((m) => m.id === id) : null;
