@@ -381,7 +381,8 @@ Nothing is lost by the wait. To trigger it: press **Redeploy** on the latest
 
 ## Where it runs
 
-`vercel.json` pins the functions to `fra1`, Frankfurt.
+The functions run in `fra1`, Frankfurt, set by the project's
+**Function Region** setting in the Vercel dashboard (Settings -> Functions).
 
 This is not a preference. The Supabase project is in `eu-central-1`, and
 Vercel's default for this project was `iad1` in Washington. Every database
@@ -395,6 +396,21 @@ removes it.
 The rule is simply that the functions belong next to the database. If the
 Supabase project is ever moved, this moves with it, and the two should be
 checked together rather than separately.
+
+**Do not set this with a `regions` key in `vercel.json`.** On this plan that
+key is not merely ignored: it stops Vercel creating the deployment at all.
+There is no build, no failed deployment, no comment on the pull request and
+nothing in the log — the merge simply never reaches production, and the
+symptom is indistinguishable from the daily deploy cap. It cost a merge to
+find. The region belongs in the project setting, which is also where it can
+be read back:
+
+```bash
+curl -sS -H "Authorization: Bearer $VERCEL_TOKEN" \
+  "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_TEAM_ID" \
+  | jq -r '.serverlessFunctionRegion'
+# fra1
+```
 
 Confirm which region actually served a request by reading the header:
 
