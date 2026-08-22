@@ -15,7 +15,7 @@ import { getBattleView, getLeagueBattle } from "@/lib/game/battles";
 import { allowedSymbols } from "@/lib/game/formats";
 import { submitCancelBattle } from "@/app/(app)/leagues/battle-actions";
 import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
-import { formatGap, formatMoney, formatPercent } from "@/lib/format";
+import { formatGap, formatMoney, formatPercent, ordinal } from "@/lib/format";
 
 /*
   The battle room.
@@ -260,6 +260,57 @@ async function Rest({ params }: Params) {
       <div className={SPLIT}>
         <div className={COLUMN}>
 
+      {/*
+        Who won, before anything else.
+
+        A battle used to settle and simply stop: the room showed the same table
+        it had shown all week and a sentence saying it was over, and whoever
+        had won had to work that out by reading the top row. A contest with no
+        moment at the end of it is one people play once.
+      */}
+      {battle.finished && standings.length > 0 ? (
+        <Panel>
+          <p className="text-sm">
+            {you?.rank === 1 ? (
+              <>
+                <span className="font-semibold text-primary">You won.</span>{" "}
+                {standings.length > 1
+                  ? `First of ${standings.length} in ${format.name}, at `
+                  : `You were the only one who played it, and finished at `}
+                <span
+                  className={
+                    (you?.returnPercent ?? 0) >= 0
+                      ? "figure text-gain"
+                      : "figure text-loss"
+                  }
+                >
+                  {formatPercent(you?.returnPercent ?? 0)}
+                </span>
+                .
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">{standings[0].displayName}</span> won{" "}
+                {format.name}, at{" "}
+                <span
+                  className={
+                    standings[0].returnPercent >= 0
+                      ? "figure text-gain"
+                      : "figure text-loss"
+                  }
+                >
+                  {formatPercent(standings[0].returnPercent)}
+                </span>
+                .
+                {you
+                  ? ` You finished ${ordinal(you.rank)} of ${standings.length}.`
+                  : " You did not play this one."}
+              </>
+            )}
+          </p>
+        </Panel>
+      ) : null}
+
       {ahead && you ? (
         <Panel>
           <p className="text-sm">
@@ -303,7 +354,11 @@ async function Rest({ params }: Params) {
         <Panel
           title="This battle is over"
           description="Settled on the closing prices of its last day. Nothing here counted towards your record, a season or a streak — a battle is between the people in it and nobody else."
-        />
+        >
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/leagues/${id}`}>Back to the league</Link>
+          </Button>
+        </Panel>
       ) : (
         <Panel title="Trade">
           <TradeForm

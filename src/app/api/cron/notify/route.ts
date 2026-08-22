@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   notifyStandingChanges,
+  notifyBattleResults,
   notifyStreaksAtRisk,
   notifyWeekResults,
 } from "@/lib/notify/events";
@@ -51,6 +52,12 @@ const JOBS = {
   marks: recordDailyMarks,
   standings: notifyStandingChanges,
   week: notifyWeekResults,
+  /*
+    After the week, because a battle can settle on the same pass and the two
+    would otherwise compete for the same daily cap in whichever order the
+    object happened to be written. The week everybody plays goes first.
+  */
+  battles: notifyBattleResults,
   streaks: notifyStreaksAtRisk,
 } as const;
 

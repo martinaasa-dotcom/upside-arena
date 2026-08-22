@@ -258,7 +258,16 @@ export type NotificationSettingsRow = {
   updated_at: string;
 };
 
-export type NotificationKind = "rival_passed" | "week_result" | "streak_reminder";
+/*
+  battle_result is gated by the same setting as week_result -- see the note in
+  0020 -- but it is its own kind, because the kind is what the daily cap counts
+  and what /metrics reads.
+*/
+export type NotificationKind =
+  | "rival_passed"
+  | "week_result"
+  | "streak_reminder"
+  | "battle_result";
 
 export type NotificationRow = {
   id: string;

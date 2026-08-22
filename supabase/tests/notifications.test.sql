@@ -257,3 +257,61 @@ select public.assert(
    where user_id = 'aaaa1111-0000-0000-0000-000000000001') = 0,
   'closing an account takes its settings and its notification history with it'
 );
+
+-- ---------------------------------------------------------------------------
+-- A battle result is a kind of its own
+-- ---------------------------------------------------------------------------
+-- It is gated by the same setting as a week result, but it is not one. The
+-- kind is what the daily cap counts and what the numbers page reads, so
+-- calling a settled battle a week would make both quietly wrong about what
+-- the app actually sends.
+
+-- Their own player, because everybody above has either been erased by the
+-- check before this one or has already spent some of the daily cap.
+insert into auth.users (id, email)
+values ('cccc3333-0000-0000-0000-000000000003', 'pia@example.com');
+
+select public.assert(
+  public.record_notification(
+    'cccc3333-0000-0000-0000-000000000003',
+    'battle_result',
+    'battle:cccc0000-0000-0000-0000-0000000000ff',
+    'You won Silicon',
+    'Silicon in The Pit is settled, and you finished first of 5.',
+    '/leagues/l1/battle',
+    'push'
+  ),
+  'a settled battle can be recorded as the kind of thing it is'
+);
+
+select public.assert(
+  not public.record_notification(
+    'cccc3333-0000-0000-0000-000000000003',
+    'battle_result',
+    'battle:cccc0000-0000-0000-0000-0000000000ff',
+    'You won Silicon',
+    'Silicon in The Pit is settled, and you finished first of 5.',
+    '/leagues/l1/battle',
+    'push'
+  ),
+  'and the same battle is never announced twice'
+);
+
+do $$
+begin
+  perform public.record_notification(
+    'cccc3333-0000-0000-0000-000000000003',
+    'a_kind_nobody_defined',
+    'whatever',
+    'Title', 'Body', null, 'push'
+  );
+  raise exception 'should not reach here';
+exception
+  when others then
+    perform public.assert(
+      sqlerrm not like 'should not reach here',
+      'and a kind nobody defined is still refused'
+    );
+end
+$$;
+

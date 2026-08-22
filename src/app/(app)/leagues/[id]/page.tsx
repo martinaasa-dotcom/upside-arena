@@ -10,7 +10,7 @@ import { StandingsTable } from "@/components/StandingsTable";
 import { WeeklyGoal } from "@/components/WeeklyGoal";
 import { getSession } from "@/lib/profile";
 import { getLeagueStandings } from "@/lib/game/leagues";
-import { getLeagueBattle } from "@/lib/game/battles";
+import { getBattleView, getLeagueBattle } from "@/lib/game/battles";
 import { FORM_WEEKS, getLeagueRecord } from "@/lib/game/record";
 import { FormStrip } from "@/components/LeagueRecord";
 import { BattleCard } from "@/components/BattleCard";
@@ -155,7 +155,31 @@ async function Battle({ params }: Params) {
   const battle = await getLeagueBattle(user.id, id);
   if (!battle) return null;
 
-  return <BattleCard battle={battle} href={`/leagues/${id}/battle`} />;
+  /*
+    A finished battle says how it went on the card, so somebody scrolling past
+    the league page learns they won without having to open anything. Only for a
+    settled one: a running battle's standing belongs inside the room, where it
+    is live, rather than in a second staler copy out here.
+  */
+  const result = battle.finished
+    ? await getBattleView(user.id, battle.cycleId)
+    : null;
+
+  return (
+    <BattleCard
+      battle={battle}
+      href={`/leagues/${id}/battle`}
+      result={
+        result?.you
+          ? {
+              rank: result.you.rank,
+              players: result.standings.length,
+              returnPercent: result.you.returnPercent,
+            }
+          : null
+      }
+    />
+  );
 }
 
 async function ThisWeek({ params }: Params) {

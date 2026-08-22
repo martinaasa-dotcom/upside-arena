@@ -96,6 +96,18 @@ export type BattleStanding = {
   hasTraded: boolean;
 };
 
+/** How a settled battle ended, for whoever is being told about it. */
+export type BattleResult = {
+  cycleId: string;
+  leagueId: string;
+  leagueName: string;
+  formatName: string;
+  players: number;
+  winner: { userId: string; displayName: string; returnPercent: number } | null;
+  /** Every member who was scored, best first. */
+  finished: { userId: string; displayName: string; returnPercent: number }[];
+};
+
 export type BattleView = {
   battle: Battle;
   standings: BattleStanding[];
@@ -707,6 +719,106 @@ async function getTradeContext(
 }
 
 type HeldPositionRow = { symbol: string; quantity: number; costBasis: number };
+
+/**
+ * Battles that have been settled, for whoever has not been told yet.
+ *
+ * Deliberately returns every settled battle rather than only recent ones. The
+ * caller is the notification pass, and what stops a year old result being
+ * announced again is the dedupe key on the notification itself, which is the
+ * one place that fact is actually recorded. A "since" window here would be a
+ * second, weaker version of the same guard, and the two would disagree the
+ * first time a schedule was missed.
+ */
+export async function settledBattles(): Promise<BattleResult[]> {
+  if (!canWriteGame) return [];
+
+  const admin = createAdminClient();
+
+  const { data: rows } = await admin
+    .from("weekly_cycles")
+    .select("id, league_id, format, closed_at")
+    .not("league_id", "is", null)
+    .eq("status", "closed")
+    .order("closed_at", { ascending: false })
+    .limit(50);
+
+  const cycles = (rows ?? []) as {
+    id: string;
+    league_id: string;
+    format: string;
+    closed_at: string | null;
+  }[];
+
+  if (cycles.length === 0) return [];
+
+  const [{ data: leagues }, { data: portfolios }] = await Promise.all([
+    admin
+      .from("leagues")
+      .select("id, name")
+      .in("id", cycles.map((c) => c.league_id)),
+    admin
+      .from("portfolios")
+      .select("user_id, cycle_id, return_percent")
+      .in("cycle_id", cycles.map((c) => c.id))
+      .not("return_percent", "is", null),
+  ]);
+
+  const leagueName = new Map(
+    ((leagues ?? []) as { id: string; name: string }[]).map((l) => [l.id, l.name])
+  );
+
+  const byCycle = new Map<string, { userId: string; returnPercent: number }[]>();
+  for (const row of (portfolios ?? []) as {
+    user_id: string;
+    cycle_id: string;
+    return_percent: string;
+  }[]) {
+    const list = byCycle.get(row.cycle_id) ?? [];
+    list.push({ userId: row.user_id, returnPercent: num(row.return_percent) });
+    byCycle.set(row.cycle_id, list);
+  }
+
+  const everybody = [
+    ...new Set([...byCycle.values()].flat().map((row) => row.userId)),
+  ];
+
+  const { data: profiles } = everybody.length
+    ? await admin.from("profiles").select("id, display_name").in("id", everybody)
+    : { data: [] as never[] };
+
+  const nameById = new Map(
+    ((profiles ?? []) as { id: string; display_name: string | null }[]).map((p) => [
+      p.id,
+      p.display_name ?? "Player",
+    ])
+  );
+
+  return cycles.flatMap((cycle) => {
+    const scored = (byCycle.get(cycle.id) ?? [])
+      .map((row) => ({
+        userId: row.userId,
+        displayName: nameById.get(row.userId) ?? "Player",
+        returnPercent: row.returnPercent,
+      }))
+      .sort((a, b) => b.returnPercent - a.returnPercent);
+
+    // A battle nobody played has no result to tell anybody about.
+    if (scored.length === 0) return [];
+
+    return [
+      {
+        cycleId: cycle.id,
+        leagueId: cycle.league_id,
+        leagueName: leagueName.get(cycle.league_id) ?? "your league",
+        formatName: formatById(cycle.format).name,
+        players: scored.length,
+        winner: scored[0],
+        finished: scored,
+      },
+    ];
+  });
+}
 
 export type BattleTradeOutcome =
   | { ok: true; symbol: string; side: "buy" | "sell"; quantity: number; price: number }

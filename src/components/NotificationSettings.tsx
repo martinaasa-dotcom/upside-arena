@@ -38,8 +38,15 @@ const KINDS = [
   },
   {
     key: "weekResult" as const,
-    label: "When your week is scored",
-    detail: "Once, on Friday evening, whatever the result was.",
+    /*
+      One switch for two things, on purpose. A settled battle is the same
+      question as a settled week -- do you want to be told a contest you were
+      in has been scored -- and two toggles for one preference is one more
+      decision than anybody wants to make about notifications.
+    */
+    label: "When a result comes in",
+    detail:
+      "Your week on Friday evening, and any battle your league finishes. Once each, whatever the result was.",
   },
   {
     key: "streakReminder" as const,
