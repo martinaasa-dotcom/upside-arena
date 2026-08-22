@@ -93,8 +93,25 @@ export function NotificationInvite({
       remember();
 
       if (outcome.state === "subscribed" && outcome.subscription) {
-        await subscribeToPush({ ...outcome.subscription, timezone: browserTimezone() });
+        const saved = await subscribeToPush({
+          ...outcome.subscription,
+          timezone: browserTimezone(),
+        });
+
         setVisible(false);
+
+        /*
+          Agreeing at the browser prompt is not the same as it having been
+          written down. Promising to tell somebody about their week and then
+          never doing it, because the preference never saved, is the "I said
+          yes and nothing arrives" complaint the settings screen is careful to
+          avoid; this said it whether or not the write went through.
+        */
+        if (!saved.ok) {
+          toast.error("We could not turn those on. Try again from your profile.");
+          return;
+        }
+
         track("notification_invite_accepted");
         track("push_enabled", { from: "invite" });
         toast.success("We will only tell you when something actually happens.");
