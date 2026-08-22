@@ -3,11 +3,13 @@ import { ArrowLeftRight, CalendarRange, Home, Trophy, User } from "lucide-react"
 /*
   The rooms, in the order the dock shows them.
 
-  Here rather than inside the dock because two other things need to know
-  which routes have a dock at the bottom of them, and a second list written
-  out by hand goes stale the first time a room is added. It already had: the
-  consent notice kept clear of the dock on four routes while the dock had
-  five, so on the fifth it sat on top of it.
+  This is the dock's tabs and nothing else. It is deliberately not the list
+  of routes that have a dock under them: the dock is rendered by (app)/layout,
+  so it is on every room in that group, including Arena Plus and Numbers,
+  which have no tab. Anything needing to know whether a dock is on screen
+  asks the dock -- see [data-dock] in BottomDock and .consent-notice in
+  globals.css. Reading it off this list is how the measurement notice came to
+  cover the navigation on exactly those two rooms.
 */
 export const ROOMS = [
   { href: "/home", label: "Home", icon: Home },
@@ -16,10 +18,3 @@ export const ROOMS = [
   { href: "/season", label: "Season", icon: CalendarRange },
   { href: "/profile", label: "Profile", icon: User },
 ] as const;
-
-/** Whether a path is a room, and so has the dock at the bottom of it. */
-export function hasDock(pathname: string): boolean {
-  return ROOMS.some(
-    (room) => pathname === room.href || pathname.startsWith(`${room.href}/`)
-  );
-}
