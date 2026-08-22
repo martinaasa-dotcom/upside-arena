@@ -31,6 +31,16 @@ export const PODS_MINIMUM = 48;
 /** What the plan asks a pod to hold. */
 export const POD_TARGET_SIZE = 24;
 
+/**
+ * How long a finished pod stays on the screen after it settles.
+ *
+ * Long enough to cover the gap between a week being scored on Friday and
+ * somebody opening the message about it over the weekend, and no longer:
+ * "how last week finished" over a pod from a month ago is a screen saying
+ * something untrue.
+ */
+export const RESULT_VISIBLE_DAYS = 7;
+
 export type PodTier = "bronze" | "silver" | "gold" | "diamond";
 
 export const TIER_NAMES: Record<PodTier, string> = {
@@ -71,10 +81,23 @@ export type PodStanding = {
   versusMarket: number | null;
   isYou: boolean;
   hasTraded: boolean;
+  /*
+    What the settlement wrote down for this place, on a pod that has been
+    settled. Read rather than recomputed: the ladder already decided, and a
+    screen that works it out again for itself can disagree with the rating it
+    already handed out.
+  */
+  outcome: PodZone | null;
 };
 
 export type PodView = {
   pod: { id: string; tier: PodTier; number: number; name: string };
+  /*
+    True once the week is scored and the pod has been settled. Then the arrows
+    are what happened rather than what would happen, and there is nothing left
+    to close a gap on.
+  */
+  settled: boolean;
   standings: PodStanding[];
   /** How many go up and down at the end of this week, from this pod. */
   moving: number;
@@ -315,7 +338,36 @@ export async function getPodView(
     .eq("pods.cycle_id", cycleId)
     .maybeSingle();
 
-  const podId = (mine as { pod_id: string } | null)?.pod_id;
+  let podId = (mine as { pod_id: string } | null)?.pod_id;
+
+  /*
+    And if there is none, the week that just finished.
+
+    A week is settled on Friday evening and the results go out over the
+    weekend, by which time the current cycle is already next week and nobody
+    has been placed in it yet. Without this, the message telling somebody they
+    went up a rung led to a page with nothing on it.
+
+    Bounded to the last seven days, and that bound is the whole honesty of it:
+    a pod settled a month ago shown under "how last week finished" is a screen
+    stating something false. Somebody who stops playing sees the panel go, not
+    a result that keeps aging in place.
+  */
+  if (!podId) {
+    const since = new Date(Date.now() - RESULT_VISIBLE_DAYS * 86_400_000).toISOString();
+
+    const { data: last } = await admin
+      .from("pod_members")
+      .select("pod_id, pods!inner(settled_at)")
+      .eq("user_id", userId)
+      .gte("pods.settled_at", since)
+      .order("settled_at", { referencedTable: "pods", ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    podId = (last as { pod_id: string } | null)?.pod_id;
+  }
+
   if (!podId) return null;
 
   const [{ data: pod }, { data: members }] = await Promise.all([
@@ -324,6 +376,14 @@ export async function getPodView(
   ]);
 
   if (!pod) return null;
+
+  /*
+    Everything below is priced from the pod's own week rather than from the
+    caller's, which are the same thing while a week is running and are not once
+    a settled pod is being shown after it.
+  */
+  const podCycleId = (pod as PodRow).cycle_id;
+  const settled = (pod as PodRow).settled_at != null;
 
   const rows = (members ?? []) as PodMemberRow[];
   const ids = rows.map((row) => row.user_id);
@@ -334,7 +394,7 @@ export async function getPodView(
     admin
       .from("portfolios")
       .select("user_id, return_percent, benchmark_diff, id")
-      .eq("cycle_id", cycleId)
+      .eq("cycle_id", podCycleId)
       .in("user_id", ids),
   ]);
 
@@ -347,10 +407,13 @@ export async function getPodView(
       .map((p) => [p.user_id, p])
   );
 
+  const memberBy = new Map(rows.map((row) => [row.user_id, row]));
+
   const scored = ids.map((id) => {
     const profile = profileById.get(id);
     const portfolio = portfolioBy.get(id);
     const returnPercent = num(portfolio?.return_percent);
+    const member = memberBy.get(id);
 
     return {
       userId: id,
@@ -362,13 +425,26 @@ export async function getPodView(
         benchmarkReturnPercent == null ? null : returnPercent - benchmarkReturnPercent,
       isYou: id === userId,
       hasTraded: portfolio != null,
+      finalRank: member?.final_rank ?? null,
+      outcome: settled ? ((member?.outcome as PodZone | null) ?? null) : null,
     };
   });
 
-  scored.sort((a, b) => b.returnPercent - a.returnPercent);
-  const standings: PodStanding[] = scored.map((row, index) => ({
+  /*
+    A settled pod keeps the order the settlement put it in. It ranked on
+    benchmark_diff and broke ties on who joined first, and re-sorting on return
+    alone here could hand somebody a different place from the one their rating
+    was changed for.
+  */
+  if (settled && scored.every((row) => row.finalRank != null)) {
+    scored.sort((a, b) => (a.finalRank ?? 0) - (b.finalRank ?? 0));
+  } else {
+    scored.sort((a, b) => b.returnPercent - a.returnPercent);
+  }
+
+  const standings: PodStanding[] = scored.map(({ finalRank, ...row }, index) => ({
     ...row,
-    rank: index + 1,
+    rank: settled ? (finalRank ?? index + 1) : index + 1,
   }));
 
   /*
@@ -389,14 +465,20 @@ export async function getPodView(
       number: (pod as PodRow).number,
       name: `${TIER_NAMES[(pod as PodRow).tier as PodTier]} pod ${(pod as PodRow).number}`,
     },
+    settled,
     standings,
     moving,
+    /*
+      Both gaps are about a week somebody can still change. Once it is settled
+      there is nothing to close, and telling a player how nearly they went up
+      is exactly the near miss section 3 refuses.
+    */
     toPromotion:
-      you && lastPromoted && you.rank > moving
+      !settled && you && lastPromoted && you.rank > moving
         ? lastPromoted.returnPercent - you.returnPercent
         : null,
     toSafety:
-      you && firstRelegated && you.rank >= standings.length - moving + 1
+      !settled && you && firstRelegated && you.rank >= standings.length - moving + 1
         ? standings[standings.length - moving - 1].returnPercent - you.returnPercent
         : null,
   };

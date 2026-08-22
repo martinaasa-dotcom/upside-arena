@@ -5,6 +5,7 @@ import {
   TIER_NAMES,
   movingFrom,
   podZone,
+  RESULT_VISIBLE_DAYS,
 } from "@/lib/game/pods";
 
 /*
@@ -98,5 +99,21 @@ describe("which way a place is heading", () => {
       expect(zones.filter((z) => z === "relegated")).toHaveLength(going);
       expect(zones.filter((z) => z === "held")).toHaveLength(size - going * 2);
     }
+  });
+});
+
+describe("how long a finished pod stays up", () => {
+  it("covers the gap between a week being scored and somebody reading about it", () => {
+    // Scored Friday evening, the message goes out Saturday morning and again
+    // Saturday afternoon for anyone who was asleep. Somebody who opens it on
+    // Sunday still has to find the thing it is about.
+    expect(RESULT_VISIBLE_DAYS).toBeGreaterThanOrEqual(3);
+  });
+
+  it("does not outlive the sentence describing it", () => {
+    // The panel says "how last week finished". A pod from a fortnight ago
+    // under that heading is a screen stating something false, so the window
+    // cannot be longer than a week.
+    expect(RESULT_VISIBLE_DAYS).toBeLessThanOrEqual(7);
   });
 });

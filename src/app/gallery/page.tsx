@@ -89,6 +89,10 @@ export default function GalleryPage() {
         <PodStandings view={fixture.podViewDropping} />
       </Case>
 
+      <Case name="pod-settled">
+        <PodStandings view={fixture.podViewSettled} />
+      </Case>
+
       <Case name="week-recap">
         <WeekRecap recap={fixture.recap} />
       </Case>
