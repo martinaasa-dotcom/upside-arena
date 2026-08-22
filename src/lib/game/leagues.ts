@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { limitsFor } from "@/lib/billing/plan";
 import { hasPlus } from "@/lib/billing/entitlements";
 import { MAX_LEAGUES_JOINED, MAX_LEAGUES_OWNED } from "@/lib/game";
@@ -148,7 +150,14 @@ export async function getLeague(
  * twenty people holding the same handful of companies costs a handful of
  * requests, not twenty.
  */
-export async function getLeagueStandings(
+/*
+  Cached for the length of one request. The league screen asks for this twice,
+  once to put the league's name in the page title and once to draw the table,
+  and this is the most expensive read in the app: every member's portfolio,
+  every holding, and a batch of live quotes. Doing all of that twice for one
+  screen doubled how long the room took to arrive for nothing.
+*/
+export const getLeagueStandings = cache(async function getLeagueStandings(
   userId: string,
   leagueId: string
 ): Promise<LeagueStandings | null> {
@@ -292,7 +301,7 @@ export async function getLeagueStandings(
           }
         : null,
   };
-}
+});
 
 export type LeagueOutcome =
   | { ok: true; league: LeagueRow }

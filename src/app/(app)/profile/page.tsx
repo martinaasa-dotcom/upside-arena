@@ -28,28 +28,39 @@ export const metadata = { title: "Profile" };
 export default async function ProfilePage() {
   const { user, profile } = await getSession();
   const name = profile?.display_name ?? "Player";
-  const rewards = user
-    ? await getRewards(user.id)
-    : {
-        owned: [],
-        locked: [],
-        forSale: [],
-        equipped: { title: null, flair: null, theme: null },
-      };
 
-  const leagues = user ? await getLeagues(user.id) : [];
-  const seasons = user ? await getSeasonHistory(user.id) : [];
-  const cards = user ? await getMyCards(user.id) : [];
-  const standing = user ? await getStanding(user.id) : FREE_STANDING;
-
-  const notifications = user
-    ? await getNotificationState(user.id)
-    : {
-        settings: DEFAULT_SETTINGS,
-        devices: 0,
-        pushAvailable: false,
-        emailAvailable: false,
-      };
+  /*
+    All at once, because none of these six wants anything the others produce.
+    Awaited one after another they queued behind each other for no reason, and
+    the profile screen took as long as all of them added together.
+  */
+  const [rewards, leagues, seasons, cards, standing, notifications] = user
+    ? await Promise.all([
+        getRewards(user.id),
+        getLeagues(user.id),
+        getSeasonHistory(user.id),
+        getMyCards(user.id),
+        getStanding(user.id),
+        getNotificationState(user.id),
+      ])
+    : [
+        {
+          owned: [],
+          locked: [],
+          forSale: [],
+          equipped: { title: null, flair: null, theme: null },
+        },
+        [],
+        [],
+        [],
+        FREE_STANDING,
+        {
+          settings: DEFAULT_SETTINGS,
+          devices: 0,
+          pushAvailable: false,
+          emailAvailable: false,
+        },
+      ];
 
   const wearing = rewards.owned.find(
     (item) => item.kind === "title" && item.equipped

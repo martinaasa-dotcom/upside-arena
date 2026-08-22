@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeftRight, CalendarRange, Home, Trophy, User } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,39 @@ const ROOMS = [
   { href: "/profile", label: "Profile", icon: User },
 ];
 
+/*
+  A tap has to be answered on the frame it lands on.
+
+  Every room reads live data, so the answer to a tap comes from the server, and
+  until it arrives the pathname has not changed and no tab looks any different.
+  That is the whole of what "the dock feels slow" was: the tab you pressed
+  carried on looking unpressed while a request was in flight, so the app read
+  as having ignored you rather than as having been asked something hard.
+
+  Every room now has a loading boundary, so the pressed tab usually becomes the
+  real active tab within a frame or two. This covers what is left: a cold
+  prefetch, a slow connection, a tab pressed twice.
+
+  It is drawn as a fill behind the tab rather than as a change to the tab, so
+  it costs no layout and cannot move the row under a thumb. It is deliberately
+  not the aqua pill and does not touch aria-current: this says "heard you", not
+  "you are here", and a navigation that is interrupted or abandoned must not
+  leave the dock claiming somewhere you never went.
+*/
+function PressedFill() {
+  const { pending } = useLinkStatus();
+
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "pointer-events-none absolute inset-0 rounded-lg bg-foreground/10 transition-opacity duration-150",
+        pending ? "opacity-100" : "opacity-0"
+      )}
+    />
+  );
+}
+
 export function BottomDock() {
   const pathname = usePathname();
 
@@ -45,15 +78,16 @@ export function BottomDock() {
               href={href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex h-11 items-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors",
+                "relative flex h-11 items-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors",
                 "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                 active
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
             >
-              <Icon className="size-4" aria-hidden="true" />
-              <span className={LABELS_FIT}>{label}</span>
+              {active ? null : <PressedFill />}
+              <Icon className="relative size-4" aria-hidden="true" />
+              <span className={cn("relative", LABELS_FIT)}>{label}</span>
             </Link>
           );
         })}
