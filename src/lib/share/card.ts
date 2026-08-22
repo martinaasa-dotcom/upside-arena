@@ -1,4 +1,4 @@
-import { formatGap, formatPercent, plural } from "@/lib/format";
+import { formatGap, formatPercent, ordinal, plural } from "@/lib/format";
 
 /*
   What a shared week actually says.
@@ -91,22 +91,13 @@ export function versusMarketLine(diff: number | null): string | null {
     : `${formatGap(diff)} behind the market`;
 }
 
-/** "2nd of 6". Plain enough for anyone reading over a shoulder. */
-export function ordinal(value: number): string {
-  const rest = value % 100;
-  if (rest >= 11 && rest <= 13) return `${value}th`;
-
-  switch (value % 10) {
-    case 1:
-      return `${value}st`;
-    case 2:
-      return `${value}nd`;
-    case 3:
-      return `${value}rd`;
-    default:
-      return `${value}th`;
-  }
-}
+/*
+  "2nd of 6". There were two of these for a while, one here and one in
+  lib/format, each with its own tests, each correct — which is how a third one
+  nearly got written. Re-exported rather than moved so the share card's
+  callers keep importing what they always did.
+*/
+export { ordinal } from "@/lib/format";
 
 /**
  * The text somebody pastes.

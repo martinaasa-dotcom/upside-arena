@@ -21,8 +21,13 @@ leagues, streaks and cosmetics, notifications, the share card, analytics, and
 payments. On top of those, a quarterly season, milestone rewards, and a weekly
 goal declared inside a league.
 
-Phase 9, public matchmade pods with promotion and relegation, is deliberately
-not built. The plan defers it until daily volume supports it.
+Phase 9, public matchmade pods with promotion and relegation, is built and
+dormant. The ladder, the placement and the weekly settlement all run, and
+nobody is placed into a pod until 48 people are playing the same week — two
+full pods, which is the smallest number that makes a ladder rather than a
+leaderboard with a title on it. Below that the pod panel on `/leagues` is
+simply absent. The plan asks for the feature to wait for volume, not for the
+work to.
 
 [`docs/PHASE_1.md`](docs/PHASE_1.md) is the record of what phase 1 shipped and
 why, not a description of the app today.

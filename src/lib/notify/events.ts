@@ -3,8 +3,14 @@ import "server-only";
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLeagueStandings } from "@/lib/game/leagues";
+import {
+  TIER_NAMES,
+  podOutcomesFor,
+  settleDuePods,
+  type PodOutcome,
+} from "@/lib/game/pods";
 import { isTradingDay, isTradingOpen, nyDate } from "@/lib/market/session";
-import { formatGap } from "@/lib/format";
+import { formatGap, ordinal } from "@/lib/format";
 import { emailConfigured, pushConfigured, sendEmail, sendPush } from "@/lib/notify/send";
 import { isAwakeHour, isStreakReminderHour } from "@/lib/notify/timing";
 
@@ -308,42 +314,107 @@ export async function notifyWeekResults(): Promise<NotifyResult> {
   }[];
   if (rows.length === 0) return result;
 
+  /*
+    Settle the week's pods first, for the same reason the marks job runs before
+    anything is sent about the day: this message is sent once, keyed on the
+    week, so whatever is true when it goes out is what the player is ever told.
+    Settling and notifying are two separate cron jobs and nothing orders them,
+    so without this a promotion is announced or silently dropped depending on
+    which one Vercel happened to call first. Idempotent, and a no-op when there
+    is nothing due.
+  */
+  await settleDuePods();
+
   const userIds = rows.map((r) => r.user_id);
-  const [prefs, emails, devices] = await Promise.all([
+  const [prefs, emails, devices, pods] = await Promise.all([
     settingsFor(userIds),
     emailConfigured ? emailsFor(userIds) : Promise.resolve(new Map<string, string>()),
     devicesFor(userIds),
+    podOutcomesFor(cycle.id, userIds),
   ]);
 
   for (const row of rows) {
     result.considered++;
 
-    const ret = Number(row.return_percent);
     const diff = Number(row.benchmark_diff);
-    const beat = diff >= 0;
+    const pod = pods.get(row.user_id);
+
+    const message = weekResultMessage(diff, pod);
 
     const outcome = await deliver(
       row.user_id,
       prefs.get(row.user_id),
       "week_result",
       `week:${cycle.monday}`,
-      "Your week is in",
-      beat
-        ? `You finished ${formatGap(diff)} ahead of the market. A new week starts Monday with the same money for everyone.`
-        : `You finished ${formatGap(diff)} behind the market. A new week starts Monday with the same money for everyone.`,
-      "/home",
+      message.title,
+      message.body,
+      message.href,
       emails.get(row.user_id),
       devices.has(row.user_id)
     );
 
     if (outcome === "sent") result.sent++;
     else result.skipped[outcome] = (result.skipped[outcome] ?? 0) + 1;
-
-    void ret;
   }
 
   return result;
 }
+
+/**
+ * What a settled week says to one player.
+ *
+ * Pure, and separate from sending it, because this is the whole of what a
+ * person actually receives and it is worth being able to read it back in a
+ * test rather than from a phone.
+ *
+ * The ladder goes inside the message the player already gets rather than
+ * arriving as a second one. Two rules from the top of this file still hold.
+ *
+ * It says nothing about doing something about it. A relegation with "one good
+ * week gets it back" attached is a loss messaged as fixable by trading again,
+ * which is the thing this file will not send. A placing that already happened,
+ * with no call to action, is a result — the same kind of thing as the market
+ * line beside it, which has always been sent whichever way it went.
+ *
+ * And it is only there for somebody who moved. Being told you stayed where you
+ * were is a notification about nothing, which is why podOutcomesFor returns
+ * only the players the ladder actually moved.
+ */
+export function weekResultMessage(
+  benchmarkDiff: number,
+  pod?: PodOutcome
+): { title: string; body: string; href: string } {
+  const market =
+    benchmarkDiff >= 0
+      ? `You finished ${formatGap(benchmarkDiff)} ahead of the market.`
+      : `You finished ${formatGap(benchmarkDiff)} behind the market.`;
+
+  const next = "A new week starts Monday with the same money for everyone.";
+
+  if (!pod) {
+    return { title: "Your week is in", body: `${market} ${next}`, href: "/home" };
+  }
+
+  // A placing of nothing is not a placing. settle_pod always writes one, but
+  // rendering a missing one as "0th" would be worse than saying less.
+  const place = pod.finalRank > 0 ? ordinal(pod.finalRank) : null;
+  const where =
+    place && pod.members > 0
+      ? `${place} of ${pod.members} in ${pod.podName}`
+      : place
+        ? `${place} in ${pod.podName}`
+        : `in ${pod.podName}`;
+
+  const rung = pod.tierNow ? ` You are in ${TIER_NAMES[pod.tierNow]} now.` : "";
+  const up = pod.moved === "promoted";
+
+  return {
+    title: up ? "You went up a rung" : "You dropped a rung",
+    body: `You finished ${where} and go ${up ? "up" : "down"}.${rung} ${market} ${next}`,
+    href: "/leagues",
+  };
+}
+
 
 /**
  * A single reminder, late in the trading day, to anyone with a streak going
