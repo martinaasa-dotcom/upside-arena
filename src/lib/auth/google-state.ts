@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { safeNext } from "@/lib/redirects";
 
 /*
   The state that ties a Google sign-in request to its answer.
@@ -51,4 +52,50 @@ export function sameState(a: string, b: string): boolean {
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return diff === 0;
+}
+
+/*
+  What the callback should do, decided before anything is acted on.
+
+  Kept here, apart from the route, because this is the part that matters: the
+  order of these checks is what stops a stranger's authorization code being
+  spent on somebody else's session, and logic buried in a route handler is
+  logic nobody can write a test for.
+*/
+export type CallbackDecision =
+  | { kind: "cancelled" }
+  | { kind: "fail"; reason: string }
+  | { kind: "proceed"; code: string; next: string };
+
+export function decideCallback(input: {
+  error: string | null;
+  code: string | null;
+  state: string | null;
+  cookie: string | null;
+}): CallbackDecision {
+  /*
+    Google reports a refusal through the query string rather than by failing.
+    Somebody who pressed cancel has not hit an error and should not be shown
+    one.
+  */
+  if (input.error) return { kind: "cancelled" };
+
+  if (!input.code) return { kind: "fail", reason: "missing-code" };
+
+  /*
+    The state is checked before the code is worth anything. A callback whose
+    state does not match this browser's own cookie was not started here, and
+    an empty cookie fails this rather than matching an empty state.
+  */
+  const expected = readStateCookie(input.cookie ?? "");
+  if (!sameState(input.state ?? "", expected.secret)) {
+    return { kind: "fail", reason: "state" };
+  }
+
+  /*
+    Where they were heading comes from the cookie this server set. It is still
+    run through safeNext, because a cookie is only as trustworthy as the last
+    thing that wrote it, and an open redirect is not worth the assumption.
+  */
+  return { kind: "proceed", code: input.code, next: safeNext(expected.next) };
 }
