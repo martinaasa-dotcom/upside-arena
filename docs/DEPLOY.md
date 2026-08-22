@@ -322,13 +322,27 @@ Upgrading the plan removes the cap. Nothing else does.
 A deploy and a migration are two separate acts, and the app can be running code
 that expects a table the project does not have.
 
-Two ways to apply one:
+Three ways to apply one:
 
 - `npx supabase db push` against a linked project. Needs a Supabase access
   token (`supabase login`, or `SUPABASE_ACCESS_TOKEN`), which is not the same
-  thing as the service role key.
+  thing as the service role key. It also connects on 5432, so it needs a
+  network that allows that.
 - Paste the file into the SQL editor and run it. Needs nothing but the
   dashboard.
+- Post it to the Management API, which is the only one of the three that works
+  over nothing but HTTPS:
+
+  ```bash
+  curl -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+    -H "Authorization: Bearer $SUPABASE_PAT" \
+    -H "Content-Type: application/json" \
+    --data "$(jq -Rs '{query: .}' < supabase/migrations/0014_pods.sql)"
+  ```
+
+  `$SUPABASE_PAT` is a personal access token (`sbp_…`) from Account →
+  Access Tokens. This is how `0011` through `0014` were applied to production
+  from a sandbox with only port 443 open.
 
 The service role key in `SUPABASE_SERVICE_ROLE_KEY` cannot do this. It
 authenticates against PostgREST, which reads and writes rows; `create table`,
@@ -353,6 +367,7 @@ like a key that should.
 | `0011_seasons.sql` | The quarterly season and its standings |
 | `0012_streak_bonuses.sql` | What a streak milestone pays |
 | `0013_weekly_goals.sql` | The goal declared inside a league |
+| `0014_pods.sql` | The public ladder: tiers, pods, placement and settlement |
 
 ### How a missing one shows up
 

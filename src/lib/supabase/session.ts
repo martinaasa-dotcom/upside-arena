@@ -49,7 +49,15 @@ function isPublic(pathname: string) {
     */
     pathname.startsWith("/w/") ||
     pathname === "/manifest.webmanifest" ||
-    pathname === "/sw.js"
+    pathname === "/sw.js" ||
+    /*
+      The component gallery, which the clipping probe measures and a design
+      pass is read on. Behind the same switch as the route itself: without
+      ARENA_UI_GALLERY the page answers 404, and a deployment never sets it,
+      so this cannot open anything on a real site. Without the clause the
+      probe measured the sign-in page it was redirected to instead.
+    */
+    (pathname === "/gallery" && Boolean(process.env.ARENA_UI_GALLERY))
   );
 }
 

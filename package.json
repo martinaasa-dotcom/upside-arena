@@ -14,7 +14,8 @@
     "icons": "node scripts/generate-icons.mjs",
     "db:reset": "supabase db reset",
     "check": "npm run typecheck && npm run lint && npm run test",
-    "test:db": "./scripts/test-db.sh"
+    "test:db": "./scripts/test-db.sh",
+    "gallery": "ARENA_UI_GALLERY=1 next dev"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.23",
