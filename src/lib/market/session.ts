@@ -166,6 +166,33 @@ export function hasOpenedToday(now = new Date(), afterMinutes = 0): boolean {
   return nyMinutes(now) >= OPEN_MINUTES + afterMinutes;
 }
 
+/**
+ * Whether a moment fell before a contest ending on the given day stopped
+ * taking trades.
+ *
+ * Not the same question as "was it on or before that date", and the difference
+ * is a whole evening. A contest that runs on market hours takes its last trade
+ * at 16:00 on its final day, so somebody who arrives at nine that evening was
+ * never in it however you write the date down. One whose market never shuts
+ * takes trades until midnight, so for that one the whole day counts.
+ *
+ * Comparing the two as dates is what the first attempt at this did, by reading
+ * a timestamp's first ten characters. That reads it in UTC, where the day
+ * rolls over at seven or eight in the New York evening -- which happens to sit
+ * near the close and made the answer accidentally about right, until it was
+ * "fixed" into being reliably wrong.
+ */
+export function beforeContestEnd(
+  moment: Date,
+  endsOn: string,
+  allDay = false
+): boolean {
+  const date = nyDate(moment);
+  if (date < endsOn) return true;
+  if (date > endsOn) return false;
+  return allDay || nyMinutes(moment) < CLOSE_MINUTES;
+}
+
 /** The New York calendar date, as YYYY-MM-DD. */
 export function nyDate(now = new Date()): string {
   const { year, month, day } = nyParts(now);

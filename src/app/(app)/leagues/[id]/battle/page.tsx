@@ -368,7 +368,31 @@ async function Rest({ params }: Params) {
         </Panel>
       ) : null}
 
-      {battle.finished ? (
+      {/*
+        Whether they were in it comes first.
+
+        This asked whether the battle had finished first, which put the panel
+        below it -- written for somebody who joined the league afterwards --
+        behind a branch that is true in exactly the case it was written for.
+        They saw the generic "this battle is over" card, and the specific one
+        only ever appeared in the few hours between a contest ending and the
+        settle noticing.
+      */}
+      {!you ? (
+        /*
+          Somebody who was not in this contest. Only reachable once it has
+          ended: a running battle ends in the future, so everybody in the
+          league now was in it.
+        */
+        <Panel
+          title="You were not in this one"
+          description="It had already finished by the time you joined the league. The table above is who played it."
+        >
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/leagues/${id}`}>Back to the league</Link>
+          </Button>
+        </Panel>
+      ) : battle.finished ? (
         <Panel
           title="This battle is over"
           description="Settled on the closing prices of its last day. Nothing here counted towards your record, a season or a streak — a battle is between the people in it and nobody else."
@@ -377,7 +401,7 @@ async function Rest({ params }: Params) {
             <Link href={`/leagues/${id}`}>Back to the league</Link>
           </Button>
         </Panel>
-      ) : you ? (
+      ) : (
         <Panel title="Trade">
           <TradeForm
             cash={view.cash ?? 0}
@@ -389,17 +413,6 @@ async function Rest({ params }: Params) {
             rule={format.rule}
           />
         </Panel>
-      ) : (
-        /*
-          Somebody who was not in this contest. Only reachable for a settled
-          one -- a running battle ends in the future, so everybody in the
-          league now was in it -- and the trade form has no money of theirs to
-          spend either way.
-        */
-        <Panel
-          title="You were not in this one"
-          description="It had already finished by the time you joined the league. The table above is who played it."
-        />
       )}
 
       {battle.isYours && !battle.finished ? (

@@ -12,7 +12,7 @@ import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getQuotes, normaliseSymbol, type Quote } from "@/lib/market/quotes";
 import { getSessionOpen } from "@/lib/market/benchmark";
-import { isTradingOpen, nyDate } from "@/lib/market/session";
+import { beforeContestEnd, isTradingOpen, nyDate } from "@/lib/market/session";
 import {
   DEFAULT_FORMAT,
   checkTrade,
@@ -139,16 +139,16 @@ function num(value: string | number | null | undefined): number {
 }
 
 /**
- * Whether somebody was in the league by the day a contest ended.
+ * Whether somebody was in the league in time to have played a contest.
  *
- * The joining time is a timestamp and the end is a New York calendar date, so
- * the two have to be put on the same clock before they can be compared. Taking
- * the first ten characters of the timestamp reads it in UTC, which quietly
- * drops anybody who joined after about eight in the evening New York time on
- * the last day: their UTC date is already tomorrow.
+ * In time, rather than on or before the date. A contest on market hours takes
+ * its last trade at 16:00 on its final day, so joining the league at nine that
+ * evening is not being in it -- and telling that person where they finished
+ * would be a placing in a race they could not have entered. One whose market
+ * never shuts takes trades until midnight, so there the whole day counts.
  */
-function joinedBy(joinedAt: string, endsOn: string): boolean {
-  return nyDate(new Date(joinedAt)) <= endsOn;
+function joinedInTime(joinedAt: string, endsOn: string, allDay: boolean): boolean {
+  return beforeContestEnd(new Date(joinedAt), endsOn, allDay);
 }
 
 function toBattle(
@@ -507,7 +507,15 @@ export const getBattleView = cache(async function getBattleView(
   const memberIds = [
     ...new Set([
       ...((played ?? []) as { user_id: string }[]).map((row) => row.user_id),
-      ...roster.filter((row) => joinedBy(row.joined_at, cycle.ends_on)).map((row) => row.user_id),
+      ...roster
+        .filter((row) =>
+          joinedInTime(
+            row.joined_at,
+            cycle.ends_on,
+            formatById(cycle.format).tradingHours === "always"
+          )
+        )
+        .map((row) => row.user_id),
     ]),
   ];
 
@@ -920,8 +928,10 @@ export async function settledBattles(): Promise<BattleResult[]> {
       were never in this contest, and telling them where they came in it would
       be a placing in a race they had not entered.
     */
+    const allDay = formatById(cycle.format).tradingHours === "always";
+
     const entitled = (rosterByLeague.get(cycle.league_id) ?? [])
-      .filter((row) => joinedBy(row.joined, cycle.ends_on))
+      .filter((row) => joinedInTime(row.joined, cycle.ends_on, allDay))
       .map((row) => row.userId);
 
     const field = [...new Set([...scored.keys(), ...entitled])];

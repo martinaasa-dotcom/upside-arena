@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  beforeContestEnd,
   cycleMonday,
   isTradingDay,
   isTradingOpen,
@@ -346,5 +347,56 @@ describe("isLineupWindow", () => {
     expect(isLineupWindow(at("2026-08-25T13:00:00Z"))).toBe(false);
     expect(isLineupWindow(at("2026-08-26T23:00:00Z"))).toBe(false);
     expect(isLineupWindow(at("2026-08-21T21:00:00Z"))).toBe(false);
+  });
+});
+
+/*
+  Whether somebody arrived in time to have been in a contest.
+
+  This is the comparison that decides who is in a battle's field, and it has
+  now been wrong in both directions. Reading the timestamp in UTC dropped
+  anybody who joined after the New York day had rolled over there; comparing
+  dates alone admitted somebody who joined at nine in the evening of a day
+  whose last trade was taken at four.
+*/
+describe("beforeContestEnd", () => {
+  const ENDS = "2026-08-21"; // A Friday.
+
+  it("is true for any day before the last one", () => {
+    expect(beforeContestEnd(at("2026-08-20T23:00:00Z"), ENDS)).toBe(true);
+    expect(beforeContestEnd(at("2026-08-17T13:30:00Z"), ENDS)).toBe(true);
+  });
+
+  it("is false for any day after it", () => {
+    expect(beforeContestEnd(at("2026-08-22T04:00:00Z"), ENDS)).toBe(false);
+    expect(beforeContestEnd(at("2026-09-01T13:30:00Z"), ENDS)).toBe(false);
+  });
+
+  it("is true on the last day until the close", () => {
+    // 19:59 UTC is 15:59 in New York in August. One minute of trading left.
+    expect(beforeContestEnd(at("2026-08-21T19:59:00Z"), ENDS)).toBe(true);
+  });
+
+  it("and false from the close, however the date is written", () => {
+    // 20:00 UTC is 16:00 in New York. The last trade has been taken.
+    expect(beforeContestEnd(at("2026-08-21T20:00:00Z"), ENDS)).toBe(false);
+
+    /*
+      The one this was got wrong on twice. Nine in the evening in New York is
+      already tomorrow in UTC, so reading the date in UTC excluded them for the
+      wrong reason and reading it in New York included them for no reason. They
+      arrived five hours after the last trade either way.
+    */
+    expect(beforeContestEnd(at("2026-08-22T01:00:00Z"), ENDS)).toBe(false);
+  });
+
+  /*
+    Unless the market never shuts, which is the whole of one format. There the
+    last trade is taken at midnight, so the evening counts.
+  */
+  it("gives an all-day contest the whole of its last day", () => {
+    expect(beforeContestEnd(at("2026-08-21T20:00:00Z"), ENDS, true)).toBe(true);
+    expect(beforeContestEnd(at("2026-08-22T01:00:00Z"), ENDS, true)).toBe(true);
+    expect(beforeContestEnd(at("2026-08-22T05:00:00Z"), ENDS, true)).toBe(false);
   });
 });
