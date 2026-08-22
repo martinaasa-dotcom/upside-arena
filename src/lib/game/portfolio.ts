@@ -13,9 +13,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getQuotes, normaliseSymbol, type Quote } from "@/lib/market/quotes";
 import { getSessionOpen } from "@/lib/market/benchmark";
 import { placeInPod } from "@/lib/game/pods";
-import { cycleMonday, isTradingOpen } from "@/lib/market/session";
+import { cycleMonday, isTradingOpen, nyDate } from "@/lib/market/session";
 import { hasDueCycle, settleDueCycles } from "@/lib/game/settle";
 import { needsMarkToday, recordDailyMarks } from "@/lib/game/marks";
+import { fillLineup, hasLineupToFill } from "@/lib/game/lineup";
+import { checkTrade, formatById } from "@/lib/game/formats";
 
 /*
   Reading and valuing a player's week.
@@ -28,7 +30,12 @@ import { needsMarkToday, recordDailyMarks } from "@/lib/game/marks";
 export type Cycle = {
   id: string;
   monday: string;
+  /** The day it is settled at the close. The Monday plus four, for a week. */
+  ends_on: string;
   status: "open" | "scoring" | "closed";
+  /** A format id. The house week is always the open market. */
+  format: string;
+  direction: "long" | "short";
   benchmark_symbol: string;
   benchmark_open: number | null;
   benchmark_close: number | null;
@@ -152,7 +159,10 @@ export const getCurrentCycle = cache(async (): Promise<Cycle | null> => {
   return {
     id: row.id as string,
     monday: row.monday as string,
+    ends_on: row.ends_on as string,
     status: row.status as Cycle["status"],
+    format: (row.format as string) ?? "open",
+    direction: (row.direction as Cycle["direction"]) ?? "long",
     benchmark_symbol: row.benchmark_symbol as string,
     benchmark_open: row.benchmark_open == null ? null : num(row.benchmark_open as string),
     benchmark_close: row.benchmark_close == null ? null : num(row.benchmark_close as string),
@@ -217,6 +227,26 @@ export async function getPortfolioView(
   after(async () => {
     try {
       await placeInPod(userId, cycle.id);
+    } catch {
+      // The next visit tries again.
+    }
+  });
+
+  /*
+    And the lineup, if they left one at the weekend.
+
+    Same shape as everything else here: the question "is there one waiting?" is
+    a cheap indexed read and the filling is not, so both happen after the
+    response rather than in front of it. It is the first visit of the new week
+    that runs it, which is the visit where the answer is about to be shown.
+
+    A fill that fails is not allowed to fail the page. The orders are still
+    unrun, so the next visit tries again; what must never happen is a player
+    seeing an error where their money should be.
+  */
+  after(async () => {
+    try {
+      if (await hasLineupToFill(userId, cycle)) await fillLineup(userId, cycle);
     } catch {
       // The next visit tries again.
     }
@@ -354,6 +384,27 @@ export async function placeTrade(
     };
   }
 
+  /*
+    What the house week allows, which is shares and funds and nothing else.
+
+    The quote layer will happily price a coin, because a format asks it to.
+    That is not permission to own one here: a market that never shuts would
+    make the house week turn on who was awake at three in the morning on
+    Saturday, which is precisely the game this one is not. Coins have their
+    own format, and it says so on the card.
+  */
+  const allowed = checkTrade(formatById(cycle.format), {
+    symbol,
+    side: input.side,
+    quantity: input.quantity,
+    price: quote.price,
+    startingBalance: cycle.starting_balance,
+    positions: [],
+    quoteType: quote.type,
+  });
+
+  if (!allowed.ok) return { ok: false, error: allowed.error };
+
   const admin = createAdminClient();
   const { error } = await admin.rpc("execute_trade", {
     p_user_id: userId,
@@ -364,6 +415,7 @@ export async function placeTrade(
     p_price: quote.price,
     p_max_per_minute: MAX_TRADES_PER_MINUTE,
     p_max_per_cycle: MAX_TRADES_PER_CYCLE,
+    p_today: nyDate(),
   });
 
   if (error) {

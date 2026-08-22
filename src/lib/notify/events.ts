@@ -295,6 +295,9 @@ export async function notifyWeekResults(): Promise<NotifyResult> {
     .from("weekly_cycles")
     .select("id, monday")
     .eq("status", "closed")
+    // The house week. "Your week is in" is about the race everybody is in,
+    // and a league's battle settling on a Wednesday must not send it.
+    .is("league_id", null)
     .order("monday", { ascending: false })
     .limit(1);
 

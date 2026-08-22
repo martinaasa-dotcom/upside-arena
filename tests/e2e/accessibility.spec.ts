@@ -34,6 +34,7 @@ const PAGES = [
   // Every component that lays out somebody else's data, in one place.
   "/gallery",
   "/",
+  "/how",
   "/legal/privacy",
   "/legal/terms",
   "/offline",

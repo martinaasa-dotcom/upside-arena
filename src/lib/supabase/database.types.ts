@@ -32,10 +32,29 @@ export type ProfileRow = {
   updated_at: string;
 };
 
+/*
+  A contest. The house week everybody plays, or a league's own battle.
+
+  They are the same row on purpose: a battle needs a portfolio per player,
+  holdings, a trade log and a settlement, and every one of those already keys
+  on a cycle. See supabase/migrations/0017_battles.sql for the whole argument.
+*/
 export type WeeklyCycleRow = {
   id: string;
+  /** The day it starts. Still a Monday for the house week. */
   monday: string;
+  /** The day it is settled at the close. The Monday plus four, for a week. */
+  ends_on: string;
   status: "open" | "scoring" | "closed";
+  /** A format id from src/lib/game/formats.ts. */
+  format: string;
+  /** Whether a position gains when the price rises or when it falls. */
+  direction: "long" | "short";
+  /** A length id from src/lib/game/lengths.ts. */
+  length: string;
+  /** The league whose battle this is, or null for the house week. */
+  league_id: string | null;
+  created_by: string | null;
   benchmark_symbol: string;
   benchmark_open: string | null;
   benchmark_close: string | null;
@@ -44,6 +63,23 @@ export type WeeklyCycleRow = {
   season_id: string | null;
   created_at: string;
   closed_at: string | null;
+};
+
+/** What somebody said at the weekend they wanted to own on Monday. */
+export type LineupOrderRow = {
+  id: string;
+  user_id: string;
+  /** The Monday of the week this is for. */
+  monday: string;
+  symbol: string;
+  quantity: string;
+  created_at: string;
+  /** When the week started and this ran, whatever came of it. */
+  ran_at: string | null;
+  outcome: "filled" | "no_price" | "not_enough_cash" | "refused" | null;
+  fill_price: string | null;
+  /** Why it did not run, in plain words. Shown to the player. */
+  detail: string | null;
 };
 
 export type WeeklyGoalRow = {
@@ -349,6 +385,7 @@ export type Database = {
       terms_acceptances: Table<TermsAcceptanceRow>;
       weekly_cycles: Table<WeeklyCycleRow>;
       weekly_goals: Table<WeeklyGoalRow>;
+      lineup_orders: Table<LineupOrderRow>;
       pods: Table<PodRow>;
       pod_members: Table<PodMemberRow>;
       pod_tiers: Table<PodTierRow>;
@@ -399,8 +436,64 @@ export type Database = {
           p_price: number;
           p_max_per_minute: number;
           p_max_per_cycle: number;
+          /*
+            Today in New York, so a contest that has not started or has
+            already ended takes no trades. Supplied by the caller because the
+            database has no opinion about New York, the same way due_cycles
+            takes one.
+          */
+          p_today?: string | null;
         };
         Returns: TradeRow;
+      };
+      set_benchmark_open: {
+        Args: { p_cycle_id: string; p_open: number };
+        Returns: WeeklyCycleRow;
+      };
+      create_battle: {
+        Args: {
+          p_user_id: string;
+          p_league_id: string;
+          p_format: string;
+          p_direction: "long" | "short";
+          p_length: string;
+          p_starts_on: string;
+          p_ends_on: string;
+          p_starting_balance: number;
+          p_benchmark_symbol: string;
+          p_benchmark_open?: number | null;
+        };
+        Returns: WeeklyCycleRow;
+      };
+      cancel_battle: {
+        Args: { p_user_id: string; p_cycle_id: string };
+        Returns: boolean;
+      };
+      queue_lineup_order: {
+        Args: {
+          p_user_id: string;
+          p_monday: string;
+          p_symbol: string;
+          p_quantity: number;
+          /** Worked out by the caller, which is what knows the time in New York. */
+          p_locked: boolean;
+          p_max_orders?: number;
+        };
+        Returns: LineupOrderRow;
+      };
+      clear_lineup_order: {
+        Args: { p_user_id: string; p_order_id: string; p_locked: boolean };
+        Returns: boolean;
+      };
+      fill_lineup: {
+        Args: {
+          p_user_id: string;
+          p_cycle_id: string;
+          p_monday: string;
+          p_prices: Json;
+          p_today?: string | null;
+        };
+        Returns: LineupOrderRow[];
       };
       score_cycle: {
         Args: {
@@ -712,6 +805,9 @@ export type Database = {
           cards_live: number;
           active_today: number;
           active_this_week: number;
+          battles_settled: number;
+          leagues_with_a_battle: number;
+          lineups_filled: number;
         }[];
       };
     };

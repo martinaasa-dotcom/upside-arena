@@ -152,6 +152,20 @@ export function isTradingOpen(now = new Date()): boolean {
   return minutes >= OPEN_MINUTES && minutes < CLOSE_MINUTES;
 }
 
+/**
+ * Whether the market has opened yet today, whether or not it is still open.
+ *
+ * Different question from isTradingOpen, and the difference is what makes a
+ * lineup fair. Before 09:30 nobody knows what Monday's opening price will be,
+ * so a lineup may still be changed. From 09:30 the price exists, and an order
+ * that could still be edited would be a trade placed with hindsight -- which
+ * is the one thing a lineup must never become.
+ */
+export function hasOpenedToday(now = new Date(), afterMinutes = 0): boolean {
+  if (isWeekend(now)) return false;
+  return nyMinutes(now) >= OPEN_MINUTES + afterMinutes;
+}
+
 /** The New York calendar date, as YYYY-MM-DD. */
 export function nyDate(now = new Date()): string {
   const { year, month, day } = nyParts(now);
@@ -281,4 +295,57 @@ export function tradingDaysBetween(fromIso: string, toIso: string): number {
   }
 
   return count;
+}
+
+/*
+  The lineup, and which week it is for.
+
+  A lineup is bought at a Monday's opening price, so the only week you can
+  still queue for is one whose opening price nobody knows yet. That is this
+  Monday until the bell, and the Monday after it from then on.
+*/
+
+/** Whether a week's lineup can still be changed. */
+export function lineupLocked(monday: string, now = new Date()): boolean {
+  const today = nyDate(now);
+  if (today < monday) return false;
+  if (today === monday && !hasOpenedToday(now)) return false;
+  return true;
+}
+
+/**
+ * The Monday a lineup queued now would be filled on.
+ *
+ * At the weekend that is the Monday about to arrive, which is the whole point
+ * of the feature. During the week it is next Monday, because this week's
+ * opening price has already happened.
+ */
+export function lineupMonday(now = new Date()): string {
+  const monday = cycleMonday(now);
+  if (!lineupLocked(monday, now)) return monday;
+
+  const next = isoToUtcNoon(monday);
+  next.setUTCDate(next.getUTCDate() + 7);
+  return utcToIso(next);
+}
+
+/**
+ * Whether a week's lineup can be filled yet.
+ *
+ * Half an hour after the bell rather than on it. The opening price is what a
+ * lineup fills at, and it does not exist in the data provider the instant the
+ * market opens -- the daily bar for the day arrives a few minutes in. Filling
+ * at 09:30:20 would mean recording "we had no opening price" for a name that
+ * had one perfectly well by 09:35, and that error is written into somebody's
+ * week and cannot be taken back.
+ *
+ * Waiting costs nothing. Everybody fills at the same opening price whenever
+ * this runs, so the only thing being delayed is when they find out.
+ */
+const OPEN_PRICE_GRACE_MINUTES = 30;
+
+export function lineupReady(monday: string, now = new Date()): boolean {
+  const today = nyDate(now);
+  if (today > monday) return true;
+  return today === monday && hasOpenedToday(now, OPEN_PRICE_GRACE_MINUTES);
 }

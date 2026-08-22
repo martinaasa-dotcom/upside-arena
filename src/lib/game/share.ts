@@ -86,9 +86,16 @@ export async function getLatestRecap(userId: string): Promise<
   */
   const { data: portfolios } = await admin
     .from("portfolios")
-    .select("id, cycle_id, return_percent, benchmark_diff")
+    .select("id, cycle_id, return_percent, benchmark_diff, weekly_cycles!inner(league_id)")
     .eq("user_id", userId)
     .not("return_percent", "is", null)
+    /*
+      Of the house week only. A share card says what somebody did against the
+      market in the week everybody played, and a battle is neither: it has its
+      own rule book and its own benchmark, so a card built from one would put
+      a number on a link that means something different from what it claims.
+    */
+    .is("weekly_cycles.league_id", null)
     .order("updated_at", { ascending: false })
     .limit(1);
 

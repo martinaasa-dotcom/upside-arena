@@ -10,6 +10,10 @@ import { Wardrobe } from "@/components/Wardrobe";
 import { WeekRecap } from "@/components/WeekRecap";
 import { Ticker } from "@/components/Ticker";
 import { WeeklyGoal, GoalMark } from "@/components/WeeklyGoal";
+import { BattleCard } from "@/components/BattleCard";
+import { StartBattleForm } from "@/components/StartBattleForm";
+import { Lineup, LineupReport } from "@/components/Lineup";
+import { FirstRun } from "@/components/FirstRun";
 import { Scoreboard, Score } from "@/components/Scoreboard";
 import { InviteCode } from "@/components/InviteCode";
 import { CreateLeagueForm, JoinLeagueForm } from "@/components/LeagueForms";
@@ -213,6 +217,68 @@ export default function GalleryPage() {
             <GoalMark label="Beat the market by 5% without selling anything" met={false} />
           </div>
         </Panel>
+      </Case>
+
+      {/*
+        Battles and the weekend, which are the two widest things on this page.
+
+        The format picker is twelve cards of two lines each, the lineup rows
+        carry a company name against a five-figure estimate, and the first-week
+        list is four rows of a heading over a paragraph. All three are exactly
+        the shape that cropped its own second line the last four times.
+      */}
+      <Case name="battle-running">
+        <BattleCard battle={fixture.battle} href="#" />
+      </Case>
+
+      <Case name="battle-finished">
+        <BattleCard
+          battle={fixture.battleFinished}
+          href="#"
+          result={{ rank: 3, players: 12, returnPercent: -2.4 }}
+        />
+      </Case>
+
+      <Case name="start-battle">
+        <StartBattleForm leagueId="l1" />
+      </Case>
+
+      <Case name="lineup">
+        <Lineup view={fixture.lineup} />
+      </Case>
+
+      <Case name="lineup-locked">
+        <Lineup view={fixture.lineupLocked} />
+      </Case>
+
+      <Case name="lineup-report">
+        <LineupReport filled={2} missed={fixture.lineupMissed} />
+      </Case>
+
+      <Case name="first-week">
+        <FirstRun
+          startingBalance={100_000}
+          leagueName={fixture.LONG_LEAGUE}
+          inviteCode="ABCD2345"
+          leagueHref="#"
+          hasTraded={false}
+          hasCompany={false}
+          hasGoal={false}
+          hasBattle={false}
+        />
+      </Case>
+
+      <Case name="first-week-part-done">
+        <FirstRun
+          startingBalance={100_000}
+          leagueName={fixture.LONG_LEAGUE}
+          inviteCode="ABCD2345"
+          leagueHref="#"
+          hasTraded
+          hasCompany
+          hasGoal={false}
+          hasBattle={false}
+        />
       </Case>
 
       <Case name="invite-code">

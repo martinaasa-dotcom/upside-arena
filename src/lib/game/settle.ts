@@ -2,7 +2,7 @@ import "server-only";
 
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getClosingPrices } from "@/lib/market/benchmark";
+import { getClosingPrices, getSessionOpen } from "@/lib/market/benchmark";
 import { nyDate } from "@/lib/market/session";
 import { settleDuePods } from "@/lib/game/pods";
 import type { SeasonRow, WeeklyCycleRow } from "@/lib/supabase/database.types";
@@ -44,7 +44,13 @@ function num(value: string | number | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** The Friday a week ended on: its Monday plus four days. */
+/**
+ * The Friday a week ended on: its Monday plus four days.
+ *
+ * Kept for the house week, whose end has always been derivable. A battle can
+ * run a day or a year, so its end date is recorded on the row and read from
+ * there -- see settleCycle, which prefers ends_on and falls back to this.
+ */
 export function cycleFriday(monday: string): string {
   const start = new Date(`${monday}T12:00:00Z`);
   const friday = new Date(start.getTime() + 4 * 24 * 60 * 60 * 1000);
@@ -114,7 +120,11 @@ export async function closeDueSeasons(): Promise<string[]> {
   return closed;
 }
 
-async function settleCycle(cycle: WeeklyCycleRow): Promise<SettlementResult> {
+async function settleCycle(input: WeeklyCycleRow): Promise<SettlementResult> {
+  // Reassigned below when a missing opening price is filled in, which is the
+  // one thing about a cycle this function can still learn.
+  let cycle = input;
+
   const admin = createAdminClient();
   const base = { cycleId: cycle.id, monday: cycle.monday };
 
@@ -127,7 +137,40 @@ async function settleCycle(cycle: WeeklyCycleRow): Promise<SettlementResult> {
   if (!claimed) return { ...base, status: "claimed-elsewhere" };
 
   try {
-    const friday = cycleFriday(cycle.monday);
+    const lastDay = cycle.ends_on ?? cycleFriday(cycle.monday);
+
+    /*
+      What it was measured from, if that was never learned.
+
+      A battle started at the weekend has no opening price at the moment it is
+      created, and the screen fills it in on the first visit once the market
+      has opened. A battle nobody opened until it was over never got that
+      visit, so this is the last chance to ask -- and the chart request works
+      as well for a Monday three months ago as for this one.
+
+      Without it the settle would raise "no benchmark open", release the claim
+      and try again forever, which is the shape of failure this file exists to
+      avoid.
+    */
+    if (cycle.benchmark_open == null) {
+      const open = await getSessionOpen(cycle.benchmark_symbol, cycle.monday);
+      if (open != null) {
+        const { data: updated } = await admin.rpc("set_benchmark_open", {
+          p_cycle_id: cycle.id,
+          p_open: open,
+        });
+        if (updated) cycle = updated as unknown as WeeklyCycleRow;
+      }
+    }
+
+    if (cycle.benchmark_open == null) {
+      await admin.rpc("release_cycle_claim", { p_cycle_id: cycle.id });
+      return {
+        ...base,
+        status: "no-prices",
+        detail: `no opening price for ${cycle.benchmark_symbol} on ${cycle.monday}`,
+      };
+    }
 
     const { data: holdings } = await admin
       .from("holdings")
@@ -140,7 +183,7 @@ async function settleCycle(cycle: WeeklyCycleRow): Promise<SettlementResult> {
 
     const prices = await getClosingPrices(
       [...symbols, cycle.benchmark_symbol],
-      friday
+      lastDay
     );
 
     const benchmarkClose = prices[cycle.benchmark_symbol];
@@ -156,7 +199,7 @@ async function settleCycle(cycle: WeeklyCycleRow): Promise<SettlementResult> {
       return {
         ...base,
         status: "no-prices",
-        detail: `no closing price for ${cycle.benchmark_symbol} on ${friday}`,
+        detail: `no closing price for ${cycle.benchmark_symbol} on ${lastDay}`,
       };
     }
 
@@ -166,7 +209,7 @@ async function settleCycle(cycle: WeeklyCycleRow): Promise<SettlementResult> {
       return {
         ...base,
         status: "no-prices",
-        detail: `no closing price for ${missing.join(", ")} on ${friday}`,
+        detail: `no closing price for ${missing.join(", ")} on ${lastDay}`,
       };
     }
 

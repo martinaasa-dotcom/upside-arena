@@ -9,6 +9,9 @@ import { StandingsTable } from "@/components/StandingsTable";
 import { WeeklyGoal } from "@/components/WeeklyGoal";
 import { getSession } from "@/lib/profile";
 import { getLeagueStandings } from "@/lib/game/leagues";
+import { getLeagueBattle } from "@/lib/game/battles";
+import { BattleCard } from "@/components/BattleCard";
+import { StartBattleForm } from "@/components/StartBattleForm";
 import { getGoals } from "@/lib/game/goals";
 import { goalLabel, goalMet } from "@/lib/game/goal-kinds";
 import { getWeekStreaks } from "@/lib/game/streaks";
@@ -52,10 +55,15 @@ export default async function LeaguePage({
     What everybody said they would do this week, and how it is going. Worked
     out here from the standings that were just computed rather than stored,
     so a goal is never a second opinion about a result.
+
+    And the league's own battle, if it has one. That sits above the week on
+    the page: the week is the race everybody is in anyway, and the battle is
+    the one this league chose.
   */
-  const [goals, weekStreaks] = await Promise.all([
+  const [goals, weekStreaks, battle] = await Promise.all([
     getGoals(league.id, cycle.id),
     getWeekStreaks(standings.map((row) => row.userId)),
+    getLeagueBattle(user.id, league.id),
   ]);
 
   const tradingDaysSoFar = tradingDaysSoFarThisWeek();
@@ -131,6 +139,10 @@ export default async function LeaguePage({
         </Panel>
       ) : null}
 
+      {battle ? (
+        <BattleCard battle={battle} href={`/leagues/${league.id}/battle`} />
+      ) : null}
+
       <Panel title="This week" description="Everyone started Monday with the same money.">
         <StandingsTable standings={standings} goalFor={goalFor} />
       </Panel>
@@ -139,6 +151,13 @@ export default async function LeaguePage({
         leagueId={league.id}
         declared={goals.get(user.id)?.kind ?? null}
       />
+
+      {/*
+        A league with a battle running does not get offered another. One at a
+        time is the whole point: four contests at once is four scoreboards and
+        no conversation.
+      */}
+      {battle && !battle.finished ? null : <StartBattleForm leagueId={league.id} />}
 
       <Panel
         title="Invite someone"

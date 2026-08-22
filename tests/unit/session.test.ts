@@ -4,6 +4,9 @@ import {
   isTradingDay,
   isTradingOpen,
   isWeekend,
+  lineupLocked,
+  lineupMonday,
+  lineupReady,
   nyDate,
   previousTradingDay,
   sessionLabel,
@@ -221,5 +224,90 @@ describe("trading days", () => {
   it("treats a date at or before itself as nothing missed", () => {
     expect(tradingDaysBetween("2026-08-20", "2026-08-20")).toBe(0);
     expect(tradingDaysBetween("2026-08-21", "2026-08-20")).toBe(0);
+  });
+});
+
+/*
+  The lineup clock.
+
+  The whole fairness of a lineup is one comparison: is Monday's opening price
+  known yet? Before the bell nobody knows it, so an order may still be changed.
+  From the bell it exists, and an order that could still be changed would be a
+  trade placed with hindsight. These are that comparison.
+*/
+describe("lineupLocked", () => {
+  const MONDAY = "2026-08-24";
+
+  it("is open all weekend before it", () => {
+    expect(lineupLocked(MONDAY, at("2026-08-22T15:00:00Z"))).toBe(false); // Sat
+    expect(lineupLocked(MONDAY, at("2026-08-23T23:00:00Z"))).toBe(false); // Sun
+  });
+
+  it("is open on the Monday morning until the bell", () => {
+    // 13:00 UTC is 09:00 in New York in August. Half an hour to go.
+    expect(lineupLocked(MONDAY, at("2026-08-24T13:00:00Z"))).toBe(false);
+  });
+
+  it("locks at the bell, not at midnight", () => {
+    // 13:30 UTC is 09:30 in New York in August.
+    expect(lineupLocked(MONDAY, at("2026-08-24T13:30:00Z"))).toBe(true);
+    expect(lineupLocked(MONDAY, at("2026-08-24T18:00:00Z"))).toBe(true);
+  });
+
+  it("stays locked for the rest of the week", () => {
+    expect(lineupLocked(MONDAY, at("2026-08-26T15:00:00Z"))).toBe(true);
+    expect(lineupLocked(MONDAY, at("2026-08-28T15:00:00Z"))).toBe(true);
+  });
+});
+
+describe("lineupMonday", () => {
+  it("is the Monday about to arrive, at the weekend", () => {
+    expect(lineupMonday(at("2026-08-22T15:00:00Z"))).toBe("2026-08-24"); // Sat
+    expect(lineupMonday(at("2026-08-23T15:00:00Z"))).toBe("2026-08-24"); // Sun
+  });
+
+  it("is still this Monday before the bell on it", () => {
+    expect(lineupMonday(at("2026-08-24T13:00:00Z"))).toBe("2026-08-24");
+  });
+
+  /*
+    Once this week's opening price exists, the earliest week whose does not is
+    the next one. A lineup queued on a Wednesday is for the Monday after.
+  */
+  it("rolls to next Monday once this week has opened", () => {
+    expect(lineupMonday(at("2026-08-24T13:30:00Z"))).toBe("2026-08-31");
+    expect(lineupMonday(at("2026-08-26T15:00:00Z"))).toBe("2026-08-31");
+    expect(lineupMonday(at("2026-08-28T21:00:00Z"))).toBe("2026-08-31");
+  });
+
+  it("crosses a month boundary without drifting", () => {
+    expect(lineupMonday(at("2026-08-29T15:00:00Z"))).toBe("2026-08-31");
+    expect(lineupMonday(at("2026-09-02T15:00:00Z"))).toBe("2026-09-07");
+  });
+});
+
+describe("lineupReady", () => {
+  const MONDAY = "2026-08-24";
+
+  it("waits for the bell", () => {
+    expect(lineupReady(MONDAY, at("2026-08-24T13:00:00Z"))).toBe(false);
+    expect(lineupReady(MONDAY, at("2026-08-23T15:00:00Z"))).toBe(false);
+  });
+
+  /*
+    And then waits a further half hour. The daily bar an opening price is read
+    from arrives a few minutes into the session, so filling at 09:30:20 would
+    record "we had no opening price" for a name that had one perfectly well by
+    09:35 -- and that is written into somebody's week and cannot be undone.
+  */
+  it("waits half an hour past it, so the opening price exists to be read", () => {
+    expect(lineupReady(MONDAY, at("2026-08-24T13:35:00Z"))).toBe(false);
+    expect(lineupReady(MONDAY, at("2026-08-24T14:00:00Z"))).toBe(true);
+  });
+
+  it("is ready any time later in the week", () => {
+    // Somebody who did not open Arena until Wednesday still fills at Monday's
+    // open, so there is nothing to wait for.
+    expect(lineupReady(MONDAY, at("2026-08-26T02:00:00Z"))).toBe(true);
   });
 });

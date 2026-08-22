@@ -226,6 +226,22 @@ export default async function ProfilePage() {
         />
       </Panel>
 
+      {/*
+        The rules, somewhere a signed-in player can find them again.
+
+        The first-week list on Home links here too, and that list goes once it
+        is done. Somewhere permanent matters: the question "wait, how is this
+        actually scored" turns up in week six, not week one.
+      */}
+      <Panel
+        title="How Arena works"
+        description="What the money is, how a week is scored, what a battle is, and what none of this is. Two minutes."
+      >
+        <Button asChild variant="outline" size="sm">
+          <Link href="/how">Read the rules</Link>
+        </Button>
+      </Panel>
+
       <Panel
         title="Measuring how the app is used"
         description="Optional, and off until you say yes. Arena works the same either way."

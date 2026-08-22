@@ -68,6 +68,10 @@ export async function recordDailyMarks(now = new Date()): Promise<MarkResult> {
     .from("weekly_cycles")
     .select("id, starting_balance")
     .eq("status", "open")
+    // The house week, not a league's battle. A mark is a bar on a share card
+    // for the week everybody played, and a league running a three month
+    // contest would otherwise be the newest open cycle every day of it.
+    .is("league_id", null)
     .order("monday", { ascending: false })
     .limit(1);
 
@@ -165,6 +169,7 @@ export async function needsMarkToday(now = new Date()): Promise<boolean> {
     .from("weekly_cycles")
     .select("id")
     .eq("status", "open")
+    .is("league_id", null)
     .order("monday", { ascending: false })
     .limit(1);
 

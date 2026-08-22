@@ -1,6 +1,10 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { CalendarDays, Users, Wallet } from "lucide-react";
 import { getSession, isOnboarded } from "@/lib/profile";
+import { STARTING_BALANCE } from "@/lib/game";
+import { formatMoney } from "@/lib/format";
 import { OnboardingForm } from "@/components/OnboardingForm";
 import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
 import { Skeleton } from "@/components/Skeleton";
@@ -33,12 +37,56 @@ export default function OnboardingPage() {
           </p>
 
           {/*
+            Three lines about what they have just signed up for, above the
+            fields rather than behind a tour.
+
+            This screen used to ask for a name and a tag and say nothing at all
+            about the game, so the first thing anybody learned about Arena was
+            that it wanted two things from them. It is still one step and still
+            one button: the words are what changed, not the number of screens,
+            because every step between signing up and the first live number is
+            somewhere to lose somebody.
+          */}
+          <div className="mb-6 flex flex-col gap-2">
+            {[
+              {
+                icon: Wallet,
+                text: `You get ${formatMoney(STARTING_BALANCE)} of pretend money. It is not real, nothing here becomes real, and you cannot lose money you had.`,
+              },
+              {
+                icon: CalendarDays,
+                text: "Buy shares in real companies at real prices. On Friday the week is scored on how you did against the market, and on Monday everybody starts level again.",
+              },
+              {
+                icon: Users,
+                text: "We will make you a league of your own. Send the code to one person and you have a race.",
+              },
+            ].map(({ icon: Icon, text }) => (
+              <div key={text} className="glass-well flex items-start gap-3 rounded-lg p-4">
+                <Icon
+                  className="mt-0.5 size-4 shrink-0 text-primary"
+                  aria-hidden="true"
+                />
+                <p className="text-sm text-muted-foreground">{text}</p>
+              </div>
+            ))}
+          </div>
+
+          {/*
             The form's own height, so the page does not jump when the fields
             arrive with whatever we already knew typed into them.
           */}
           <Suspense fallback={<FormPending />}>
             <NameForm />
           </Suspense>
+
+          <p className="mt-6 text-sm text-muted-foreground">
+            The whole game, in two minutes:{" "}
+            <Link href="/how" className="text-foreground underline underline-offset-4">
+              how Arena works
+            </Link>
+            .
+          </p>
         </div>
       </main>
     </div>

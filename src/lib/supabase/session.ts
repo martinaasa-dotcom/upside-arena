@@ -8,6 +8,12 @@ const PUBLIC_PATHS = [
   "/",
   "/legal/terms",
   "/legal/privacy",
+  /*
+    The rules. Signed out on purpose: it is the page somebody is sent before
+    they have an account, and asking them to make one first is asking them to
+    trust a scoreboard they have not been allowed to read the rules of.
+  */
+  "/how",
   // The service worker falls back to this when the network is gone, so it has
   // to be reachable without a session.
   "/offline",

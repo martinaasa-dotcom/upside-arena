@@ -19,6 +19,11 @@ import { getPortfolioView } from "@/lib/game/portfolio";
 import { recordVisit } from "@/lib/game/streaks";
 import { getLeagues } from "@/lib/game/leagues";
 import { getLatestRecap } from "@/lib/game/share";
+import { getLiveBattles, hasEverPlayedBattle } from "@/lib/game/battles";
+import { hasDeclaredGoal } from "@/lib/game/goals";
+import { getLineupReport } from "@/lib/game/lineup";
+import { BattleCard } from "@/components/BattleCard";
+import { LineupReport } from "@/components/Lineup";
 import { considerHandoff, labUrl } from "@/lib/billing/handoff";
 import { plural } from "@/lib/format";
 import { PAGE, STACK } from "@/lib/page-shell";
@@ -54,7 +59,13 @@ export default async function HomePage() {
     so rather than inventing a portfolio value. A placeholder number here would
     teach players to distrust every number in the game.
   */
-  if (!view) {
+  /*
+    `!user` is folded in here rather than checked separately. A portfolio view
+    only exists for a signed-in player, so the two are the same condition;
+    saying so lets everything below read `user.id` rather than insisting to
+    the type checker that it is there.
+  */
+  if (!view || !user) {
     return (
       <div className={`${PAGE} ${STACK}`}>
         <div className="flex items-center justify-between gap-4">
@@ -97,6 +108,20 @@ export default async function HomePage() {
   const up = view.returnPercent >= 0;
 
   /*
+    The rest of the week, asked for together.
+
+    Every one of these is a small indexed read that depends on nothing above
+    it, and they were the difference between one round trip and five stacked
+    on the end of a screen that was otherwise ready.
+  */
+  const [battles, playedBattle, declaredGoal, lineupReport] = await Promise.all([
+    getLiveBattles(user.id),
+    hasEverPlayedBattle(user.id),
+    hasDeclaredGoal(user.id, view.cycle.id),
+    getLineupReport(user.id, view.cycle.monday),
+  ]);
+
+  /*
     Somebody who has never traded is still being told what this is. It goes
     the moment they do, because an explainer that outlives its usefulness is
     an advert for something they already have.
@@ -110,6 +135,9 @@ export default async function HomePage() {
     the honest answer is that there is not, and nothing is asked.
   */
   const rival = leagues.find((league) => league.memberCount > 1);
+
+  // Their first fortnight, roughly. See the panel below for why it is bounded.
+  const showFirstWeek = (profile?.weeks_played ?? 0) <= 1;
   const inviteReason = rival
     ? `Want to know when somebody in ${rival.name} passes you?`
     : activity && activity.streak.current >= 2
@@ -220,13 +248,45 @@ export default async function HomePage() {
         </>
       ) : null}
 
-      {brandNew ? (
+      {/*
+        The first week's list, while it is still their first week.
+
+        Bounded by weeks played rather than left to run until the last box is
+        ticked. A player two months in who has never declared a goal has not
+        failed to finish anything -- they have decided they do not want that
+        part -- and a panel telling them so every Monday would be nagging.
+      */}
+      {showFirstWeek ? (
         <FirstRun
           startingBalance={view.startingBalance}
           leagueName={starter?.name ?? null}
           inviteCode={starter?.inviteCode ?? null}
+          leagueHref={starter ? `/leagues/${starter.id}` : "/leagues"}
+          hasTraded={!brandNew}
+          hasCompany={Boolean(rival)}
+          hasGoal={declaredGoal}
+          hasBattle={playedBattle}
         />
       ) : null}
+
+      {/* What a lineup did this week, said once and then not again. */}
+      {lineupReport ? (
+        <LineupReport
+          filled={lineupReport.filled}
+          missed={lineupReport.missed.map((order) => ({
+            symbol: order.symbol,
+            detail: order.detail,
+          }))}
+        />
+      ) : null}
+
+      {battles.map((battle) => (
+        <BattleCard
+          key={battle.cycleId}
+          battle={battle}
+          href={`/leagues/${battle.leagueId}/battle`}
+        />
+      ))}
 
       {handoff ? (
         <>

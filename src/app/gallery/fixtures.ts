@@ -4,6 +4,10 @@ import type { Streak } from "@/lib/game/streaks";
 import type { Position } from "@/lib/game/portfolio";
 import type { PodView } from "@/lib/game/pods";
 import type { Recap } from "@/lib/share/card";
+import type { Battle } from "@/lib/game/battles";
+import type { LineupView } from "@/lib/game/lineup";
+import { formatById } from "@/lib/game/formats";
+import { lengthById } from "@/lib/game/lengths";
 
 /*
   The awkward cases, on purpose.
@@ -265,3 +269,101 @@ export const weekMarks = [1.2, -0.4, 3.9, 0.1, -2.6];
 
 /** And a week that barely moved, which has to stay readable as flat. */
 export const flatMarks = [0.01, 0.0, 0.01, 0.0, 0.01];
+
+/*
+  A battle, in the shape that is hardest to lay out: the longest format name
+  against the longest league name, with the "runs through the weekend" line
+  that only one format shows.
+*/
+export const battle: Battle = {
+  cycleId: "b1",
+  leagueId: "l1",
+  leagueName: LONG_LEAGUE,
+  leagueIcon: "\u{1F3C6}",
+  format: formatById("crypto"),
+  length: lengthById("quarter"),
+  startsOn: "2026-08-17",
+  endsOn: "2026-11-13",
+  status: "open",
+  finished: false,
+  startingBalance: 100_000,
+  benchmarkSymbol: "BTC-USD",
+  benchmarkOpen: 61_240.5,
+  benchmarkClose: null,
+  isYours: true,
+  timeLeft: "About 3 months left",
+  notStarted: false,
+};
+
+export const battleFinished: Battle = {
+  ...battle,
+  format: formatById("inverse"),
+  length: lengthById("week"),
+  benchmarkSymbol: "SH",
+  status: "closed",
+  finished: true,
+  benchmarkClose: 25.4,
+  timeLeft: "Finished",
+};
+
+/*
+  A lineup with one of everything: a name that could not be priced, a whole
+  number of shares wide enough to fill its column, and a company name long
+  enough to need the row to truncate rather than wrap.
+*/
+export const lineup: LineupView = {
+  monday: "2026-08-24",
+  locked: false,
+  maxOrders: 8,
+  startingBalance: 100_000,
+  estimate: 61_450,
+  orders: [
+    {
+      id: "o1",
+      symbol: "GOOGL",
+      quantity: 120,
+      name: "Alphabet Inc. Class A Capital Stock",
+      estimate: 24_600,
+      quote: null,
+      ran: false,
+      outcome: null,
+      fillPrice: null,
+      detail: null,
+    },
+    {
+      id: "o2",
+      symbol: "BRK-B",
+      quantity: 1_250,
+      name: "Berkshire Hathaway Inc. New Class B Common Stock",
+      estimate: 36_850,
+      quote: null,
+      ran: false,
+      outcome: null,
+      fillPrice: null,
+      detail: null,
+    },
+    {
+      id: "o3",
+      symbol: "NOPRICE",
+      quantity: 4,
+      name: null,
+      estimate: null,
+      quote: null,
+      ran: false,
+      outcome: null,
+      fillPrice: null,
+      detail: null,
+    },
+  ],
+};
+
+export const lineupLocked: LineupView = { ...lineup, locked: true };
+
+/** The longest reason a lineup order can give for not having run. */
+export const lineupMissed = [
+  {
+    symbol: "BRK-B",
+    detail:
+      "There was not enough cash left by the time this one came round, so nothing was bought.",
+  },
+];

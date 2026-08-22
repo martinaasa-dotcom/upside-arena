@@ -45,6 +45,29 @@ export async function getGoals(
   );
 }
 
+/**
+ * Whether they have said anything to anybody this week.
+ *
+ * One indexed read across every league they are in, for the first-week list
+ * on Home, which needs to know that a goal exists rather than what it is.
+ */
+export async function hasDeclaredGoal(
+  userId: string,
+  cycleId: string
+): Promise<boolean> {
+  if (!canWriteGame) return false;
+
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("weekly_goals")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("cycle_id", cycleId)
+    .limit(1);
+
+  return (data ?? []).length > 0;
+}
+
 export type DeclareOutcome =
   | { ok: true }
   | { ok: false; error: string };

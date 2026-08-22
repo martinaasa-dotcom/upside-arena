@@ -214,6 +214,44 @@ export default async function MetricsPage() {
         </HairlineGrid>
       </Panel>
 
+      {/*
+        The two newest parts of the game, and the honest question about each.
+
+        Battles: did anybody find them, and did anybody finish one. A league
+        that starts one and abandons it has told us nothing, so the second
+        number counts settled battles rather than started ones.
+
+        Lineups: orders actually bought on a Monday. Queueing is not the
+        outcome; being bought is.
+      */}
+      <Panel
+        title="Battles and weekends"
+        description="Both of these are new, and both are the kind of thing that is quietly used by nobody. Better to find that out in a fortnight."
+      >
+        <HairlineGrid maxColumns={3}>
+          <Row
+            label="Leagues that tried a battle"
+            detail="of the leagues there are"
+            part={e.leaguesWithABattle}
+            whole={l.leagues}
+          />
+          <HairlineCell>
+            <span className="text-sm text-muted-foreground">Battles settled</span>
+            <span className="figure text-lg font-semibold">{e.battlesSettled}</span>
+            <span className="text-xs text-muted-foreground">
+              Started and abandoned counts for nothing.
+            </span>
+          </HairlineCell>
+          <HairlineCell>
+            <span className="text-sm text-muted-foreground">Lineup orders filled</span>
+            <span className="figure text-lg font-semibold">{e.lineupsFilled}</span>
+            <span className="text-xs text-muted-foreground">
+              Bought on a Monday, having been left at a weekend.
+            </span>
+          </HairlineCell>
+        </HairlineGrid>
+      </Panel>
+
       <Panel title="What is not here">
         <p className="text-sm text-muted-foreground">
           Which buttons people press is measured separately, through the

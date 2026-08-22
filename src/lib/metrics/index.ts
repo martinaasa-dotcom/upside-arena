@@ -51,6 +51,12 @@ export type Metrics = {
     cardsLive: number;
     activeToday: number;
     activeThisWeek: number;
+    /** Battles that were settled, not battles that were started. */
+    battlesSettled: number;
+    /** Leagues that have tried one at all, which is a different question. */
+    leaguesWithABattle: number;
+    /** Weekend orders that were actually bought on the Monday. */
+    lineupsFilled: number;
   };
 };
 
@@ -76,6 +82,9 @@ const EMPTY: Metrics = {
     cardsLive: 0,
     activeToday: 0,
     activeThisWeek: 0,
+    battlesSettled: 0,
+    leaguesWithABattle: 0,
+    lineupsFilled: 0,
   },
 };
 
@@ -145,6 +154,9 @@ export async function getMetrics(): Promise<Metrics> {
       cardsLive: e?.cards_live ?? 0,
       activeToday: e?.active_today ?? 0,
       activeThisWeek: e?.active_this_week ?? 0,
+      battlesSettled: e?.battles_settled ?? 0,
+      leaguesWithABattle: e?.leagues_with_a_battle ?? 0,
+      lineupsFilled: e?.lineups_filled ?? 0,
     },
   };
 }

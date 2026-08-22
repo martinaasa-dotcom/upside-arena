@@ -29,6 +29,40 @@ leaderboard with a title on it. Below that the pod panel on `/leagues` is
 simply absent. The plan asks for the feature to wait for volume, not for the
 work to.
 
+On top of all of that, three things that answer the same complaint from
+different directions — that the week was the only game there was.
+
+**Battles.** A league can run a second contest beside the house week, with its
+own rule book and its own length: semiconductors only, one company all week,
+coins with a market that never shuts, or short selling, where you pick what
+will fall. Any member may start one, one runs at a time, and it can last a day
+or a year. Nothing about a battle touches a career: `score_cycle` credits
+`weeks_played`, a best week and the season for the house week and nothing else,
+because a season anybody could enter by choosing a format that suited them
+would not be a season.
+
+A battle is a `weekly_cycles` row with a league on it, which is the decision
+worth knowing before reading any of it —
+[`0017_battles.sql`](supabase/migrations/0017_battles.sql) argues it out. The
+rule books themselves are code, in
+[`src/lib/game/formats.ts`](src/lib/game/formats.ts), and the lengths are in
+[`src/lib/game/lengths.ts`](src/lib/game/lengths.ts). Both are pure, so the
+rule a player reads is the rule the trade is checked against.
+
+**Lineups.** Friday's close to Monday's open is sixty-five hours in which
+nothing can happen, which used to be answered with a sentence saying the market
+was shut. Over the weekend you can now name up to eight companies and they are
+bought at Monday's opening price. Everybody fills at that same price whenever
+the fill actually runs, and it locks at the bell, because from that moment the
+price is known. An order that cannot be priced or afforded is recorded as not
+having run and says why on screen.
+
+**The rules, written down.** [`/how`](src/app/how/page.tsx) is what the app is
+and how it is meant to be played, readable without an account, rendered from
+the same data the game is played by so it cannot disagree with the rules. It is
+linked from the landing page, from onboarding, from the profile and from the
+first-week list on Home.
+
 [`docs/PHASE_1.md`](docs/PHASE_1.md) is the record of what phase 1 shipped and
 why, not a description of the app today.
 

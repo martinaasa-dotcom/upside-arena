@@ -99,6 +99,24 @@ export default function LandingPage({
                 You get pretend money, you pick real companies, and on Friday
                 you find out who did best. Nothing real is ever at stake.
               </p>
+              {/*
+                The rules, before the sign-in box rather than after it.
+
+                Somebody deciding whether to hand over an email address to a
+                thing involving share prices has one question, and it is "what
+                is this". Two lines and a headline is the answer for most of
+                them; this is for the rest, and it is readable without an
+                account on purpose.
+              */}
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                <Link
+                  href="/how"
+                  className="text-foreground underline underline-offset-4"
+                >
+                  How Arena works
+                </Link>{" "}
+                — the whole game in two minutes, no account needed.
+              </p>
             </div>
 
             <ul className="rise rise-2 mt-7 flex max-w-md flex-col gap-4 text-left text-sm leading-relaxed text-muted-foreground md:mt-9">
