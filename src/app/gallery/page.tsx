@@ -18,6 +18,7 @@ import { PlusControls } from "@/components/PlusControls";
 import { AccountControls } from "@/components/AccountControls";
 import { SharedCards } from "@/components/SharedCards";
 import { WeekShape } from "@/components/WeekShape";
+import { ErrorPreview } from "./ErrorPreview";
 import { COIN_BUNDLES } from "@/lib/billing/plan";
 import { PAGE, STACK } from "@/lib/page-shell";
 import * as fixture from "./fixtures";
@@ -241,6 +242,16 @@ export default function GalleryPage() {
         <Panel title="Your account">
           <AccountControls />
         </Panel>
+      </Case>
+
+      {/*
+        The screen somebody gets when a room will not draw. It has no route of
+        its own to visit, so it is measured here instead — the copy is long
+        enough to wrap on a phone and the digest line is a figure that must not
+        be cut in half.
+      */}
+      <Case name="error-boundary">
+        <ErrorPreview />
       </Case>
 
       <Case name="wardrobe">
