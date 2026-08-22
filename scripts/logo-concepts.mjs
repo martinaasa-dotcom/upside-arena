@@ -210,7 +210,7 @@ const CONCEPTS = [
     id: "quarry",
     name: "Quarry",
     idea: "The honeycomb itself parted along the diagonal, with the stone on the seam left lit. Both directions in one mark.",
-    facets: cluster(9).map(([cx, cy], i) => {
+    facets: cluster(9).map(([cx, cy]) => {
       const sum = cx + cy;
       const d = sum < 63.5 ? -2 : sum > 64.5 ? 2 : 0;
       const shade = d === 0 ? 1 : d < 0 ? 3 : 4;
