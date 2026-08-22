@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { PODS_MINIMUM, POD_TARGET_SIZE, TIER_NAMES } from "@/lib/game/pods";
+import {
+  PODS_MINIMUM,
+  POD_TARGET_SIZE,
+  TIER_NAMES,
+  movingFrom,
+  podZone,
+} from "@/lib/game/pods";
 
 /*
   The rules of a pod that are decided in the app rather than the database.
@@ -9,10 +15,8 @@ import { PODS_MINIMUM, POD_TARGET_SIZE, TIER_NAMES } from "@/lib/game/pods";
   shape so the two cannot disagree.
 */
 
-/** Mirrors the rule settle_pod applies. */
-function moving(members: number): number {
-  return members < 8 ? 0 : Math.max(1, Math.floor(members * 0.2));
-}
+/** The same rule settle_pod applies, and the one the screen shows. */
+const moving = movingFrom;
 
 describe("what the plan asks a pod to be", () => {
   it("holds the twenty to thirty section 2.2 asks for", () => {
@@ -61,6 +65,38 @@ describe("how many go up and down", () => {
       const up = moving(size);
       const down = moving(size);
       expect(up).toBe(down);
+    }
+  });
+});
+
+describe("which way a place is heading", () => {
+  it("sends the top places up and the bottom places down", () => {
+    const size = 24;
+    const going = movingFrom(size); // 4
+
+    expect(podZone(1, size, going)).toBe("promoted");
+    expect(podZone(going, size, going)).toBe("promoted");
+    expect(podZone(going + 1, size, going)).toBe("held");
+    expect(podZone(size - going, size, going)).toBe("held");
+    expect(podZone(size - going + 1, size, going)).toBe("relegated");
+    expect(podZone(size, size, going)).toBe("relegated");
+  });
+
+  it("holds everybody when the pod is too thin to move anyone", () => {
+    for (let rank = 1; rank <= 7; rank++) {
+      expect(podZone(rank, 7, movingFrom(7))).toBe("held");
+    }
+  });
+
+  it("never puts one place in two zones, at any pod size", () => {
+    // The row shows one arrow. If the promotion and relegation bands could
+    // overlap, the arrow would be deciding something the ladder had not.
+    for (let size = 1; size <= 60; size++) {
+      const going = movingFrom(size);
+      const zones = Array.from({ length: size }, (_, i) => podZone(i + 1, size, going));
+      expect(zones.filter((z) => z === "promoted")).toHaveLength(going);
+      expect(zones.filter((z) => z === "relegated")).toHaveLength(going);
+      expect(zones.filter((z) => z === "held")).toHaveLength(size - going * 2);
     }
   });
 });

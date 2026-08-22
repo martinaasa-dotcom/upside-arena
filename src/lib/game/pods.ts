@@ -40,6 +40,27 @@ export const TIER_NAMES: Record<PodTier, string> = {
   diamond: "Diamond",
 };
 
+/**
+ * How many go up and down at the end of a week, out of a pod this size.
+ *
+ * The same rule settle_pod applies. It lives here as well because the screen
+ * has to say what will happen before the week is over, and the two answers
+ * have to be the same one.
+ */
+export function movingFrom(size: number): number {
+  return size < 8 ? 0 : Math.max(1, Math.floor(size * 0.2));
+}
+
+/** Which way a place in the ladder is heading, if the week ended now. */
+export type PodZone = "promoted" | "held" | "relegated";
+
+export function podZone(rank: number, size: number, moving: number): PodZone {
+  if (moving === 0) return "held";
+  if (rank <= moving) return "promoted";
+  if (rank > size - moving) return "relegated";
+  return "held";
+}
+
 export type PodStanding = {
   userId: string;
   displayName: string;
@@ -187,10 +208,17 @@ export async function getPodView(
 
   const admin = createAdminClient();
 
+  /*
+    Scoped to the week, not just to the player. Somebody who has been playing
+    a while has one membership row per pod they have ever been in, so asking
+    only for their user id starts returning several the moment they see a
+    second week.
+  */
   const { data: mine } = await admin
     .from("pod_members")
-    .select("pod_id")
+    .select("pod_id, pods!inner(cycle_id)")
     .eq("user_id", userId)
+    .eq("pods.cycle_id", cycleId)
     .maybeSingle();
 
   const podId = (mine as { pod_id: string } | null)?.pod_id;
@@ -201,7 +229,7 @@ export async function getPodView(
     admin.from("pod_members").select("*").eq("pod_id", podId),
   ]);
 
-  if (!pod || (pod as PodRow).cycle_id !== cycleId) return null;
+  if (!pod) return null;
 
   const rows = (members ?? []) as PodMemberRow[];
   const ids = rows.map((row) => row.user_id);
@@ -250,11 +278,10 @@ export async function getPodView(
   }));
 
   /*
-    How many move, mirroring the rule the database settles on. A pod too thin
-    for that to mean anything moves nobody, and then there is no promotion
-    place to be near and nothing to say about it.
+    A pod too thin for a move to mean anything moves nobody, and then there is
+    no promotion place to be near and nothing to say about it.
   */
-  const moving = standings.length < 8 ? 0 : Math.max(1, Math.floor(standings.length * 0.2));
+  const moving = movingFrom(standings.length);
 
   const you = standings.find((row) => row.isYou);
   const lastPromoted = moving > 0 ? standings[moving - 1] : undefined;
