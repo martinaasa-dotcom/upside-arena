@@ -4,8 +4,5 @@
     "deploymentEnabled": {
       "claude/*": false
     }
-  },
-  "regions": [
-    "fra1"
-  ]
+  }
 }
