@@ -336,6 +336,89 @@ recorded on Arena's side, and nothing is lost.
 
 ---
 
+## 7. Sign in with Google
+
+The code has been there since phase 1 and needs no change: the button, the
+OAuth handshake, the callback that swaps the code for a session, and the
+profile trigger, which already reads Google's `full_name`, `name` and
+`avatar_url`, so a Google account arrives with its real name and picture
+rather than an email stub.
+
+What is missing is the configuration, in three places, in this order.
+
+### 7a. Google Cloud Console
+
+**console.cloud.google.com**, on a project for Arena.
+
+First **APIs and services, OAuth consent screen**:
+
+- User type **External**, unless everyone signing in has an account on your
+  Google Workspace, which they will not.
+- App name `Upside Arena`, your support email, your logo if you have one.
+- Scopes: the default `email`, `profile` and `openid`. Nothing else. Asking
+  for more turns a one-tap sign-in into a permissions dialogue people back
+  out of, and Arena has no use for anything further.
+- **Publish** it. While it is in Testing only accounts you list by hand can
+  sign in, and it gives everyone else an error that reads like a broken site.
+  With only those three scopes, publishing needs no Google review.
+
+Then **Credentials, Create credentials, OAuth client ID**:
+
+- Application type **Web application**.
+- Authorised JavaScript origins: `https://upsidearena.com`.
+- Authorised redirect URI:
+  **`https://tjdsorcedcdtjggwbsxv.supabase.co/auth/v1/callback`**
+
+That redirect URI is the one thing here that is easy to get wrong, and it
+fails in a way that looks like a code bug. It points at **Supabase**, not at
+`upsidearena.com`. Supabase runs the OAuth exchange and only then hands the
+session back to Arena, so Google must be told to return to Supabase. Putting
+`https://upsidearena.com/auth/callback` here produces `redirect_uri_mismatch`.
+
+Copy the **Client ID** and **Client secret**.
+
+### 7b. Supabase
+
+**Authentication, Providers, Google.** Enable it, paste the client ID and
+secret, save.
+
+Then **Authentication, URL Configuration**, and check the redirect allow list
+contains `https://upsidearena.com/auth/callback`. That is where Arena asks
+Supabase to send people once the exchange is done, and Supabase refuses any
+destination not on the list. It should already be there from the domain setup.
+
+### 7c. Vercel, and a redeploy
+
+| Name | Value |
+|---|---|
+| `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH` | `true` |
+
+**Setting this is not enough on its own.** It is a `NEXT_PUBLIC_` variable, so
+its value is compiled into the JavaScript at build time rather than read when
+somebody loads the page. Changing it in the dashboard does nothing at all
+until the next deploy. Redeploy after setting it.
+
+Do this step last. Turning the flag on before 7a and 7b are done puts a Google
+button on the sign-in page that can only fail.
+
+### 7d. Confirm it worked
+
+1. Open `https://upsidearena.com` signed out. There should be a **Continue
+   with Google** button above the email field.
+2. Press it. Google should ask which account, because Arena sends
+   `prompt=select_account` rather than silently reusing whichever one the
+   browser last used.
+3. You should land back on Arena, signed in, and go through onboarding.
+4. Check the profile page carries your Google name and picture.
+
+### One thing worth knowing about existing accounts
+
+Somebody who already signed in with an email link, and then signs in with a
+Google account on the same address, gets the same Arena account rather than a
+second one, because Supabase links identities on a verified email. Their
+portfolio, leagues and streak are all still theirs. This is the behaviour you
+want, and it is worth knowing before somebody reports it as a bug.
+
 ---
 
 ## What is already set up in live
