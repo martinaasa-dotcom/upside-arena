@@ -149,20 +149,45 @@ export const positions: Position[] = [
   },
 ];
 
+type Row = PodView["standings"][number];
+
+function podRow(
+  id: string,
+  displayName: string,
+  rank: number,
+  returnPercent: number,
+  extra: Partial<Row> = {}
+): Row {
+  return {
+    userId: id,
+    displayName,
+    handle: displayName.slice(0, 4).toLowerCase(),
+    avatarUrl: null,
+    rank,
+    returnPercent,
+    versusMarket: returnPercent - 1.1,
+    isYou: false,
+    hasTraded: true,
+    outcome: null,
+    ...extra,
+  };
+}
+
 export const podView: PodView = {
   pod: { id: "p1", tier: "bronze", number: 3, name: "Bronze pod 3" },
+  settled: false,
   moving: 2,
   toPromotion: 1.4,
   toSafety: null,
   standings: [
-    { userId: "p1", displayName: LONG_NAME, handle: LONG_HANDLE, avatarUrl: null, rank: 1, returnPercent: 5.2, versusMarket: 4.1, isYou: false, hasTraded: true },
-    { userId: "p2", displayName: "Marcus", handle: "m", avatarUrl: null, rank: 2, returnPercent: 4.3, versusMarket: 3.2, isYou: false, hasTraded: true },
-    { userId: "p3", displayName: "You", handle: "you", avatarUrl: null, rank: 3, returnPercent: 1.6, versusMarket: 0.5, isYou: true, hasTraded: true },
-    { userId: "p4", displayName: "Tom", handle: "t", avatarUrl: null, rank: 4, returnPercent: -0.2, versusMarket: -1.3, isYou: false, hasTraded: true },
-    { userId: "p5", displayName: "Ines", handle: "i", avatarUrl: null, rank: 5, returnPercent: -1.1, versusMarket: -2.2, isYou: false, hasTraded: true },
-    { userId: "p6", displayName: "Raj", handle: "r", avatarUrl: null, rank: 6, returnPercent: -3.8, versusMarket: -4.9, isYou: false, hasTraded: false },
-    { userId: "p7", displayName: "Mia", handle: "mi", avatarUrl: null, rank: 7, returnPercent: -4.7, versusMarket: -5.8, isYou: false, hasTraded: false },
-    { userId: "p8", displayName: "Lena", handle: "l", avatarUrl: null, rank: 8, returnPercent: -9.9, versusMarket: -11.0, isYou: false, hasTraded: false },
+    podRow("p1", LONG_NAME, 1, 5.2, { handle: LONG_HANDLE }),
+    podRow("p2", "Marcus", 2, 4.3),
+    podRow("p3", "You", 3, 1.6, { isYou: true }),
+    podRow("p4", "Tom", 4, -0.2),
+    podRow("p5", "Ines", 5, -1.1),
+    podRow("p6", "Raj", 6, -3.8, { hasTraded: false }),
+    podRow("p7", "Mia", 7, -4.7, { hasTraded: false }),
+    podRow("p8", "Lena", 8, -9.9, { hasTraded: false }),
   ],
 };
 
@@ -173,7 +198,25 @@ export const podViewDropping: PodView = {
   toSafety: 2.7,
   standings: podView.standings.map((row) => ({
     ...row,
+    displayName: row.userId === "p7" ? "You" : row.displayName,
     isYou: row.userId === "p7",
+  })),
+};
+
+/*
+  And the week after it finished, which is what somebody sees when they open
+  the message that told them they moved. No gap to close, and the arrows are
+  what the ladder wrote down rather than what this screen would work out.
+*/
+export const podViewSettled: PodView = {
+  ...podView,
+  settled: true,
+  toPromotion: null,
+  toSafety: null,
+  standings: podView.standings.map((row) => ({
+    ...row,
+    outcome:
+      row.rank <= 2 ? "promoted" : row.rank >= 7 ? "relegated" : ("held" as const),
   })),
 };
 

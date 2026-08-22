@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { placeTrade } from "@/lib/game/portfolio";
 import { grantReward } from "@/lib/game/streaks";
 import { searchSymbols, type SymbolMatch } from "@/lib/market/quotes";
+import { formatMoney } from "@/lib/format";
 
 export type TradeState = {
   error?: string;
@@ -53,16 +54,24 @@ export async function submitTrade(
 
   if (!result.ok) return { error: result.error };
 
-  // Earned by playing, which is the only way anything here is earned.
-  await grantReward(user.id, "title.off_the_mark");
+  /*
+    Earned by playing, which is the only way anything here is earned — and
+    never at the cost of the trade. The trade is already placed and paid for by
+    the time this runs, so a title that will not grant must not come back as a
+    failed trade. Told their money moved and their order did not, a player
+    places it again.
+  */
+  try {
+    await grantReward(user.id, "title.off_the_mark");
+  } catch {
+    // The next trade grants it. Nothing is lost by being late.
+  }
 
   revalidatePath("/home");
   revalidatePath("/trade");
 
-  const money = result.price.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-  });
+  // Cents, because this is the price they were filled at rather than a total.
+  const money = formatMoney(result.price, "USD", 2);
 
   return {
     success:

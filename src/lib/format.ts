@@ -23,11 +23,21 @@ export function formatDate(value: Date | string) {
   return DATE.format(typeof value === "string" ? new Date(value) : value);
 }
 
-export function formatMoney(value: number, currency = "USD") {
+/**
+ * Money, whole by default.
+ *
+ * A portfolio worth $104,382.17 is worth $104,382, and the cents are noise in
+ * a column somebody is scanning. A fill price is the opposite: $765.72 is not
+ * $766, and rounding the number somebody was actually filled at is the kind of
+ * small lie a scoreboard cannot afford. So the digits are a parameter, and
+ * both callers say which they mean.
+ */
+export function formatMoney(value: number, currency = "USD", digits = 0) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
   }).format(value);
 }
 

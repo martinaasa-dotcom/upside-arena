@@ -29,6 +29,15 @@ describe("formatPercent", () => {
 describe("formatMoney", () => {
   it("renders whole play dollars", () => {
     expect(formatMoney(10000)).toBe("$10,000");
+    expect(formatMoney(104_382.17)).toBe("$104,382");
+  });
+
+  it("keeps the cents when asked, because a fill price is not a total", () => {
+    // A portfolio worth $104,382.17 is worth $104,382 and the cents are noise
+    // in a column. Rounding the price somebody was actually filled at is a
+    // different thing, and a scoreboard cannot afford that kind of small lie.
+    expect(formatMoney(765.72, "USD", 2)).toBe("$765.72");
+    expect(formatMoney(766, "USD", 2)).toBe("$766.00");
   });
 });
 

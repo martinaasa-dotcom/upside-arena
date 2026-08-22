@@ -16,20 +16,22 @@ import { podZone, type PodView } from "@/lib/game/pods";
   and is simply absent when there is nothing honest to say.
 */
 export function PodStandings({ view }: { view: PodView }) {
-  const { pod, standings, moving, toPromotion, toSafety } = view;
+  const { pod, settled, standings, moving, toPromotion, toSafety } = view;
   const you = standings.find((row) => row.isYou);
 
   return (
     <Panel
       title={pod.name}
       description={
-        moving === 0
-          ? "Nobody moves up or down out of a pod this small. It fills as more people play."
-          : `Everyone here started Monday with the same money. The top ${moving} go up on Friday, the bottom ${moving} go down.`
+        settled
+          ? "How last week finished. A new week has started, with the same money for everyone."
+          : moving === 0
+            ? "Nobody moves up or down out of a pod this small. It fills as more people play."
+            : `Everyone here started Monday with the same money. The top ${moving} go up on Friday, the bottom ${moving} go down.`
       }
     >
       <div className="flex flex-col gap-4">
-        {you && moving > 0 ? (
+        {you && moving > 0 && !settled ? (
           <Well className="flex items-start gap-3 py-3">
             {/*
               The drop first. Somebody near the bottom of a pod is both outside
@@ -91,7 +93,12 @@ export function PodStandings({ view }: { view: PodView }) {
               is invisible on a phone, and this is the one thing somebody
               opens the pod to find out.
             */
-            const zone = podZone(row.rank, standings.length, moving);
+            /*
+              On a settled pod this is what the ladder wrote down, not what
+              this screen would work out. The two agree, and if they ever did
+              not it is the recorded one that changed somebody's rating.
+            */
+            const zone = row.outcome ?? podZone(row.rank, standings.length, moving);
 
             const Icon =
               zone === "promoted" ? ArrowUp : zone === "relegated" ? ArrowDown : Minus;
@@ -119,10 +126,16 @@ export function PodStandings({ view }: { view: PodView }) {
                   )}
                   aria-label={
                     zone === "promoted"
-                      ? "Going up"
+                      ? settled
+                        ? "Went up"
+                        : "Going up"
                       : zone === "relegated"
-                        ? "Going down"
-                        : "Staying"
+                        ? settled
+                          ? "Went down"
+                          : "Going down"
+                        : settled
+                          ? "Stayed"
+                          : "Staying"
                   }
                 />
 
@@ -139,7 +152,8 @@ export function PodStandings({ view }: { view: PodView }) {
                   </span>
                   {!row.hasTraded ? (
                     <span className="text-xs text-muted-foreground">
-                      Has not traded yet
+                      {/* "Yet" is a week that is still running. */}
+                      {settled ? "Did not trade" : "Has not traded yet"}
                     </span>
                   ) : null}
                 </span>
