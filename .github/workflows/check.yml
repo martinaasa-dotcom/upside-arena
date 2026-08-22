@@ -50,6 +50,55 @@ jobs:
         env:
           NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3100
 
+  # The rules that protect the game, run against a real Postgres.
+  #
+  # These are the 400-odd assertions in supabase/tests: that a player reads
+  # only their own row and writes none of it, that a rating cannot be raised
+  # by the person it belongs to, that coins cannot be conjured, that settling
+  # a week twice settles it once. Every one of them was written, and none of
+  # them ran here -- so a migration could have taken row level security off a
+  # table and this file would have gone green.
+  #
+  # That is the same failure the note at the top of this file is about, one
+  # layer down: a guard nobody runs is a guard reporting a pass it did not
+  # earn.
+  db:
+    name: Migrations, triggers, row level security
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        # Without this the job starts psql before the server is listening and
+        # fails on connection rather than on anything it was asked to check.
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # The runner image ships a client, but not necessarily one that matches
+      # the server. Installing 16 keeps the two in step.
+      - name: Install the matching psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client-16
+
+      - run: ./scripts/test-db.sh
+
   e2e:
     name: Browser tests
     runs-on: ubuntu-latest
