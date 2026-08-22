@@ -290,9 +290,75 @@ npm run test:db    # migrations, triggers, row level security
 npm run test:e2e   # signed-out flows
 ```
 
+### There is a daily cap, and it is easy to hit
+
+The free plan allows **100 deployments a day** across the project. Past that,
+every build fails with:
+
+```
+Resource is limited - try again in 24 hours
+(more than 100, code: "api-deployments-free-per-day")
+```
+
+This is not a build failure and no change to the code fixes it. It hit on
+2026-08-21 and stayed hit for hours, so treat the 24-hour message as literal
+rather than as a rolling window that clears in minutes.
+
+What it means in practice:
+
+- **A merge to `main` does not deploy** while the cap is on. Production keeps
+  serving the last build that got through, which can be a long way behind
+  `main`. Check what is actually deployed rather than assuming a merge shipped.
+- Every push to an open pull request spends one, because each gets a preview.
+  A branch pushed twenty times has spent twenty.
+- Pushing again to clear it makes it worse.
+
+Upgrading the plan removes the cap. Nothing else does.
+
 ## Migrations
 
-Migrations are not applied automatically. After deploying a change under
-`supabase/migrations`, apply it to the Supabase project, either with
-`npx supabase db push` against a linked project, or by pasting the file into
-the SQL editor. The app expects the schema to be there before it starts.
+**Migrations are not applied automatically, and deploying does not apply them.**
+A deploy and a migration are two separate acts, and the app can be running code
+that expects a table the project does not have.
+
+Two ways to apply one:
+
+- `npx supabase db push` against a linked project. Needs a Supabase access
+  token (`supabase login`, or `SUPABASE_ACCESS_TOKEN`), which is not the same
+  thing as the service role key.
+- Paste the file into the SQL editor and run it. Needs nothing but the
+  dashboard.
+
+The service role key in `SUPABASE_SERVICE_ROLE_KEY` cannot do this. It
+authenticates against PostgREST, which reads and writes rows; `create table`,
+`create function` and `grant` are not expressible through that API at all. If
+a tool has only that key, it cannot apply a migration, however much it looks
+like a key that should.
+
+### What exists
+
+| File | What it adds |
+|---|---|
+| `0001_profiles.sql` | Profiles, the terms record, the age gate |
+| `0002_portfolio_engine.sql` | Weekly cycles, portfolios, holdings, trades |
+| `0003_settlement.sql` | Claiming and scoring a finished week |
+| `0004_leagues.sql` | Private leagues and membership |
+| `0005_streaks_rewards.sql` | Streaks, the freeze, the reward catalogue |
+| `0006_notifications.sql` | Push subscriptions, settings, the send record |
+| `0007_share_cards.sql` | Portfolio marks and share cards |
+| `0008_metrics.sql` | Daily actives |
+| `0009_entitlements.sql` | Entitlements, coins, the billing event claim |
+| `0010_cosmetics.sql` | Picture rings and themes alongside titles |
+| `0011_seasons.sql` | The quarterly season and its standings |
+| `0012_streak_bonuses.sql` | What a streak milestone pays |
+| `0013_weekly_goals.sql` | The goal declared inside a league |
+
+### How a missing one shows up
+
+Every feature added after `0010` degrades rather than breaking: the season page
+says the season starts with your first settled week, no milestone pays, and no
+goal can be declared. Nothing else on the site is affected.
+
+That is deliberate, and it is also why a missing migration is easy to miss.
+Check rather than infer — the fastest way is to open `/season` while signed in
+and see whether it names the current quarter.
