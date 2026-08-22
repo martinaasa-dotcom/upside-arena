@@ -3,7 +3,7 @@ import { Trophy, Users } from "lucide-react";
 import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
 import { SignInCard } from "@/components/SignInCard";
 import { Badge } from "@/components/ui/badge";
-import { isGoogleEnabled } from "@/lib/env";
+import { googleConfigured } from "@/lib/auth/google";
 import { COMPANY } from "@/lib/company";
 import { MINIMUM_AGE } from "@/lib/legal";
 
@@ -88,7 +88,7 @@ export default async function LandingPage({
 
             <div className="rise rise-3 mt-8 w-full max-w-sm md:mt-10">
               <SignInCard
-                googleEnabled={isGoogleEnabled}
+                googleEnabled={googleConfigured}
                 next={next}
                 initialError={
                   error === "age"

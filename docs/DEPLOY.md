@@ -26,7 +26,8 @@ Production and Preview both. None of them belongs in the repository.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the publishable key | Public. Row level security protects it. |
 | `SUPABASE_SERVICE_ROLE_KEY` | the secret key | **Server only.** Bypasses row level security. Never prefix it with `NEXT_PUBLIC_`. |
 | `NEXT_PUBLIC_SITE_URL` | `https://upsidearena.com` | Set, on All Environments. Builds sign-in links, notification emails and share urls. If it were ever unset, production falls back to the project's production domain rather than to a deployment url, but that is a safety net rather than the setting. |
-| `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH` | `false` | Turn to `true` only once the Google provider is enabled in Supabase, and redeploy: this is compiled in at build time, so changing it alone does nothing. See [SWITCH_ON.md](SWITCH_ON.md#7-sign-in-with-google). |
+| `GOOGLE_CLIENT_ID` | from the Arena Google Cloud project | The Google button appears when this and the secret are both set, and not otherwise. |
+| `GOOGLE_CLIENT_SECRET` | from the same client | **Server only.** Arena exchanges the code itself. See [SWITCH_ON.md](SWITCH_ON.md#7-sign-in-with-google). |
 | `CRON_SECRET` | a long random string | **Server only.** Shared with the GitHub workflows below. |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | the VAPID public key | Public. It is handed to the browser to subscribe with. |
 | `VAPID_PRIVATE_KEY` | the VAPID private key | **Server only.** Signs every push. |

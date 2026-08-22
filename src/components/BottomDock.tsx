@@ -2,8 +2,8 @@
 
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeftRight, CalendarRange, Home, Trophy, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ROOMS } from "@/lib/rooms";
 
 /*
   Bottom dock, on desktop and phone alike. Active tab is the aqua pill
@@ -20,13 +20,6 @@ import { cn } from "@/lib/utils";
 */
 const LABELS_FIT = "max-[544px]:sr-only";
 
-const ROOMS = [
-  { href: "/home", label: "Home", icon: Home },
-  { href: "/trade", label: "Trade", icon: ArrowLeftRight },
-  { href: "/leagues", label: "Leagues", icon: Trophy },
-  { href: "/season", label: "Season", icon: CalendarRange },
-  { href: "/profile", label: "Profile", icon: User },
-];
 
 /*
   A tap has to be answered on the frame it lands on.
@@ -67,9 +60,18 @@ export function BottomDock() {
   return (
     <nav
       aria-label="Rooms"
-      className="fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[max(1rem,env(safe-area-inset-bottom))]"
+      /*
+       * `pointer-events-none` because this element spans the whole viewport
+       * while only the pill inside it draws anything. A fixed element
+       * captures clicks across its entire box whether or not it paints, so
+       * without this the empty band either side of the dock swallowed every
+       * click along the bottom of the page -- including the "Make your first
+       * trade" button that sits in the bottom-right corner of /home, which
+       * simply did nothing. The pill turns them back on.
+       */
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[max(1rem,env(safe-area-inset-bottom))]"
     >
-      <div className="card-sheen glass flex items-center gap-1 rounded-xl p-1 ring-1 ring-foreground/20">
+      <div className="card-sheen glass pointer-events-auto flex items-center gap-1 rounded-xl p-1 ring-1 ring-foreground/20">
         {ROOMS.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (

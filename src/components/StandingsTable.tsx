@@ -28,7 +28,9 @@ export function StandingsTable({
           <div
             key={row.userId}
             className={cn(
-              "flex h-14 items-center gap-3 rounded-lg px-4",
+              // A minimum, not a fixed height: a declared goal adds a second
+              // line under the name, and it wraps on a narrow phone.
+              "flex min-h-14 items-center gap-3 rounded-lg px-4 py-2",
               // Your own row is marked with the accent, so finding yourself
               // takes no reading at all.
               row.isYou

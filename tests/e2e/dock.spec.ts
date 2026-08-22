@@ -22,6 +22,15 @@ const ROOMS = [...SOURCE.matchAll(/label:\s*"([^"]+)"/g)].map((m) => m[1]);
 
 const LABELS_FIT = SOURCE.match(/const LABELS_FIT = "([^"]+)"/)?.[1] ?? "";
 
+/*
+  The dock's own two class strings, read out of the component for the same
+  reason the rooms are: a probe that hardcodes them would keep passing after
+  someone edits the real thing.
+*/
+const NAV_CLASS = SOURCE.match(/<nav[\s\S]*?className="([^"]+)"/)?.[1] ?? "";
+const PILL_CLASS =
+  SOURCE.match(/<nav[\s\S]*?<div className="([^"]+)"/)?.[1] ?? "";
+
 const DOCK = `
 <nav id="probe" style="position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;">
   <div id="probe-well" class="card-sheen glass flex items-center gap-1 rounded-xl p-1 ring-1 ring-foreground/20">
@@ -71,4 +80,81 @@ test.describe("the dock", () => {
       ).toBeLessThanOrEqual(viewport);
     });
   }
+});
+
+/*
+  The dock spans the whole width; only the pill in the middle of it draws
+  anything. A fixed element takes clicks across its entire box whether or not
+  it paints, so without `pointer-events-none` on the nav the empty band either
+  side of the pill quietly ate every click along the bottom of the page — the
+  "Make your first trade" button in the bottom-right corner of /home did
+  nothing at all when you pressed it.
+
+  Hit-testing is the only way to see this. The dock renders perfectly, the
+  button renders perfectly, and a render test of either one passes while the
+  page is broken. So this asks the browser the two questions a person asks
+  with a mouse: what is under this pixel, and does pressing it do anything.
+*/
+test.describe("the dock and the corner beside it", () => {
+  const CORNER = `
+<button id="corner" style="position:fixed;right:24px;bottom:28px;z-index:10;padding:10px 16px;">
+  Make your first trade
+</button>`;
+
+  test("carries the classes that make it click-through", () => {
+    // Without these the probe below would be measuring nothing.
+    expect(NAV_CLASS, "the nav's class string was read").not.toBe("");
+    expect(PILL_CLASS, "the pill's class string was read").not.toBe("");
+  });
+
+  test("lets a bottom-corner control be clicked", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    /*
+      Answer the measurement question before the page loads. That banner is a
+      dialog anchored to the same corner, and it is *supposed* to take the
+      clicks under it while it is open — leaving it up would have this test
+      measuring the banner instead of the dock.
+    */
+    await page.addInitScript(() => {
+      window.localStorage.setItem("arena.consent.measurement", "denied");
+    });
+    await page.goto("/");
+    await page.evaluate(
+      ([nav, pill, corner, rooms]) => {
+        document.body.insertAdjacentHTML("beforeend", corner as string);
+        const el = document.createElement("nav");
+        el.className = nav as string;
+        el.innerHTML = `<div class="${pill}">${(rooms as string[])
+          .map((r) => `<a class="flex h-11 items-center px-4">${r}</a>`)
+          .join("")}</div>`;
+        document.body.append(el);
+        (window as unknown as { hits: string[] }).hits = [];
+        document.getElementById("corner")!.addEventListener("click", () => {
+          (window as unknown as { hits: string[] }).hits.push("corner");
+        });
+        el.querySelector("a")!.addEventListener("click", () => {
+          (window as unknown as { hits: string[] }).hits.push("dock");
+        });
+      },
+      [NAV_CLASS, PILL_CLASS, CORNER, ROOMS] as const
+    );
+
+    const under = await page.evaluate(() => {
+      const r = document.getElementById("corner")!.getBoundingClientRect();
+      const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return el?.id || el?.tagName.toLowerCase() || "none";
+    });
+    expect(under, "the corner button is what sits under its own pixels").toBe(
+      "corner"
+    );
+
+    await page.locator("#corner").click();
+    await page.locator("nav a").first().click();
+
+    // The dock must still take the clicks that land on it.
+    const hits = await page.evaluate(
+      () => (window as unknown as { hits: string[] }).hits
+    );
+    expect(hits).toEqual(["corner", "dock"]);
+  });
 });

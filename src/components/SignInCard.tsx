@@ -64,7 +64,66 @@ export function SignInCard({
     if (state.sent) track("signin_link_requested");
   }, [state.sent]);
 
+  useEffect(() => {
+    if (state.suggestion) track("signin_email_questioned");
+  }, [state.suggestion]);
+
+  /*
+    Only an address the server refused, which is the one that carries the
+    typed value back. A rate limit or a missing key is not a bad address and
+    counting it as one would hide the number this event exists to show.
+  */
+  useEffect(() => {
+    if (state.error && state.typed) track("signin_email_refused");
+  }, [state.error, state.typed]);
+
   const error = state.error ?? initialError;
+
+  /*
+    A domain one letter from a very common one. Both spellings are offered and
+    neither is assumed: correcting somebody's own address without asking is how
+    a link ends up at a stranger's mailbox, and refusing an unusual but real
+    domain is how a player is locked out for good.
+  */
+  if (state.suggestion && state.typed) {
+    return (
+      <div className="flex flex-col gap-3 text-left">
+        <h2 className="text-lg font-semibold tracking-tight">
+          Did you mean {state.suggestion}?
+        </h2>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          You typed {state.typed}. We only send one link, so it is worth being
+          sure before it goes.
+        </p>
+
+        <form action={formAction} className="flex flex-col gap-2 sm:flex-row">
+          {next ? <input type="hidden" name="next" value={next} /> : null}
+          <input type="hidden" name="confirmed" value="1" />
+
+          <Button
+            type="submit"
+            name="email"
+            value={state.suggestion}
+            size="cta"
+            disabled={pending}
+          >
+            <Mail />
+            Send to {state.suggestion}
+          </Button>
+          <Button
+            type="submit"
+            name="email"
+            value={state.typed}
+            size="cta"
+            variant="outline"
+            disabled={pending}
+          >
+            No, {state.typed} is right
+          </Button>
+        </form>
+      </div>
+    );
+  }
 
   if (state.sent) {
     return (
@@ -115,6 +174,13 @@ export function SignInCard({
         <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             id={emailId}
+            /*
+              Remounted on a refusal so the address the person typed is still
+              there to be corrected. React clears an uncontrolled field when a
+              form action returns, which would mean retyping it in full.
+            */
+            key={state.typed ?? "fresh"}
+            defaultValue={state.typed}
             name="email"
             type="email"
             inputMode="email"

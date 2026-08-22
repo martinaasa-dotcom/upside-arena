@@ -24,7 +24,13 @@ export function SeasonTable({ standings }: { standings: SeasonStanding[] }) {
           <div
             key={row.userId}
             className={cn(
-              "glass-well flex h-14 items-center gap-3 rounded-lg px-4",
+              /*
+                A minimum rather than a fixed height. One line per row is what
+                makes a column scannable, but a name and a subtitle wrap on a
+                narrow phone, and a fixed height crops the wrapped line
+                instead of making room for it.
+              */
+              "glass-well flex min-h-14 items-center gap-3 rounded-lg px-4 py-2",
               row.isYou ? "ring-1 ring-primary/40" : null,
               // Unranked rows are quieter, not hidden. They are still real.
               row.ranked ? null : "opacity-70"
@@ -46,8 +52,12 @@ export function SeasonTable({ standings }: { standings: SeasonStanding[] }) {
                 ) : null}
               </span>
               <span className="text-xs text-muted-foreground">
-                {row.weeksAhead} of {plural(row.weeksPlayed, "week")} ahead of the
-                market
+                {/*
+                  Short, because this sits under a name in a table row on a
+                  phone. What they are ahead of is already said by the column
+                  beside it and by the panel above.
+                */}
+                Ahead in {row.weeksAhead} of {plural(row.weeksPlayed, "week")}
               </span>
             </span>
 

@@ -131,6 +131,14 @@ If mail is configured but not arriving, the cause is almost always an
 unverified domain. Vercel, the deployment, **Logs**, and look for
 `email refused by the provider`. That line exists specifically for this.
 
+### While you are in Resend, point sign-in at it too
+
+The sign-in link is sent by Supabase, not by Resend, and Supabase's built-in
+mail is shared infrastructure with a small hourly allowance and a reputation
+Arena does not control. Moving it onto the same Resend account is one screen of
+settings and it is what stops a run of bounced links from taking sign-in down
+for everybody. [EMAIL.md](EMAIL.md#move-auth-email-onto-resend) has the fields.
+
 ---
 
 ## 3. The hourly pass
@@ -392,14 +400,22 @@ Then **Credentials, Create credentials, OAuth client ID**:
 
 - Application type **Web application**.
 - Authorised JavaScript origins: `https://upsidearena.com`.
-- Authorised redirect URI:
-  **`https://tjdsorcedcdtjggwbsxv.supabase.co/auth/v1/callback`**
+- Authorised redirect URIs, both:
+  - `https://upsidearena.com/auth/google/callback`
+  - `http://localhost:3000/auth/google/callback`
 
-That redirect URI is the one thing here that is easy to get wrong, and it
-fails in a way that looks like a code bug. It points at **Supabase**, not at
-`upsidearena.com`. Supabase runs the OAuth exchange and only then hands the
-session back to Arena, so Google must be told to return to Supabase. Putting
-`https://upsidearena.com/auth/callback` here produces `redirect_uri_mismatch`.
+**Those point at Arena, not at Supabase, and that is the whole reason this
+works the way it does.** Supabase will happily run the handshake for us, and
+doing it that way is one line of code. What it costs is what the person
+signing in reads: Google names an app after the domain it is returning the
+browser to, so with Supabase's own callback the consent screen says
+`<project>.supabase.co`, and it puts that hostname on the privacy policy and
+terms links too. The App name on the consent screen does not override it. The
+only other way out is Supabase's paid custom domain add-on.
+
+So Arena takes the redirect itself, exchanges the code server side, and hands
+the resulting identity token to Supabase, which verifies it and issues the
+session exactly as before. See `src/lib/auth/google.ts`.
 
 Copy the **Client ID** and **Client secret**.
 
@@ -407,6 +423,10 @@ Copy the **Client ID** and **Client secret**.
 
 **Authentication, Providers, Google.** Enable it, paste the client ID and
 secret, save.
+
+Both are still needed here even though Arena runs the handshake: Supabase
+checks that the identity token it is given was issued for this client id
+before it will trust it.
 
 Then **Authentication, URL Configuration**, and check the redirect allow list
 contains `https://upsidearena.com/auth/callback`. That is where Arena asks
@@ -417,15 +437,17 @@ destination not on the list. It should already be there from the domain setup.
 
 | Name | Value |
 |---|---|
-| `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH` | `true` |
+| `GOOGLE_CLIENT_ID` | the client id from 7a |
+| `GOOGLE_CLIENT_SECRET` | the client secret from 7a |
 
-**Setting this is not enough on its own.** It is a `NEXT_PUBLIC_` variable, so
-its value is compiled into the JavaScript at build time rather than read when
-somebody loads the page. Changing it in the dashboard does nothing at all
-until the next deploy. Redeploy after setting it.
+Both server only. There is deliberately no separate on switch: the button
+appears when Arena holds the credentials to complete a sign-in, because a
+switch saying a button should exist is not the same as being able to sign
+anybody in, and a button that can only fail is worse than no button.
 
-Do this step last. Turning the flag on before 7a and 7b are done puts a Google
-button on the sign-in page that can only fail.
+**Setting them is not enough on its own.** Environment variables are read when
+a build runs, so changing them in the dashboard does nothing until the next
+deploy. Redeploy after saving.
 
 ### 7d. Confirm it worked
 
@@ -433,7 +455,9 @@ button on the sign-in page that can only fail.
    with Google** button above the email field.
 2. Press it. Google should ask which account, because Arena sends
    `prompt=select_account` rather than silently reusing whichever one the
-   browser last used.
+   browser last used. **The screen should say `upsidearena.com`.** If it names
+   a `supabase.co` host, the redirect URI in 7a is pointing at Supabase rather
+   than at Arena.
 3. You should land back on Arena, signed in, and go through onboarding.
 4. Check the profile page carries your Google name and picture.
 

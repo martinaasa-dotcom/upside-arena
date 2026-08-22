@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { canWriteGame, siteUrl } from "@/lib/env";
 import { COMPANY } from "@/lib/company";
 import { emailHtml, emailText } from "@/lib/notify/email-template";
+import { isSendable } from "@/lib/auth/email-address";
 import type { Message } from "@/lib/notify/message";
 
 /*
@@ -111,6 +112,20 @@ export async function sendEmail(
   message: Message
 ): Promise<boolean> {
   if (!emailConfigured || !to) return false;
+
+  /*
+    Addresses reach this from the account, not from a form, so nobody can be
+    asked about a bad one here. Some of them predate the checks on the sign-in
+    page, and an account created with a reserved or malformed address would
+    otherwise be mailed every week for ever, bouncing every time and spending
+    the sending reputation that everybody else's mail depends on.
+  */
+  if (!isSendable(to)) {
+    // The domain only. An address that never got mail is still somebody's.
+    const domain = to.includes("@") ? to.slice(to.lastIndexOf("@") + 1) : "no domain";
+    console.error("email skipped, the address cannot receive", domain);
+    return false;
+  }
 
   const unsubscribeUrl = `${siteUrl()}/profile`;
 
