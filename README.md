@@ -65,6 +65,7 @@ shadcn/ui, Geist, and a hand-rolled service worker for the PWA shell.
 | `npm run test:db` | Migrations, triggers and row level security, against a plain Postgres |
 | `npm run test:e2e` | Playwright: signed-out flows, and every component measured for clipping |
 | `npm run gallery` | The component gallery on `/gallery`, for a design pass |
+| `npm run test:a11y` | axe over every screen, against WCAG 2.1 AA |
 | `npm run icons` | Regenerates icons from the Arena mark |
 
 ## A note on the numbers
