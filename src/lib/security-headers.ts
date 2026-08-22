@@ -51,7 +51,31 @@ function supabaseConnectSrc(): string[] {
  * Market data is fetched on the server, so no price feed appears in
  * connect-src. The browser never talks to a data vendor directly.
  */
+/*
+  Worked out once, then handed out.
+
+  The policy is a pure function of three environment variables, none of which
+  change while the process is alive, and proxy.ts asks for it on every single
+  request the matcher covers -- every page, every API route, every navigation.
+  Rebuilding it each time parsed the Supabase URL and allocated eight arrays
+  and a dozen strings to arrive at the same sentence it arrived at last time.
+
+  Computed on first use rather than at import, because a module imported
+  before the environment is populated would otherwise freeze the wrong answer.
+*/
+let policy: string | null = null;
+
 export function buildContentSecurityPolicy(): string {
+  policy ??= computeContentSecurityPolicy();
+  return policy;
+}
+
+/** Forgets the built policy. Tests only. */
+export function __resetContentSecurityPolicy() {
+  policy = null;
+}
+
+function computeContentSecurityPolicy(): string {
   const isDev = process.env.NODE_ENV !== "production";
   const isPreview = process.env.VERCEL_ENV === "preview";
 

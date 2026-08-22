@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomDock } from "@/components/BottomDock";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { Toaster } from "@/components/ui/sonner";
 import { getSession, isOnboarded } from "@/lib/profile";
 import { themeStyleKey } from "@/lib/game/cosmetics";
 import { PAGE_FRAME } from "@/lib/page-shell";
@@ -31,6 +32,18 @@ export default async function AppLayout({
 
       <BottomDock />
       <InstallPrompt weeksPlayed={profile?.weeks_played ?? 0} />
+
+      {/*
+        Toasts belong to the rooms, so the toaster does too.
+
+        Every toast in the app is raised by something behind the dock: a
+        trade, a saved profile, a streak bonus, a card taken down. Mounted in
+        the root layout it also shipped with the signed-out page, onboarding,
+        the legal pages and a shared week -- none of which can raise one --
+        and it is not a small component to send somebody who is only deciding
+        whether to sign up.
+      */}
+      <Toaster />
     </div>
   );
 }

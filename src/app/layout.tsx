@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { Toaster } from "@/components/ui/sonner";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { Analytics } from "@/components/Analytics";
@@ -68,7 +67,6 @@ export default function RootLayout({
           Skip to content
         </a>
         {children}
-        <Toaster />
         <ConsentBanner />
         <Analytics />
         <ServiceWorker />
