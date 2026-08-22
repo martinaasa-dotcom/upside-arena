@@ -25,15 +25,51 @@ const CONFIRM_WORD = "delete";
 export function AccountControls() {
   const [confirmation, setConfirmation] = useState("");
   const [pending, startTransition] = useTransition();
+  const [exporting, setExporting] = useState(false);
+
+  /*
+    Fetched rather than linked, so a refusal can be read before it is saved.
+
+    The export refuses rather than serving a file it could not fill, and a
+    plain <a download> saves whatever comes back — which meant a failure
+    arrived as a file named after their data with an error inside it. Somebody
+    asking what we hold on them should be told we could not answer, not handed
+    a document to interpret.
+  */
+  async function exportData() {
+    setExporting(true);
+    try {
+      const response = await fetch("/api/account/export");
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        toast.error(
+          body?.error ?? "We could not put your file together. Try again in a moment."
+        );
+        return;
+      }
+
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "upside-arena-data.json";
+      link.click();
+      URL.revokeObjectURL(url);
+
+      track("account_data_exported");
+    } catch {
+      toast.error("We could not put your file together. Try again in a moment.");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col items-start gap-2">
-        <Button asChild variant="outline" onClick={() => track("account_data_exported")}>
-          <a href="/api/account/export" download>
-            <Download />
-            Download my data
-          </a>
+        <Button variant="outline" onClick={exportData} disabled={exporting}>
+          <Download />
+          {exporting ? "Putting it together" : "Download my data"}
         </Button>
         <p className="text-sm text-muted-foreground">
           A single file with your profile and what you have agreed to.
