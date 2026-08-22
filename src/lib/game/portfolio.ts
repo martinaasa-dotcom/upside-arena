@@ -12,6 +12,7 @@ import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getQuotes, normaliseSymbol, type Quote } from "@/lib/market/quotes";
 import { getSessionOpen } from "@/lib/market/benchmark";
+import { placeInPod } from "@/lib/game/pods";
 import { cycleMonday, isTradingOpen } from "@/lib/market/session";
 import { hasDueCycle, settleDueCycles } from "@/lib/game/settle";
 import { needsMarkToday, recordDailyMarks } from "@/lib/game/marks";
@@ -186,6 +187,21 @@ export async function getPortfolioView(
 
   const portfolio = await ensurePortfolio(userId, cycle.id);
   if (!portfolio) return null;
+
+  /*
+    And a pod, if pods are running this week. Section 2.2 is firm that nobody
+    faces a wait until Monday, so placement happens the first time somebody
+    looks rather than on a schedule. It costs one query when pods are off, and
+    a placement that fails is not allowed to fail the page: a missing pod is a
+    room that is not offered, not a broken portfolio.
+  */
+  after(async () => {
+    try {
+      await placeInPod(userId, cycle.id);
+    } catch {
+      // The next visit tries again.
+    }
+  });
 
   const admin = createAdminClient();
   const { data: holdingRows } = await admin
