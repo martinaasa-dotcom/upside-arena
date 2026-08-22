@@ -1,6 +1,6 @@
 name: Settle the finished week
 
-# Nudges the app to settle a finished week shortly after Friday's close.
+# Nudges the app to settle a finished week, once the week is actually finished.
 #
 # This is not what makes settling correct. The app settles a due week by
 # itself on the first request that touches the game, so a week is never left
@@ -10,14 +10,24 @@ name: Settle the finished week
 # GitHub's scheduler can run late when it is busy, and that is fine here:
 # scoring is idempotent, so arriving late, twice, or not at all all end in the
 # same place.
+#
+# It used to run on Friday evening, shortly after the 16:00 close in New York,
+# which sounds right and never worked. due_cycles asks `monday + 4 < p_today`,
+# and p_today is the New York calendar date -- so a week stops being current
+# when the date rolls over to Saturday, not when the market shuts on Friday.
+# Every Friday run therefore found nothing due and returned having settled
+# nothing, which is precisely the quiet weekend this file exists for.
+#
+# So: Saturday, after New York has reached it. 05:10 UTC is 01:10 in New York
+# in summer and 00:10 in winter, so both are safely Saturday there. A second
+# pass at 11:10 lands before the Saturday notification runs at 14:00, and a
+# Sunday pass covers a scheduler that missed both.
 
 on:
   schedule:
-    # 21:10 UTC on Friday, shortly after the 16:00 close in New York during
-    # summer time. In winter New York is an hour further behind, so the second
-    # entry covers the same moment then. Both firing is harmless.
-    - cron: "10 21 * * 5"
-    - cron: "10 22 * * 5"
+    - cron: "10 5 * * 6"
+    - cron: "10 11 * * 6"
+    - cron: "10 11 * * 0"
   workflow_dispatch:
 
 concurrency:
