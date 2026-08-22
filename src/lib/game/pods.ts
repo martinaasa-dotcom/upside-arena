@@ -67,22 +67,67 @@ export type PodView = {
   toSafety: number | null;
 };
 
+/*
+  How long an answer to "are pods worth running?" is reused for.
+
+  The question is answered by counting every portfolio in the week, which is
+  an exact count over a table that only grows, and it is asked on the way into
+  Home and Trade -- so once per room per player per visit, for ever, to
+  re-learn a fact about the whole game that nobody's own visit can change.
+
+  Below the threshold, which is where the game is now, the count was the only
+  pod work a visit did and it bought nothing. Above it, being a few minutes
+  late to notice is not a cost anybody can perceive: the threshold exists to
+  keep a pod from feeling dead, not to seat somebody the instant a
+  forty-eighth player appears.
+*/
+const WORTH_RUNNING_TTL_MS = 5 * 60 * 1000;
+
+const worthRunning = new Map<string, { answer: boolean; at: number }>();
+
 /**
  * Whether pods should be running at all this week.
  *
  * Counted rather than configured, so the feature switches itself on when the
- * game is busy enough to carry it and back off if it ever is not.
+ * game is busy enough to carry it and back off if it ever is not. The count
+ * is shared between everyone looking, for a few minutes at a time, because it
+ * is a fact about the week rather than about the person asking.
  */
 export async function podsAreWorthRunning(cycleId: string): Promise<boolean> {
   if (!canWriteGame) return false;
 
+  const known = worthRunning.get(cycleId);
+  if (known && Date.now() - known.at < WORTH_RUNNING_TTL_MS) return known.answer;
+
   const admin = createAdminClient();
-  const { count } = await admin
+  const { count, error } = await admin
     .from("portfolios")
     .select("id", { count: "exact", head: true })
     .eq("cycle_id", cycleId);
 
-  return (count ?? 0) >= PODS_MINIMUM;
+  /*
+    A failed count is not an answer and is not remembered as one. Caching a
+    "no" that came from a broken query would switch pods off for everybody
+    for the next five minutes over one bad request.
+  */
+  if (error) return known?.answer ?? false;
+
+  const answer = (count ?? 0) >= PODS_MINIMUM;
+
+  /*
+    Only this week's answer is worth keeping. Last week's cycle id is never
+    asked about again, so without this the map would grow by one entry a week
+    for the life of the process.
+  */
+  worthRunning.clear();
+  worthRunning.set(cycleId, { answer, at: Date.now() });
+
+  return answer;
+}
+
+/** Forgets the cached count. Tests only. */
+export function __resetPodGate() {
+  worthRunning.clear();
 }
 
 /**

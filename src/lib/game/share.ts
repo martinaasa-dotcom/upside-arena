@@ -141,9 +141,17 @@ export async function getLatestRecap(userId: string): Promise<
   const benchmarkReturn =
     open != null && close != null && open > 0 ? ((close - open) / open) * 100 : null;
 
-  const title = profile?.equipped_title
-    ? await titleName(profile.equipped_title)
-    : null;
+  /*
+    The worn title and the best placing, together.
+
+    Neither wants anything the other produces, and the placing is three round
+    trips on its own, so awaiting the title first simply parked the whole
+    recap behind a single-row name lookup. This runs on the way into Home.
+  */
+  const [title, league] = await Promise.all([
+    profile?.equipped_title ? titleName(profile.equipped_title) : null,
+    bestLeaguePlacing(userId, cycle.id),
+  ]);
 
   return {
     cycleId: cycle.id,
@@ -154,7 +162,7 @@ export async function getLatestRecap(userId: string): Promise<
       returnPercent: num(portfolio.return_percent) ?? 0,
       benchmarkReturn,
       benchmarkDiff: num(portfolio.benchmark_diff),
-      league: await bestLeaguePlacing(userId, cycle.id),
+      league,
       streakDays: (streaks as { current_streak: number } | null)?.current_streak ?? 0,
       marks,
     },

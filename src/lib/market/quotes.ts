@@ -2,6 +2,7 @@ import "server-only";
 
 import { QUOTE_TTL_SECONDS } from "@/lib/game";
 import { sessionMark } from "@/lib/market/session";
+import { getYahoo } from "@/lib/market/yahoo";
 
 /*
   Delayed quotes, fetched once per symbol and shared by every player.
@@ -59,15 +60,6 @@ function isFresh(entry: CacheEntry, now = Date.now()) {
 
 export function normaliseSymbol(symbol: string) {
   return symbol.trim().toUpperCase();
-}
-
-let client: unknown = null;
-
-async function getYahoo() {
-  if (client) return client as never;
-  const { default: YahooFinance } = await import("yahoo-finance2");
-  client = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
-  return client as never;
 }
 
 type YahooQuote = {
