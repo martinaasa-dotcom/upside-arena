@@ -88,15 +88,45 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // Refreshes an expiring token. Do not remove, and do not run any other
-  // logic between creating the client and this call.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  /*
+    Refreshes an expiring token, and answers whether anybody is signed in. Do
+    not remove, and do not run any other logic between creating the client and
+    this call.
+
+    getClaims rather than getUser, for the reason lib/profile.ts already
+    changed for and this file was left behind on. getUser asks the auth server
+    every time, and this proxy matches every request the app serves -- every
+    navigation, every prefetch, every RSC fetch -- so that round trip was being
+    paid before a page could begin. getClaims refreshes the same way, through
+    getSession, and then verifies the token against the project's published
+    keys, which on a project signing asymmetrically is local once the key set
+    has been fetched once.
+
+    It is not a relaxation. The signature is still checked before a claim is
+    believed; an unsigned or expired token yields nothing and the caller is
+    treated as signed out.
+  */
+  const { data: claims, error: claimsError } = await supabase.auth.getClaims();
+
+  const sub = claims?.claims?.sub;
+  let signedIn = !claimsError && typeof sub === "string" && sub.length > 0;
+
+  if (!signedIn) {
+    /*
+      Asked again rather than concluded from one library call, because being
+      wrong in this direction signs somebody out of their own account. It is
+      cheap: with no token in the cookies there is nothing to ask about and
+      neither call touches the network, so a signed-out visitor pays nothing.
+    */
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    signedIn = Boolean(user);
+  }
 
   const { pathname } = request.nextUrl;
 
-  if (!user && !isPublic(pathname)) {
+  if (!signedIn && !isPublic(pathname)) {
     /*
       An API caller gets a status code, not a redirect to a web page. Sending
       HTML to something expecting JSON turns "not signed in" into a parse
@@ -112,7 +142,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && pathname === "/") {
+  if (signedIn && pathname === "/") {
     const url = request.nextUrl.clone();
     url.pathname = "/home";
     url.search = "";
