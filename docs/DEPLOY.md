@@ -313,7 +313,30 @@ What it means in practice:
   A branch pushed twenty times has spent twenty.
 - Pushing again to clear it makes it worse.
 
-Upgrading the plan removes the cap. Nothing else does.
+Upgrading the plan removes the cap. Short of that, the thing to do is stop
+spending it on builds nobody looks at — see below.
+
+#### Agent branches do not get a preview
+
+`vercel.json` switches deployments off for `claude/*`:
+
+```json
+{ "git": { "deploymentEnabled": { "claude/*": false } } }
+```
+
+The numbers are why. On 2026-08-22 the project spent 100 deployments and hit
+the cap by mid-afternoon: 37 production and 63 previews, and **every one of
+the 63 was an agent branch** — 36 from a single one. Nothing read them. What
+actually decides whether a branch is sound is the GitHub Actions run: types,
+lint, unit tests, the build, and the browser tests. That is untouched by this,
+because it is not Vercel.
+
+With previews off for those branches the same day's work costs 37 deployments
+instead of 100, and the cap is not reached at all.
+
+`main` is not matched, so production still deploys on every merge. If a
+preview is ever genuinely wanted for one of these branches, take the pattern
+out or push under a name that does not match it.
 
 #### Why it is easy to miss
 
