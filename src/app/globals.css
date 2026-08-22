@@ -261,19 +261,25 @@
 
     `:has` cannot go stale, because the thing it asks about is the dock
     itself. A room added, removed or renamed changes nothing here.
+
+    Both bottom notices use this -- the measurement question and the install
+    prompt. The install prompt used to hardcode the lifted value, which was
+    right only because it happens to render solely inside (app), where there
+    is always a dock. Two places knowing the dock's height is how the first
+    one came to be wrong.
   */
-  .consent-notice {
+  .bottom-notice {
     bottom: 1rem;
   }
 
   @media (min-width: 640px) {
-    .consent-notice {
+    .bottom-notice {
       bottom: 1.5rem;
     }
   }
 
   /* Higher specificity than either rule above, so width does not matter. */
-  :root:has([data-dock]) .consent-notice {
+  :root:has([data-dock]) .bottom-notice {
     bottom: 7rem;
   }
 

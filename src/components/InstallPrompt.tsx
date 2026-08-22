@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Share, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
+import { getConsent, getServerConsent, subscribeToConsent } from "@/lib/consent";
 
 /*
   Installing matters more here than on most sites: iOS Safari only delivers web
@@ -49,6 +50,29 @@ export function InstallPrompt({ weeksPlayed }: { weeksPlayed: number }) {
   const [deferred, setDeferred] = useState<InstallEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [iosHint, setIosHint] = useState(false);
+
+  /*
+    The measurement question and this are both a small pane at the bottom of
+    the window, both role="dialog", both the same width and the same distance
+    up. Shown together they landed on each other: measured at 390px and at
+    1280px, the notice sat inside this box and, being later in the document at
+    the same z-index, painted over the install button and the dismiss cross.
+
+    Only one can be asked at a time, and it is not this one. Answering the
+    measurement question is a condition of anything optional running at all,
+    while this is a suggestion -- and a suggestion that, as the note at the
+    top of this file says, does not earn an interruption. So it waits.
+
+    Nothing is lost by waiting: beforeinstallprompt has already been caught
+    and held by then, so the prompt appears as soon as the question is
+    answered, in the space the notice has just left.
+  */
+  const consent = useSyncExternalStore(
+    subscribeToConsent,
+    getConsent,
+    getServerConsent
+  );
+  const asking = consent === "unset" || consent === "unknown";
 
   // A player who has not finished a week has not seen the good part yet.
   const earnedPrompt = weeksPlayed >= 1;
@@ -109,13 +133,13 @@ export function InstallPrompt({ weeksPlayed }: { weeksPlayed: number }) {
     setVisible(false);
   }, [deferred]);
 
-  if (!visible) return null;
+  if (!visible || asking) return null;
 
   return (
     <div
       role="dialog"
       aria-label="Add Upside Arena to your home screen"
-      className="card-sheen glass fixed inset-x-4 bottom-28 z-50 mx-auto max-w-md rounded-xl p-4 ring-1 ring-foreground/20 sm:inset-x-auto sm:right-6"
+      className="bottom-notice card-sheen glass fixed inset-x-4 z-50 mx-auto max-w-md rounded-xl p-4 ring-1 ring-foreground/20 sm:inset-x-auto sm:right-6"
     >
       <div className="flex items-start gap-3">
         <div className="flex-1">

@@ -189,16 +189,51 @@ const DOCK_ATTR = /data-dock\b/.test(SOURCE);
 const NOTICE_SOURCE = readFileSync("src/components/ConsentBanner.tsx", "utf8");
 
 const NOTICE_CLASS =
-  NOTICE_SOURCE.match(/className="(consent-notice[^"]+)"/)?.[1] ?? "";
+  NOTICE_SOURCE.match(/className="(bottom-notice[^"]+)"/)?.[1] ?? "";
+
+/*
+  The install prompt is the other pane that lives at the bottom of the window.
+  It used to hardcode the lifted position, which was right only because it
+  renders solely inside (app), where there is always a dock. It shares the
+  class now, so it is measured here too.
+*/
+const INSTALL_SOURCE = readFileSync("src/components/InstallPrompt.tsx", "utf8");
+
+const INSTALL_CLASS =
+  INSTALL_SOURCE.match(/className="(bottom-notice[^"]+)"/)?.[1] ?? "";
 
 test.describe("the measurement notice and the dock", () => {
   test("is read correctly out of the components", () => {
     // Both empty would make every assertion below pass against nothing.
     expect(DOCK_ATTR, "the dock declares itself with data-dock").toBe(true);
     expect(NOTICE_CLASS, "the notice's class string was read").not.toBe("");
+    expect(INSTALL_CLASS, "the install prompt's class string was read").not.toBe("");
   });
 
-  const draw = async (page: import("@playwright/test").Page, withDock: boolean) => {
+  /*
+    Both panes are role="dialog", the same width, and now the same distance up.
+    Shown together they landed on each other, and the notice -- later in the
+    document at the same z-index -- painted over the install button and the
+    dismiss cross. Neither is dismissible when it is underneath the other, so
+    the rule is that only one is ever asked at a time and the measurement
+    question goes first.
+  */
+  test("the install prompt waits for the measurement question", () => {
+    expect(
+      INSTALL_SOURCE,
+      "the install prompt reads the consent choice"
+    ).toContain("subscribeToConsent");
+    expect(
+      INSTALL_SOURCE,
+      "and holds while the question is still unanswered"
+    ).toMatch(/if \(!visible \|\| asking\) return null;/);
+  });
+
+  const draw = async (
+    page: import("@playwright/test").Page,
+    withDock: boolean,
+    cls: string = NOTICE_CLASS
+  ) => {
     await page.addInitScript(() => {
       window.localStorage.removeItem("arena.consent.measurement");
     });
@@ -224,7 +259,7 @@ test.describe("the measurement notice and the dock", () => {
           `<button class="h-8 px-3">No thanks</button></div>`;
         document.body.append(n);
       },
-      [NAV_CLASS, PILL_CLASS, NOTICE_CLASS, ROOMS, withDock] as const
+      [NAV_CLASS, PILL_CLASS, cls, ROOMS, withDock] as const
     );
     await page.evaluate(() => document.fonts.ready);
   };
@@ -252,13 +287,18 @@ test.describe("the measurement notice and the dock", () => {
     wide the dock is and so where its edges fall.
   */
   for (const width of [320, 390, 544, 768, 1280]) {
-    test(`clears the dock at ${width}px`, async ({ page }) => {
-      await page.setViewportSize({ width, height: 800 });
-      await draw(page, true);
+    for (const [what, cls] of [
+      ["notice", NOTICE_CLASS],
+      ["install prompt", INSTALL_CLASS],
+    ] as const) {
+      test(`keeps the ${what} clear of the dock at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 800 });
+        await draw(page, true, cls);
 
-      const { overlaps } = await boxes(page);
-      expect(overlaps, `the notice covers the dock at ${width}px`).toBe(false);
-    });
+        const { overlaps } = await boxes(page);
+        expect(overlaps, `the ${what} covers the dock at ${width}px`).toBe(false);
+      });
+    }
   }
 
   test("stays at the bottom edge where there is no dock", async ({ page }) => {
