@@ -5,7 +5,13 @@ import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSessionOpen } from "@/lib/market/benchmark";
 import { getQuotes, normaliseSymbol, type Quote } from "@/lib/market/quotes";
-import { lineupLocked, lineupMonday, lineupReady, nyDate } from "@/lib/market/session";
+import {
+  hasOpenedToday,
+  lineupLocked,
+  lineupMonday,
+  lineupReady,
+  nyDate,
+} from "@/lib/market/session";
 import type { Cycle } from "@/lib/game/portfolio";
 import type { LineupOrderRow } from "@/lib/supabase/database.types";
 
@@ -160,10 +166,13 @@ export async function queueOrder(
   }
 
   /*
-    Whether the week has begun is worked out here, from the New York clock,
-    and handed to the database. It is the entire fairness of this feature, so
-    it is checked by a function only the server may call rather than by a row
-    a player could write.
+    Two facts, not a conclusion.
+
+    What time it is in New York is the one thing the database cannot know, so
+    that is all it is told: today's date, and whether the bell has gone. It
+    works out for itself whether the week an order is for is locked, which is
+    what stops a caller getting the week wrong -- and a caller did, for every
+    order ever queued, until 0021.
   */
   const admin = createAdminClient();
   const { error } = await admin.rpc("queue_lineup_order", {
@@ -171,7 +180,8 @@ export async function queueOrder(
     p_monday: monday,
     p_symbol: clean,
     p_quantity: quantity,
-    p_locked: lineupLocked(monday),
+    p_today: nyDate(),
+    p_opened: hasOpenedToday(),
     p_max_orders: MAX_LINEUP_ORDERS,
   });
 
@@ -194,10 +204,18 @@ export async function queueOrder(
   return { ok: true };
 }
 
+/**
+ * Taking one out.
+ *
+ * Takes no week, on purpose. The week is on the order, and the caller that
+ * used to supply one supplied the wrong one every time: it asked which week a
+ * new order would go into, which is by definition the earliest unlocked week,
+ * so the lock this feature rests on was passed as false for every order it
+ * ever guarded.
+ */
 export async function clearOrder(
   userId: string,
-  orderId: string,
-  monday: string
+  orderId: string
 ): Promise<LineupOutcome> {
   if (!canWriteGame) return { ok: false, error: "Not switched on yet." };
 
@@ -205,7 +223,8 @@ export async function clearOrder(
   const { error } = await admin.rpc("clear_lineup_order", {
     p_user_id: userId,
     p_order_id: orderId,
-    p_locked: lineupLocked(monday),
+    p_today: nyDate(),
+    p_opened: hasOpenedToday(),
   });
 
   if (error) {
@@ -368,13 +387,17 @@ export async function getLatestLineupReport(
   const rows = (data ?? []) as LineupOrderRow[];
   if (rows.length === 0) return null;
 
-  // One week's worth. Two Mondays inside forty-eight hours is not possible,
-  // but a report that could quietly merge two of them would be a wrong number
-  // rather than a missing one.
-  const monday = rows[0].monday;
-  const week = rows.filter((row) => row.monday === monday);
+  /*
+    Everything that ran, not one week of it.
 
-  const missed = week
+    This used to keep only the newest Monday, on the reasoning that two of them
+    could not fall inside forty-eight hours. They can, and by design: somebody
+    who queues a lineup and then does not open Arena for a fortnight has the
+    old week closed off and the current one filled by the same pass, seconds
+    apart. Keeping one Monday threw away exactly the orders this module
+    promises never to drop quietly -- the ones that did not run.
+  */
+  const missed = rows
     .filter((row) => row.outcome !== "filled")
     .map((row) => ({
       id: row.id,
@@ -389,5 +412,5 @@ export async function getLatestLineupReport(
       detail: row.detail,
     }));
 
-  return { filled: week.length - missed.length, missed };
+  return { filled: rows.length - missed.length, missed };
 }

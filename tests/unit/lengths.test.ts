@@ -155,3 +155,48 @@ describe("how long is left", () => {
     expect(timeLeft("2026-04-10", MON)).toMatch(/^About \d+ weeks left$/);
   });
 });
+
+/*
+  A market that never shuts.
+
+  One format's whole selling point is that it runs at the weekend, and the
+  date maths took that away from it: a coin battle started on a Saturday was
+  pushed to Monday, so it had not started for exactly the two days it existed
+  for, and the screen that offers weekend contests filtered it out.
+*/
+describe("a contest whose market never shuts", () => {
+  it("starts the day it is started, weekend included", () => {
+    expect(runStartsOn(SAT, true)).toBe(SAT);
+    expect(runStartsOn(SUN, true)).toBe(SUN);
+    expect(runStartsOn(TUE, true)).toBe(TUE);
+  });
+
+  it("still ends at a Friday close, so a result lands with a weekend in front of it", () => {
+    for (const start of [SAT, SUN, MON, FRI]) {
+      for (const length of LENGTHS) {
+        if (length.weeks === 0) continue;
+        const end = runEndsOn(start, length.id, true);
+        expect(
+          new Date(`${end}T12:00:00Z`).getUTCDay(),
+          `${start} + ${length.id} = ${end}`
+        ).toBe(5);
+      }
+    }
+  });
+
+  it("gets the weekend it was started on, rather than losing it", () => {
+    // Saturday to the Friday of the week that follows: two days nothing else
+    // in Arena can use, and then a full week.
+    expect(runEndsOn(SAT, "week", true)).toBe("2026-03-13");
+    expect(runEndsOn(SAT, "day", true)).toBe(SAT);
+  });
+
+  it("leaves every other format exactly where it was", () => {
+    for (const start of [MON, TUE, THU, FRI, SAT, SUN]) {
+      expect(runStartsOn(start, false)).toBe(runStartsOn(start));
+      for (const length of LENGTHS) {
+        expect(runEndsOn(start, length.id, false)).toBe(runEndsOn(start, length.id));
+      }
+    }
+  });
+});

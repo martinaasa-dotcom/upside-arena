@@ -137,8 +137,17 @@ function weekdayIndex(iso: string) {
  * not the one that just finished — the same rule the weekly cycle already
  * uses, for the same reason. Nothing moves at the weekend, so a contest that
  * "started" on Sunday would have spent a third of a one-day run shut.
+ *
+ * Unless its market does not shut. A format whose prices run every day is the
+ * one thing in Arena that works at a weekend, and pushing its start to Monday
+ * took the two days it was built for away from it: a coin battle begun on a
+ * Saturday had not started all weekend, and the screen that offers weekend
+ * contests filtered it out for exactly as long as anybody wanted it. So an
+ * always-open contest starts the day it is started.
  */
-export function runStartsOn(todayIso: string): string {
+export function runStartsOn(todayIso: string, alwaysOpen = false): string {
+  if (alwaysOpen) return todayIso;
+
   const index = weekdayIndex(todayIso);
   if (index === 6) return addDays(todayIso, 2);
   if (index === 7) return addDays(todayIso, 1);
@@ -155,9 +164,17 @@ export function runStartsOn(todayIso: string): string {
  * Starting one on a Friday does not give somebody a one-day week. A week
  * needs at least two days left in it to be a week, so a battle begun on
  * Friday runs to the Friday after.
+ *
+ * A contest whose market never shuts still ends at a Friday close, so every
+ * result in the app lands with the weekend in front of it. It simply gets to
+ * count the weekends in between, which is the point of it.
  */
-export function runEndsOn(startIso: string, id: LengthId): string {
-  const start = runStartsOn(startIso);
+export function runEndsOn(
+  startIso: string,
+  id: LengthId,
+  alwaysOpen = false
+): string {
+  const start = runStartsOn(startIso, alwaysOpen);
   const length = lengthById(id);
 
   if (length.weeks === 0) return start;

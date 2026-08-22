@@ -284,8 +284,15 @@ export async function startBattle(
   const length = lengthById(lengthId);
 
   const today = nyDate();
-  const startsOn = runStartsOn(today);
-  const endsOn = runEndsOn(today, length.id);
+
+  /*
+    A format whose market never shuts starts the day it is started, weekend
+    included. Everything else waits for Monday, because a contest that opened
+    on a Saturday would spend its first two days shut.
+  */
+  const alwaysOpen = format.tradingHours === "always";
+  const startsOn = runStartsOn(today, alwaysOpen);
+  const endsOn = runEndsOn(today, length.id, alwaysOpen);
 
   /*
     What it is measured against, asked for now. Usually known; null when the
@@ -387,6 +394,24 @@ export function battleTrading(battle: Battle, now = new Date()): {
     return {
       open: false,
       reason: "This battle starts on Monday. Nothing you do before then counts.",
+    };
+  }
+
+  /*
+    Past its last day but not yet settled.
+
+    A contest is due the day after it ends and is scored by whoever notices,
+    so there is always a stretch -- a few minutes, or a whole weekend -- where
+    it has finished and its status still says open. For a market-hours battle
+    that stretch is covered by the market being shut anyway. For one whose
+    market never shuts it was not, so the form was enabled, the order was sent,
+    and the database refused it. Being told no by a button that looked like yes
+    is worse than the button being off.
+  */
+  if (nyDate(now) > battle.endsOn) {
+    return {
+      open: false,
+      reason: "This battle has finished. The result lands once it is scored.",
     };
   }
 
@@ -737,7 +762,7 @@ export async function settledBattles(): Promise<BattleResult[]> {
 
   const { data: rows } = await admin
     .from("weekly_cycles")
-    .select("id, league_id, format, closed_at")
+    .select("id, league_id, format, starting_balance, closed_at")
     .not("league_id", "is", null)
     .eq("status", "closed")
     .order("closed_at", { ascending: false })
@@ -747,16 +772,17 @@ export async function settledBattles(): Promise<BattleResult[]> {
     id: string;
     league_id: string;
     format: string;
+    starting_balance: string;
     closed_at: string | null;
   }[];
 
   if (cycles.length === 0) return [];
 
-  const [{ data: leagues }, { data: portfolios }] = await Promise.all([
-    admin
-      .from("leagues")
-      .select("id, name")
-      .in("id", cycles.map((c) => c.league_id)),
+  const leagueIds = [...new Set(cycles.map((c) => c.league_id))];
+
+  const [{ data: leagues }, { data: members }, { data: portfolios }] = await Promise.all([
+    admin.from("leagues").select("id, name").in("id", leagueIds),
+    admin.from("league_members").select("league_id, user_id").in("league_id", leagueIds),
     admin
       .from("portfolios")
       .select("user_id, cycle_id, return_percent")
@@ -768,20 +794,25 @@ export async function settledBattles(): Promise<BattleResult[]> {
     ((leagues ?? []) as { id: string; name: string }[]).map((l) => [l.id, l.name])
   );
 
-  const byCycle = new Map<string, { userId: string; returnPercent: number }[]>();
+  const rosterByLeague = new Map<string, string[]>();
+  for (const row of (members ?? []) as { league_id: string; user_id: string }[]) {
+    const list = rosterByLeague.get(row.league_id) ?? [];
+    list.push(row.user_id);
+    rosterByLeague.set(row.league_id, list);
+  }
+
+  const scoredByCycle = new Map<string, Map<string, number>>();
   for (const row of (portfolios ?? []) as {
     user_id: string;
     cycle_id: string;
     return_percent: string;
   }[]) {
-    const list = byCycle.get(row.cycle_id) ?? [];
-    list.push({ userId: row.user_id, returnPercent: num(row.return_percent) });
-    byCycle.set(row.cycle_id, list);
+    const forCycle = scoredByCycle.get(row.cycle_id) ?? new Map<string, number>();
+    forCycle.set(row.user_id, num(row.return_percent));
+    scoredByCycle.set(row.cycle_id, forCycle);
   }
 
-  const everybody = [
-    ...new Set([...byCycle.values()].flat().map((row) => row.userId)),
-  ];
+  const everybody = [...new Set([...rosterByLeague.values()].flat())];
 
   const { data: profiles } = everybody.length
     ? await admin.from("profiles").select("id, display_name").in("id", everybody)
@@ -795,16 +826,28 @@ export async function settledBattles(): Promise<BattleResult[]> {
   );
 
   return cycles.flatMap((cycle) => {
-    const scored = (byCycle.get(cycle.id) ?? [])
-      .map((row) => ({
-        userId: row.userId,
-        displayName: nameById.get(row.userId) ?? "Player",
-        returnPercent: row.returnPercent,
+    const roster = rosterByLeague.get(cycle.league_id) ?? [];
+    if (roster.length === 0) return [];
+
+    const scored = scoredByCycle.get(cycle.id) ?? new Map<string, number>();
+
+    /*
+      Every member of the league, not only the ones with a portfolio.
+
+      This has to be the same field the battle room shows, and the room ranks
+      the whole roster -- somebody who never opened it has no portfolio row and
+      is shown level, because a table with people missing from it is not a
+      table. Ranking only the players here produced a second, smaller field:
+      the screen said second of six and the notification said second of four,
+      about the same battle, on the same evening.
+    */
+    const finished = roster
+      .map((userId) => ({
+        userId,
+        displayName: nameById.get(userId) ?? "Player",
+        returnPercent: scored.get(userId) ?? 0,
       }))
       .sort((a, b) => b.returnPercent - a.returnPercent);
-
-    // A battle nobody played has no result to tell anybody about.
-    if (scored.length === 0) return [];
 
     return [
       {
@@ -812,9 +855,9 @@ export async function settledBattles(): Promise<BattleResult[]> {
         leagueId: cycle.league_id,
         leagueName: leagueName.get(cycle.league_id) ?? "your league",
         formatName: formatById(cycle.format).name,
-        players: scored.length,
-        winner: scored[0],
-        finished: scored,
+        players: finished.length,
+        winner: finished[0],
+        finished,
       },
     ];
   });

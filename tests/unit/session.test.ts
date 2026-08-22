@@ -3,6 +3,7 @@ import {
   cycleMonday,
   isTradingDay,
   isTradingOpen,
+  isLineupWindow,
   isWeekend,
   lineupLocked,
   lineupMonday,
@@ -309,5 +310,41 @@ describe("lineupReady", () => {
     // Somebody who did not open Arena until Wednesday still fills at Monday's
     // open, so there is nothing to wait for.
     expect(lineupReady(MONDAY, at("2026-08-26T02:00:00Z"))).toBe(true);
+  });
+});
+
+/*
+  When the lineup is the thing to show.
+
+  The panel promises a lineup can be changed until the bell on Monday, and the
+  screen used to offer it at the weekend only -- so somebody opening Arena at
+  eight on a Monday morning could neither trade nor see the thing that was
+  about to spend their money.
+*/
+describe("isLineupWindow", () => {
+  it("is open all weekend", () => {
+    expect(isLineupWindow(at("2026-08-22T15:00:00Z"))).toBe(true); // Sat
+    expect(isLineupWindow(at("2026-08-23T23:00:00Z"))).toBe(true); // Sun
+  });
+
+  it("is open on the Monday itself until the bell", () => {
+    expect(isLineupWindow(at("2026-08-24T13:00:00Z"))).toBe(true); // 09:00 NY
+    expect(isLineupWindow(at("2026-08-24T13:29:00Z"))).toBe(true);
+  });
+
+  it("closes at the bell, because from then the trade screen is the answer", () => {
+    expect(isLineupWindow(at("2026-08-24T13:30:00Z"))).toBe(false);
+    expect(isLineupWindow(at("2026-08-24T18:00:00Z"))).toBe(false);
+  });
+
+  /*
+    Not on a Tuesday evening. The market is shut and there is a week ahead to
+    queue for, but the trade screen is what somebody wants then, and a room
+    that turned into the lineup every evening would be a room that had moved.
+  */
+  it("is shut on a weekday that is not the Monday being filled", () => {
+    expect(isLineupWindow(at("2026-08-25T13:00:00Z"))).toBe(false);
+    expect(isLineupWindow(at("2026-08-26T23:00:00Z"))).toBe(false);
+    expect(isLineupWindow(at("2026-08-21T21:00:00Z"))).toBe(false);
   });
 });

@@ -314,11 +314,32 @@ export function lineupLocked(monday: string, now = new Date()): boolean {
 }
 
 /**
+ * Whether the lineup is the thing to show right now.
+ *
+ * True when the next opening bell is the one a lineup would fill at: all
+ * weekend, and on the Monday itself until the market opens. The copy promises
+ * a lineup can be changed until the bell on Monday, and a screen that only
+ * offered it at the weekend was not keeping that promise -- somebody opening
+ * Arena at eight on a Monday morning could neither trade nor see the thing
+ * that was about to spend their money.
+ */
+export function isLineupWindow(now = new Date()): boolean {
+  return isWeekend(now) || nyDate(now) === lineupMonday(now);
+}
+
+/**
  * The Monday a lineup queued now would be filled on.
  *
  * At the weekend that is the Monday about to arrive, which is the whole point
  * of the feature. During the week it is next Monday, because this week's
  * opening price has already happened.
+ *
+ * Note what this means and what it does not. It is the earliest week that is
+ * still open, so `lineupLocked(lineupMonday())` is false by construction --
+ * which is correct for choosing where a new order goes, and useless as a way
+ * of deciding whether an existing order may still be removed. That question is
+ * about the week the order is for, and only the database knows which week
+ * that is. See 0021.
  */
 export function lineupMonday(now = new Date()): string {
   const monday = cycleMonday(now);

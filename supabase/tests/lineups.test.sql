@@ -21,7 +21,8 @@ select public.ensure_cycle('2026-08-24', 100000, 780.00);
 -- ---------------------------------------------------------------------------
 
 select public.queue_lineup_order(
-  'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'aapl', 100, false, 8
+  'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'aapl', 100,
+  '2026-08-22', false, 8
 );
 
 select public.assert(
@@ -32,7 +33,8 @@ select public.assert(
 -- Changing your mind rewrites the order rather than adding a second one,
 -- which is what somebody means by changing it.
 select public.queue_lineup_order(
-  'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'AAPL', 50, false, 8
+  'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'AAPL', 50,
+  '2026-08-22', false, 8
 );
 
 select public.assert(
@@ -44,7 +46,8 @@ select public.assert(
 do $$
 begin
   perform public.queue_lineup_order(
-    'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'MSFT', 10.5, false, 8
+    'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'MSFT', 10.5,
+    '2026-08-22', false, 8
   );
   raise exception 'should not reach here';
 exception
@@ -64,13 +67,15 @@ begin
   foreach name in array array['MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA', 'SPY']
   loop
     perform public.queue_lineup_order(
-      'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', name, 1, false, 8
+      'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', name, 1,
+      '2026-08-22', false, 8
     );
   end loop;
 
   begin
     perform public.queue_lineup_order(
-      'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'INTC', 1, false, 8
+      'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'INTC', 1,
+      '2026-08-22', false, 8
     );
     raise exception 'should not reach here';
   exception
@@ -80,7 +85,8 @@ begin
 
   -- But replacing one of the eight is not adding a ninth.
   perform public.queue_lineup_order(
-    'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'SPY', 4, false, 8
+    'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'SPY', 4,
+    '2026-08-22', false, 8
   );
   perform public.assert(
     (select count(*) from public.lineup_orders) = 8,
@@ -98,8 +104,10 @@ $$;
 
 do $$
 begin
+  -- The Monday itself, after the bell.
   perform public.queue_lineup_order(
-    'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'INTC', 1, true, 8
+    'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'INTC', 1,
+    '2026-08-24', true, 8
   );
   raise exception 'should not reach here';
 exception
@@ -114,7 +122,7 @@ declare
 begin
   begin
     perform public.clear_lineup_order(
-      'aaaaaaaa-0000-0000-0000-000000000001', order_id, true
+      'aaaaaaaa-0000-0000-0000-000000000001', order_id, '2026-08-24', true
     );
     raise exception 'should not reach here';
   exception
@@ -126,7 +134,9 @@ begin
   end;
 
   perform public.assert(
-    public.clear_lineup_order('aaaaaaaa-0000-0000-0000-000000000001', order_id, false),
+    public.clear_lineup_order(
+      'aaaaaaaa-0000-0000-0000-000000000001', order_id, '2026-08-24', false
+    ),
     'before the bell, it can be taken out'
   );
 
@@ -136,7 +146,7 @@ begin
     public.clear_lineup_order(
       'bbbbbbbb-0000-0000-0000-000000000002',
       (select id from public.lineup_orders limit 1),
-      false
+      '2026-08-22', false
     ) = false,
     'and only by the person whose lineup it is'
   );
@@ -152,16 +162,20 @@ $$;
 delete from public.lineup_orders where true;
 
 select public.queue_lineup_order(
-  'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'AAPL', 100, false, 8
+  'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'AAPL', 100,
+  '2026-08-22', false, 8
 );
 select public.queue_lineup_order(
-  'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'GONE', 10, false, 8
+  'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'GONE', 10,
+  '2026-08-22', false, 8
 );
 select public.queue_lineup_order(
-  'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'MSFT', 100, false, 8
+  'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'MSFT', 100,
+  '2026-08-22', false, 8
 );
 select public.queue_lineup_order(
-  'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'NVDA', 1000, false, 8
+  'aaaaaaaa-0000-0000-0000-000000000001', '2026-08-24', 'NVDA', 1000,
+  '2026-08-22', false, 8
 );
 
 do $$
@@ -246,14 +260,94 @@ select public.assert(
   'and leaves two trades, not four'
 );
 
+
+-- ---------------------------------------------------------------------------
+-- The lock is about the week the order is for
+-- ---------------------------------------------------------------------------
+/*
+  This is the check the application could not make, and did not.
+
+  It worked the week out with the same function that decides where a *new*
+  order goes -- which by construction returns the earliest week that is not
+  locked -- so the lock was passed as false for every order it ever guarded,
+  including one for a week whose opening price was already public.
+
+  The database has the order, and the order knows its own week. All it is told
+  is the date and whether the bell has gone.
+*/
+
+insert into auth.users (id, email)
+values ('dddd4444-0000-0000-0000-000000000004', 'raul@example.com');
+
+select public.queue_lineup_order(
+  'dddd4444-0000-0000-0000-000000000004', '2026-08-24', 'AAPL', 10,
+  '2026-08-23', false, 8
+);
+
+do $$
+declare
+  order_id uuid := (
+    select id from public.lineup_orders
+    where user_id = 'dddd4444-0000-0000-0000-000000000004'
+  );
+begin
+  -- Monday, after the bell. The opening price is public, so this order is
+  -- exactly the one somebody would want to take back.
+  begin
+    perform public.clear_lineup_order(
+      'dddd4444-0000-0000-0000-000000000004', order_id, '2026-08-24', true
+    );
+    raise exception 'should not reach here';
+  exception
+    when others then
+      perform public.assert(
+        sqlerrm like '%locked%',
+        'an order for a week that has opened cannot be taken back, whatever the caller thinks'
+      );
+  end;
+
+  -- And later in the week, which is the same answer for the same reason.
+  begin
+    perform public.clear_lineup_order(
+      'dddd4444-0000-0000-0000-000000000004', order_id, '2026-08-27', false
+    );
+    raise exception 'should not reach here';
+  exception
+    when others then
+      perform public.assert(
+        sqlerrm like '%locked%',
+        'nor once the week is well under way'
+      );
+  end;
+
+  perform public.assert(
+    (select count(*) from public.lineup_orders
+     where user_id = 'dddd4444-0000-0000-0000-000000000004') = 1,
+    'and the order is still there afterwards'
+  );
+end
+$$;
+
+select public.assert(
+  public.lineup_locked('2026-08-24', '2026-08-23', false) = false
+  and public.lineup_locked('2026-08-24', '2026-08-24', false) = false
+  and public.lineup_locked('2026-08-24', '2026-08-24', true) = true
+  and public.lineup_locked('2026-08-24', '2026-08-25', false) = true,
+  'the lock is the bell on the day, not midnight before it'
+);
+
 -- ---------------------------------------------------------------------------
 -- Erasure
 -- ---------------------------------------------------------------------------
 
 delete from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000001';
 
+-- Their rows, not every row. A count over the whole table passes only while
+-- this file happens to have one player in it, which is the sort of assertion
+-- that goes red for a reason that has nothing to do with what it checks.
 select public.assert(
-  (select count(*) from public.lineup_orders) = 0,
+  (select count(*) from public.lineup_orders
+   where user_id = 'aaaaaaaa-0000-0000-0000-000000000001') = 0,
   'a lineup goes with the account that left it'
 );
 

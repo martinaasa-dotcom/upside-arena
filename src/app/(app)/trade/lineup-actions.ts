@@ -81,7 +81,7 @@ export async function submitClearLineupOrder(formData: FormData) {
   const orderId = String(formData.get("orderId") ?? "");
   if (!orderId) return;
 
-  await clearOrder(user.id, orderId, lineupMonday());
+  await clearOrder(user.id, orderId);
 
   revalidatePath("/trade");
   revalidatePath("/home");

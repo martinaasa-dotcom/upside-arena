@@ -478,20 +478,35 @@ export type Database = {
         Args: { p_user_id: string; p_cycle_id: string };
         Returns: boolean;
       };
+      /*
+        Both of these take two facts rather than a conclusion: today's date in
+        New York, and whether the bell has gone. The database works out for
+        itself whether the week in question is locked, which is what stops a
+        caller naming the wrong week -- see 0021 for the one that did.
+      */
       queue_lineup_order: {
         Args: {
           p_user_id: string;
           p_monday: string;
           p_symbol: string;
           p_quantity: number;
-          /** Worked out by the caller, which is what knows the time in New York. */
-          p_locked: boolean;
+          p_today: string;
+          p_opened: boolean;
           p_max_orders?: number;
         };
         Returns: LineupOrderRow;
       };
       clear_lineup_order: {
-        Args: { p_user_id: string; p_order_id: string; p_locked: boolean };
+        Args: {
+          p_user_id: string;
+          p_order_id: string;
+          p_today: string;
+          p_opened: boolean;
+        };
+        Returns: boolean;
+      };
+      lineup_locked: {
+        Args: { p_monday: string; p_today: string; p_opened: boolean };
         Returns: boolean;
       };
       fill_lineup: {

@@ -12,7 +12,7 @@ import { getLiveBattles } from "@/lib/game/battles";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { TrackView } from "@/components/TrackView";
 import { formatMoney } from "@/lib/format";
-import { isWeekend, lineupMonday } from "@/lib/market/session";
+import { isLineupWindow, isWeekend, lineupMonday } from "@/lib/market/session";
 
 export const metadata = { title: "Trade" };
 
@@ -91,10 +91,10 @@ async function CashLine() {
   if (!view) return null;
 
   /*
-    At the weekend the figure is the money next week starts with, and calling
+    Before the week starts the figure is the money it starts with, and calling
     that "cash" would be true of a balance nobody can spend yet.
   */
-  return isWeekend() ? (
+  return isLineupWindow() ? (
     <>{formatMoney(view.startingBalance)} on Monday</>
   ) : (
     <>{formatMoney(view.cash)} cash</>
@@ -130,15 +130,24 @@ async function Body({ searchParams }: { searchParams: Search }) {
     );
   }
 
-  if (isWeekend()) {
+  /*
+    The lineup, all weekend and on the Monday itself until the bell.
+
+    It used to be the weekend only, which quietly broke the promise the panel
+    makes: it says a lineup can be changed until the bell on Monday, and
+    somebody opening Arena at eight on a Monday morning could neither trade nor
+    see the thing that was about to spend their money.
+  */
+  if (isLineupWindow()) {
     const lineup = await getLineup(user.id, lineupMonday(), view.startingBalance);
 
     return (
       <>
         <Well className="py-3">
           <p className="text-sm text-muted-foreground">
-            The market is shut until Monday at 09:30 New York time, so there is
-            nothing to trade and nothing to miss. What you can do is decide now.
+            {isWeekend()
+              ? "The market is shut until Monday at 09:30 New York time, so there is nothing to trade and nothing to miss. What you can do is decide now."
+              : "The market opens at 09:30 New York time this morning. Nothing can be traded until it does, and this is the last chance to change what is bought at the open."}
           </p>
         </Well>
 
