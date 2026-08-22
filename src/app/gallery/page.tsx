@@ -18,8 +18,11 @@ import { PlusControls } from "@/components/PlusControls";
 import { AccountControls } from "@/components/AccountControls";
 import { SharedCards } from "@/components/SharedCards";
 import { WeekShape } from "@/components/WeekShape";
+import { AppHeader } from "@/components/AppHeader";
+import { BottomDock } from "@/components/BottomDock";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { COIN_BUNDLES } from "@/lib/billing/plan";
-import { PAGE, STACK } from "@/lib/page-shell";
+import { PAGE, PAGE_FRAME, STACK } from "@/lib/page-shell";
 import * as fixture from "./fixtures";
 
 /*
@@ -38,6 +41,18 @@ import * as fixture from "./fixtures";
   It is also what a design pass should be read on, instead of the throwaway
   scaffolds that got hand-built twice for the same purpose.
 
+  The chrome is here too -- the real AppHeader and the real BottomDock, in the
+  frame (app)/layout puts them in. Every screen carrying them is behind a
+  sign-in, and this suite is entirely signed out, so nothing measured the bar
+  or the dock as the app actually renders them: dock.spec.ts rebuilds the
+  dock's markup from its own source precisely because it could not reach the
+  real one. Drawn here they are measured at every phone width like everything
+  else, and the header can be scrolled against rather than reasoned about.
+
+  Only the avatar is a stand-in. It is the one part of the bar that is
+  genuinely per-player, and it streams in behind a Suspense boundary in the
+  real layout, so a fixture is what the bar holds either way at this point.
+
   Not a route in production. ARENA_UI_GALLERY is set by the Playwright web
   server and by `npm run gallery`, and nowhere a deployment can read it.
   Without it two separate things refuse: the proxy does not count /gallery
@@ -46,12 +61,17 @@ import * as fixture from "./fixtures";
   were checked against a production build rather than reasoned about.
 */
 
-export const metadata = { title: "Gallery", robots: { index: false, follow: false } };
+export const metadata = {
+  title: "Gallery",
+  robots: { index: false, follow: false },
+};
 
 function Case({ name, children }: { name: string; children: React.ReactNode }) {
   return (
     <section data-case={name} className="flex flex-col gap-2">
-      <h2 className="text-xs uppercase tracking-wide text-muted-foreground">{name}</h2>
+      <h2 className="text-xs uppercase tracking-wide text-muted-foreground">
+        {name}
+      </h2>
       {children}
     </section>
   );
@@ -61,220 +81,253 @@ export default function GalleryPage() {
   if (!process.env.ARENA_UI_GALLERY) notFound();
 
   return (
-    <div className={`${PAGE} ${STACK}`}>
-      <h1>Gallery</h1>
+    <div className={PAGE_FRAME}>
+      <AppHeader
+        avatar={
+          <Avatar>
+            <AvatarFallback>UA</AvatarFallback>
+          </Avatar>
+        }
+      />
 
-      <Case name="season-table">
-        <Panel title="Season">
-          <SeasonTable standings={fixture.seasonStandings} />
-        </Panel>
-      </Case>
+      {/* Same padding the rooms get, so the dock clears the last case. */}
+      <main id="main" className="pt-8 pb-32">
+        <div className={`${PAGE} ${STACK}`}>
+          <h1>Gallery</h1>
 
-      <Case name="standings-table">
-        <Panel title="League">
-          <StandingsTable standings={fixture.leagueStandings} goalFor={fixture.goalFor} />
-        </Panel>
-      </Case>
+          <Case name="season-table">
+            <Panel title="Season">
+              <SeasonTable standings={fixture.seasonStandings} />
+            </Panel>
+          </Case>
 
-      <Case name="streak-running">
-        <StreakCard streak={fixture.streak} />
-      </Case>
+          <Case name="standings-table">
+            <Panel title="League">
+              <StandingsTable
+                standings={fixture.leagueStandings}
+                goalFor={fixture.goalFor}
+              />
+            </Panel>
+          </Case>
 
-      <Case name="streak-done">
-        <StreakCard streak={fixture.streakDone} />
-      </Case>
+          <Case name="streak-running">
+            <StreakCard streak={fixture.streak} />
+          </Case>
 
-      <Case name="holdings">
-        <Panel title="Holdings">
-          <Holdings positions={fixture.positions} />
-        </Panel>
-      </Case>
+          <Case name="streak-done">
+            <StreakCard streak={fixture.streakDone} />
+          </Case>
 
-      <Case name="pod-climbing">
-        <PodStandings view={fixture.podView} />
-      </Case>
+          <Case name="holdings">
+            <Panel title="Holdings">
+              <Holdings positions={fixture.positions} />
+            </Panel>
+          </Case>
 
-      <Case name="pod-dropping">
-        <PodStandings view={fixture.podViewDropping} />
-      </Case>
+          <Case name="pod-climbing">
+            <PodStandings view={fixture.podView} />
+          </Case>
 
-      <Case name="pod-settled">
-        <PodStandings view={fixture.podViewSettled} />
-      </Case>
+          <Case name="pod-dropping">
+            <PodStandings view={fixture.podViewDropping} />
+          </Case>
 
-      <Case name="week-recap">
-        <WeekRecap recap={fixture.recap} />
-      </Case>
+          <Case name="pod-settled">
+            <PodStandings view={fixture.podViewSettled} />
+          </Case>
 
-      <Case name="coin-shop">
-        <Panel title="Coins">
-          <CoinShop
-            bundles={COIN_BUNDLES}
-            onSale={[
-              {
-                id: "c1",
-                name: "Aurora flair",
-                description:
-                  "A slow shifting outline on your name, everywhere it appears in the game.",
-                kind: "flair",
-                coinPrice: 1200,
-                plusOnly: false,
-                styleKey: "aurora",
-              },
-            ]}
-            memberOnly={[
-              {
-                id: "c2",
-                name: "Midnight theme",
-                description:
-                  "The whole app a shade darker, for people who play after everyone else has gone to bed.",
-                kind: "theme",
-                coinPrice: null,
-                plusOnly: true,
-                styleKey: "midnight",
-              },
-            ]}
-            balance={1_234_567}
-            hasPlus={false}
-            canBuy
-          />
-        </Panel>
-      </Case>
+          <Case name="week-recap">
+            <WeekRecap recap={fixture.recap} />
+          </Case>
 
-      <Case name="ticker">
-        <Scoreboard>
-          <Score label="Portfolio" value={<Ticker value={1_284_913.55} format="money" />} />
-          <Score label="This week" value={<Ticker value={-12.47} format="percent" />} />
-          <Score
-            label="Ahead of the market by"
-            value={<Ticker value={128.4} format="percent" />}
-          />
-        </Scoreboard>
-      </Case>
+          <Case name="coin-shop">
+            <Panel title="Coins">
+              <CoinShop
+                bundles={COIN_BUNDLES}
+                onSale={[
+                  {
+                    id: "c1",
+                    name: "Aurora flair",
+                    description:
+                      "A slow shifting outline on your name, everywhere it appears in the game.",
+                    kind: "flair",
+                    coinPrice: 1200,
+                    plusOnly: false,
+                    styleKey: "aurora",
+                  },
+                ]}
+                memberOnly={[
+                  {
+                    id: "c2",
+                    name: "Midnight theme",
+                    description:
+                      "The whole app a shade darker, for people who play after everyone else has gone to bed.",
+                    kind: "theme",
+                    coinPrice: null,
+                    plusOnly: true,
+                    styleKey: "midnight",
+                  },
+                ]}
+                balance={1_234_567}
+                hasPlus={false}
+                canBuy
+              />
+            </Panel>
+          </Case>
 
-      <Case name="week-shape">
-        <Panel title="The week">
-          <WeekShape marks={fixture.weekMarks} />
-        </Panel>
-      </Case>
+          <Case name="ticker">
+            <Scoreboard>
+              <Score
+                label="Portfolio"
+                value={<Ticker value={1_284_913.55} format="money" />}
+              />
+              <Score
+                label="This week"
+                value={<Ticker value={-12.47} format="percent" />}
+              />
+              <Score
+                label="Ahead of the market by"
+                value={<Ticker value={128.4} format="percent" />}
+              />
+            </Scoreboard>
+          </Case>
 
-      <Case name="week-shape-flat">
-        <Panel title="A week that barely moved">
-          <WeekShape marks={fixture.flatMarks} />
-        </Panel>
-      </Case>
+          <Case name="week-shape">
+            <Panel title="The week">
+              <WeekShape marks={fixture.weekMarks} />
+            </Panel>
+          </Case>
 
-      <Case name="weekly-goal-open">
-        <WeeklyGoal leagueId="l1" declared={null} />
-      </Case>
+          <Case name="week-shape-flat">
+            <Panel title="A week that barely moved">
+              <WeekShape marks={fixture.flatMarks} />
+            </Panel>
+          </Case>
 
-      <Case name="weekly-goal-declared">
-        <WeeklyGoal leagueId="l1" declared="beat_market" />
-      </Case>
+          <Case name="weekly-goal-open">
+            <WeeklyGoal leagueId="l1" declared={null} />
+          </Case>
 
-      <Case name="goal-marks">
-        <Panel title="Goal marks">
-          <div className="flex flex-col gap-2">
-            <GoalMark label="Beat the market by 5% without selling anything" met={null} />
-            <GoalMark label="Beat the market by 5% without selling anything" met={true} />
-            <GoalMark label="Beat the market by 5% without selling anything" met={false} />
-          </div>
-        </Panel>
-      </Case>
+          <Case name="weekly-goal-declared">
+            <WeeklyGoal leagueId="l1" declared="beat_market" />
+          </Case>
 
-      <Case name="invite-code">
-        <InviteCode code="ABCD2345" leagueName={fixture.LONG_LEAGUE} />
-      </Case>
+          <Case name="goal-marks">
+            <Panel title="Goal marks">
+              <div className="flex flex-col gap-2">
+                <GoalMark
+                  label="Beat the market by 5% without selling anything"
+                  met={null}
+                />
+                <GoalMark
+                  label="Beat the market by 5% without selling anything"
+                  met={true}
+                />
+                <GoalMark
+                  label="Beat the market by 5% without selling anything"
+                  met={false}
+                />
+              </div>
+            </Panel>
+          </Case>
 
-      <Case name="league-forms">
-        <Panel title="Leagues">
-          <div className="flex flex-col gap-6">
-            <CreateLeagueForm />
-            <JoinLeagueForm />
-          </div>
-        </Panel>
-      </Case>
+          <Case name="invite-code">
+            <InviteCode code="ABCD2345" leagueName={fixture.LONG_LEAGUE} />
+          </Case>
 
-      <Case name="shared-cards">
-        <Panel title="What you have shared">
-          <SharedCards cards={fixture.sharedCards} />
-        </Panel>
-      </Case>
+          <Case name="league-forms">
+            <Panel title="Leagues">
+              <div className="flex flex-col gap-6">
+                <CreateLeagueForm />
+                <JoinLeagueForm />
+              </div>
+            </Panel>
+          </Case>
 
-      <Case name="notification-settings">
-        <Panel title="Notifications">
-          <NotificationSettings
-            initial={fixture.notificationSettings}
-            devices={2}
-            pushAvailable
-            emailAvailable
-            publicKey=""
-          />
-        </Panel>
-      </Case>
+          <Case name="shared-cards">
+            <Panel title="What you have shared">
+              <SharedCards cards={fixture.sharedCards} />
+            </Panel>
+          </Case>
 
-      <Case name="plus-none">
-        <Panel title="Plus">
-          <PlusControls
-            status="none"
-            hasPlus={false}
-            until={null}
-            cadences={["monthly", "yearly"]}
-            canManage={false}
-          />
-        </Panel>
-      </Case>
+          <Case name="notification-settings">
+            <Panel title="Notifications">
+              <NotificationSettings
+                initial={fixture.notificationSettings}
+                devices={2}
+                pushAvailable
+                emailAvailable
+                publicKey=""
+              />
+            </Panel>
+          </Case>
 
-      <Case name="plus-past-due">
-        <Panel title="Plus, past due">
-          <PlusControls
-            status="past_due"
-            hasPlus
-            until="2026-09-30"
-            cadences={["monthly", "yearly"]}
-            canManage
-          />
-        </Panel>
-      </Case>
+          <Case name="plus-none">
+            <Panel title="Plus">
+              <PlusControls
+                status="none"
+                hasPlus={false}
+                until={null}
+                cadences={["monthly", "yearly"]}
+                canManage={false}
+              />
+            </Panel>
+          </Case>
 
-      <Case name="account-controls">
-        <Panel title="Your account">
-          <AccountControls />
-        </Panel>
-      </Case>
+          <Case name="plus-past-due">
+            <Panel title="Plus, past due">
+              <PlusControls
+                status="past_due"
+                hasPlus
+                until="2026-09-30"
+                cadences={["monthly", "yearly"]}
+                canManage
+              />
+            </Panel>
+          </Case>
 
-      <Case name="wardrobe">
-        <Panel title="Wardrobe">
-          <Wardrobe
-            wardrobe={{
-              owned: [
-                {
-                  id: "w1",
-                  name: "Seven days running",
-                  description:
-                    "Earned by turning up seven trading days in a row without missing one.",
-                  kind: "title",
-                  styleKey: null,
-                  earnedAt: "2026-08-01",
-                  equipped: true,
-                },
-              ],
-              locked: [
-                {
-                  id: "w2",
-                  name: "One hundred days running",
-                  description:
-                    "Earned by turning up a hundred trading days in a row, which is most of a year of weekdays.",
-                  kind: "title",
-                  streakRequired: 100,
-                },
-              ],
-              forSale: [],
-              equipped: { title: "w1", flair: null, theme: null },
-            }}
-          />
-        </Panel>
-      </Case>
+          <Case name="account-controls">
+            <Panel title="Your account">
+              <AccountControls />
+            </Panel>
+          </Case>
+
+          <Case name="wardrobe">
+            <Panel title="Wardrobe">
+              <Wardrobe
+                wardrobe={{
+                  owned: [
+                    {
+                      id: "w1",
+                      name: "Seven days running",
+                      description:
+                        "Earned by turning up seven trading days in a row without missing one.",
+                      kind: "title",
+                      styleKey: null,
+                      earnedAt: "2026-08-01",
+                      equipped: true,
+                    },
+                  ],
+                  locked: [
+                    {
+                      id: "w2",
+                      name: "One hundred days running",
+                      description:
+                        "Earned by turning up a hundred trading days in a row, which is most of a year of weekdays.",
+                      kind: "title",
+                      streakRequired: 100,
+                    },
+                  ],
+                  forSale: [],
+                  equipped: { title: "w1", flair: null, theme: null },
+                }}
+              />
+            </Panel>
+          </Case>
+        </div>
+      </main>
+
+      <BottomDock />
     </div>
   );
 }
