@@ -24,20 +24,20 @@ export async function GET() {
   }
 
   const [
-    { data: profile },
-    { data: acceptances },
-    { data: portfolios },
-    { data: trades },
-    { data: holdings },
-    { data: memberships },
-    { data: streak },
-    { data: titles },
-    { data: notificationSettings },
-    { data: notifications },
-    { data: shareCards },
-    { data: entitlements },
-    { data: coins },
-    { data: devices },
+    profileResult,
+    acceptancesResult,
+    portfoliosResult,
+    tradesResult,
+    holdingsResult,
+    membershipsResult,
+    streakResult,
+    titlesResult,
+    notificationSettingsResult,
+    notificationsResult,
+    shareCardsResult,
+    entitlementsResult,
+    coinsResult,
+    devicesResult,
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
     supabase.from("terms_acceptances").select("*").eq("user_id", user.id),
@@ -77,6 +77,52 @@ export async function GET() {
       .eq("user_id", user.id),
   ]);
 
+  /*
+    Every one of those used to be read for its rows and asked nothing about
+    whether the read worked. A query that failed came back as null, became an
+    empty list in the file, and the person who asked what we hold on them was
+    handed a document saying we hold nothing of that kind. There is no way to
+    tell that apart from the truth by looking at it, which is what makes it
+    worse than a refusal: somebody could check their export, see no trades,
+    and be wrong about their own record with our file as the evidence.
+
+    So a section that could not be read stops the whole export. Retrying costs
+    a click. A quietly incomplete answer to this particular question does not
+    get a second look.
+  */
+  const sections = {
+    profile: profileResult,
+    terms_acceptances: acceptancesResult,
+    portfolios: portfoliosResult,
+    trades: tradesResult,
+    holdings: holdingsResult,
+    league_memberships: membershipsResult,
+    streak: streakResult,
+    titles_earned: titlesResult,
+    notification_settings: notificationSettingsResult,
+    notifications_sent: notificationsResult,
+    shared_weeks: shareCardsResult,
+    what_you_have_bought: entitlementsResult,
+    coin_history: coinsResult,
+    subscribed_devices: devicesResult,
+  };
+
+  const unread = Object.entries(sections)
+    .filter(([, result]) => result.error)
+    .map(([name]) => name);
+
+  if (unread.length > 0) {
+    console.error("account export incomplete", { userId: user.id, unread });
+    return NextResponse.json(
+      {
+        error:
+          "We could not read all of your data, so we have not sent a partial file. Try again in a moment.",
+        sections_unread: unread,
+      },
+      { status: 503, headers: { "cache-control": "no-store" } }
+    );
+  }
+
   const payload = {
     exported_at: new Date().toISOString(),
     account: {
@@ -86,20 +132,20 @@ export async function GET() {
       last_sign_in_at: user.last_sign_in_at,
       sign_in_providers: user.app_metadata?.providers ?? [],
     },
-    profile: profile ?? null,
-    terms_acceptances: acceptances ?? [],
-    portfolios: portfolios ?? [],
-    trades: trades ?? [],
-    holdings: holdings ?? [],
-    league_memberships: memberships ?? [],
-    streak: streak ?? null,
-    titles_earned: titles ?? [],
-    notification_settings: notificationSettings ?? null,
-    notifications_sent: notifications ?? [],
-    shared_weeks: shareCards ?? [],
-    what_you_have_bought: entitlements ?? [],
-    coin_history: coins ?? [],
-    subscribed_devices: devices ?? [],
+    profile: profileResult.data ?? null,
+    terms_acceptances: acceptancesResult.data ?? [],
+    portfolios: portfoliosResult.data ?? [],
+    trades: tradesResult.data ?? [],
+    holdings: holdingsResult.data ?? [],
+    league_memberships: membershipsResult.data ?? [],
+    streak: streakResult.data ?? null,
+    titles_earned: titlesResult.data ?? [],
+    notification_settings: notificationSettingsResult.data ?? null,
+    notifications_sent: notificationsResult.data ?? [],
+    shared_weeks: shareCardsResult.data ?? [],
+    what_you_have_bought: entitlementsResult.data ?? [],
+    coin_history: coinsResult.data ?? [],
+    subscribed_devices: devicesResult.data ?? [],
   };
 
   return new NextResponse(JSON.stringify(payload, null, 2), {
