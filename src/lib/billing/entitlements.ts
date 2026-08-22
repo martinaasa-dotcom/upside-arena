@@ -143,21 +143,45 @@ export async function buyReward(
     p_reward_id: rewardId,
   });
 
-  if (error) {
-    const message = error.message ?? "";
-    if (message.includes("not enough coins")) {
-      return { ok: false, error: "You do not have enough coins for that yet." };
-    }
-    if (message.includes("already own")) {
-      return { ok: false, error: "You already have that one." };
-    }
-    if (message.includes("not for sale")) {
-      return { ok: false, error: "That one is not for sale." };
-    }
-    return { ok: false, error: "We could not complete that. Nothing was taken." };
-  }
+  if (error) return { ok: false, error: purchaseRefusal(error) };
 
   return { ok: true, balance: typeof data === "number" ? data : 0 };
+}
+
+/**
+ * What to say when a purchase does not go through.
+ *
+ * The distinction that matters is whether the database answered. buy_reward is
+ * one plpgsql function, so every refusal it raises rolls the whole thing back
+ * and nothing was taken — that is worth saying, because a player who is not
+ * told it will wonder.
+ *
+ * A request that never got an answer is a different thing. The write may have
+ * committed with the response lost on the way back, and "nothing was taken"
+ * would then be the app stating something it cannot know. So it does not say
+ * it. Trying again is safe either way: the second attempt is refused with "you
+ * already own that", which is the correct end state rather than a second
+ * charge.
+ *
+ * PostgREST fills `code` on anything Postgres actually answered (`P0001` for a
+ * raised exception). A transport failure has no code to fill.
+ */
+export function purchaseRefusal(error: { message?: string; code?: string }): string {
+  const message = error.message ?? "";
+
+  if (message.includes("not enough coins")) {
+    return "You do not have enough coins for that yet.";
+  }
+  if (message.includes("already own")) {
+    return "You already have that one.";
+  }
+  if (message.includes("not for sale")) {
+    return "That one is not for sale.";
+  }
+
+  return error.code
+    ? "We could not complete that. Nothing was taken."
+    : "We could not reach the shop. Check your coins before trying again.";
 }
 
 /** Credits bought coins. Safe to call again with the same key. */

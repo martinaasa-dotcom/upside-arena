@@ -8,6 +8,16 @@ import { PodStandings } from "@/components/PodStandings";
 import { CoinShop } from "@/components/CoinShop";
 import { Wardrobe } from "@/components/Wardrobe";
 import { WeekRecap } from "@/components/WeekRecap";
+import { Ticker } from "@/components/Ticker";
+import { WeeklyGoal, GoalMark } from "@/components/WeeklyGoal";
+import { Scoreboard, Score } from "@/components/Scoreboard";
+import { InviteCode } from "@/components/InviteCode";
+import { CreateLeagueForm, JoinLeagueForm } from "@/components/LeagueForms";
+import { NotificationSettings } from "@/components/NotificationSettings";
+import { PlusControls } from "@/components/PlusControls";
+import { AccountControls } from "@/components/AccountControls";
+import { SharedCards } from "@/components/SharedCards";
+import { WeekShape } from "@/components/WeekShape";
 import { COIN_BUNDLES } from "@/lib/billing/plan";
 import { PAGE, STACK } from "@/lib/page-shell";
 import * as fixture from "./fixtures";
@@ -129,6 +139,108 @@ export default function GalleryPage() {
             hasPlus={false}
             canBuy
           />
+        </Panel>
+      </Case>
+
+      <Case name="ticker">
+        <Scoreboard>
+          <Score label="Portfolio" value={<Ticker value={1_284_913.55} format="money" />} />
+          <Score label="This week" value={<Ticker value={-12.47} format="percent" />} />
+          <Score
+            label="Ahead of the market by"
+            value={<Ticker value={128.4} format="percent" />}
+          />
+        </Scoreboard>
+      </Case>
+
+      <Case name="week-shape">
+        <Panel title="The week">
+          <WeekShape marks={fixture.weekMarks} />
+        </Panel>
+      </Case>
+
+      <Case name="week-shape-flat">
+        <Panel title="A week that barely moved">
+          <WeekShape marks={fixture.flatMarks} />
+        </Panel>
+      </Case>
+
+      <Case name="weekly-goal-open">
+        <WeeklyGoal leagueId="l1" declared={null} />
+      </Case>
+
+      <Case name="weekly-goal-declared">
+        <WeeklyGoal leagueId="l1" declared="beat_market" />
+      </Case>
+
+      <Case name="goal-marks">
+        <Panel title="Goal marks">
+          <div className="flex flex-col gap-2">
+            <GoalMark label="Beat the market by 5% without selling anything" met={null} />
+            <GoalMark label="Beat the market by 5% without selling anything" met={true} />
+            <GoalMark label="Beat the market by 5% without selling anything" met={false} />
+          </div>
+        </Panel>
+      </Case>
+
+      <Case name="invite-code">
+        <InviteCode code="ABCD2345" leagueName={fixture.LONG_LEAGUE} />
+      </Case>
+
+      <Case name="league-forms">
+        <Panel title="Leagues">
+          <div className="flex flex-col gap-6">
+            <CreateLeagueForm />
+            <JoinLeagueForm />
+          </div>
+        </Panel>
+      </Case>
+
+      <Case name="shared-cards">
+        <Panel title="What you have shared">
+          <SharedCards cards={fixture.sharedCards} />
+        </Panel>
+      </Case>
+
+      <Case name="notification-settings">
+        <Panel title="Notifications">
+          <NotificationSettings
+            initial={fixture.notificationSettings}
+            devices={2}
+            pushAvailable
+            emailAvailable
+            publicKey=""
+          />
+        </Panel>
+      </Case>
+
+      <Case name="plus-none">
+        <Panel title="Plus">
+          <PlusControls
+            status="none"
+            hasPlus={false}
+            until={null}
+            cadences={["monthly", "yearly"]}
+            canManage={false}
+          />
+        </Panel>
+      </Case>
+
+      <Case name="plus-past-due">
+        <Panel title="Plus, past due">
+          <PlusControls
+            status="past_due"
+            hasPlus
+            until="2026-09-30"
+            cadences={["monthly", "yearly"]}
+            canManage
+          />
+        </Panel>
+      </Case>
+
+      <Case name="account-controls">
+        <Panel title="Your account">
+          <AccountControls />
         </Panel>
       </Case>
 
