@@ -151,14 +151,20 @@ async function BackToLeague({ params }: Params) {
   );
 }
 
+/*
+  Four figures that are all the viewer's, and null for anybody who was not in
+  this contest -- a member who joined the league after it had ended can open
+  the room, and has no money in it. A dash is the honest answer; a hundred
+  thousand and nought per cent would be a week they never played.
+*/
 async function MoneyScore({ params }: Params) {
   const view = await battleFor(params);
-  if (!view) return <Score label="Your money" value="—" as="text" />;
+  if (!view?.you) return <Score label="Your money" value="—" as="text" />;
 
   return (
     <Score
       label="Your money"
-      value={formatMoney(view.you?.totalValue ?? view.battle.startingBalance)}
+      value={formatMoney(view.you.totalValue)}
       hint={`Started with ${formatMoney(view.battle.startingBalance)}`}
     />
   );
@@ -168,7 +174,18 @@ async function ReturnScore({ params }: Params) {
   const view = await battleFor(params);
   if (!view) return <Score label="This battle" value="—" as="text" />;
 
-  const pct = view.you?.returnPercent ?? 0;
+  if (!view.you) {
+    return (
+      <Score
+        label="This battle"
+        value="Not you"
+        as="text"
+        hint={`${view.battle.length.name}, ended ${view.battle.endsOn}`}
+      />
+    );
+  }
+
+  const pct = view.you.returnPercent;
 
   return (
     <Score
@@ -197,12 +214,13 @@ async function BenchmarkScore({ params }: Params) {
 
 async function CashScore({ params }: Params) {
   const view = await battleFor(params);
+  const cash = view?.cash ?? null;
 
   return (
     <Score
       label="Cash left"
-      value={view ? formatMoney(view.cash) : "—"}
-      as={view ? "figure" : "text"}
+      value={cash == null ? "—" : formatMoney(cash)}
+      as={cash == null ? "text" : "figure"}
       hint="Cash earns nothing"
     />
   );
@@ -359,10 +377,10 @@ async function Rest({ params }: Params) {
             <Link href={`/leagues/${id}`}>Back to the league</Link>
           </Button>
         </Panel>
-      ) : (
+      ) : you ? (
         <Panel title="Trade">
           <TradeForm
-            cash={view.cash}
+            cash={view.cash ?? 0}
             ownedSymbols={positions.map((p) => p.symbol)}
             tradingOpen={view.tradingOpen}
             closedReason={view.closedReason}
@@ -371,6 +389,17 @@ async function Rest({ params }: Params) {
             rule={format.rule}
           />
         </Panel>
+      ) : (
+        /*
+          Somebody who was not in this contest. Only reachable for a settled
+          one -- a running battle ends in the future, so everybody in the
+          league now was in it -- and the trade form has no money of theirs to
+          spend either way.
+        */
+        <Panel
+          title="You were not in this one"
+          description="It had already finished by the time you joined the league. The table above is who played it."
+        />
       )}
 
       {battle.isYours && !battle.finished ? (

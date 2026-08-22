@@ -103,18 +103,29 @@ export type BattleResult = {
   formatName: string;
   players: number;
   winner: { userId: string; displayName: string; returnPercent: number } | null;
-  /** Every member who was scored, best first. */
+  /** Everybody who was in it, best first. */
   finished: { userId: string; displayName: string; returnPercent: number }[];
+  /**
+   * Of those, the ones still in the league.
+   *
+   * Somebody who has left stays in the field, because dropping a winner who
+   * walked away would hand their win to whoever came second. They are not told
+   * about it: the message links to a room their own league membership is what
+   * opens, so it would arrive pointing at a door that is shut to them.
+   */
+  present: string[];
 };
 
 export type BattleView = {
   battle: Battle;
   standings: BattleStanding[];
+  /** The viewer's own row, or null when they were not in this contest. */
   you: BattleStanding | null;
   benchmarkReturnPercent: number | null;
   /** The viewer's own book in this battle, priced now. */
   positions: BattlePosition[];
-  cash: number;
+  /** Null when the viewer was not in this contest, and has no figure in it. */
+  cash: number | null;
   tradingOpen: boolean;
   /** Why it is not, when it is not. Empty when it is. */
   closedReason: string;
@@ -125,6 +136,19 @@ export type BattleView = {
 function num(value: string | number | null | undefined): number {
   if (value == null) return 0;
   return typeof value === "number" ? value : Number(value);
+}
+
+/**
+ * Whether somebody was in the league by the day a contest ended.
+ *
+ * The joining time is a timestamp and the end is a New York calendar date, so
+ * the two have to be put on the same clock before they can be compared. Taking
+ * the first ten characters of the timestamp reads it in UTC, which quietly
+ * drops anybody who joined after about eight in the evening New York time on
+ * the last day: their UTC date is already tomorrow.
+ */
+function joinedBy(joinedAt: string, endsOn: string): boolean {
+  return nyDate(new Date(joinedAt)) <= endsOn;
 }
 
 function toBattle(
@@ -483,9 +507,7 @@ export const getBattleView = cache(async function getBattleView(
   const memberIds = [
     ...new Set([
       ...((played ?? []) as { user_id: string }[]).map((row) => row.user_id),
-      ...roster
-        .filter((row) => row.joined_at.slice(0, 10) <= cycle.ends_on)
-        .map((row) => row.user_id),
+      ...roster.filter((row) => joinedBy(row.joined_at, cycle.ends_on)).map((row) => row.user_id),
     ]),
   ];
 
@@ -683,14 +705,23 @@ export const getBattleView = cache(async function getBattleView(
     .sort((a, b) => b.value - a.value);
 
   const trading = battleTrading(battle);
+  const you = standings.find((row) => row.isYou) ?? null;
 
   return {
     battle,
     standings,
-    you: standings.find((row) => row.isYou) ?? null,
+    you,
     benchmarkReturnPercent,
     positions,
-    cash: mine ? num(mine.cash) : battle.startingBalance,
+    /*
+      Null rather than the starting balance for somebody who was not in this
+      contest -- a member who joined the league after it had already ended.
+      They can open the room, because it is their league's, and there is no
+      figure of theirs in it: showing them a hundred thousand and nought per
+      cent would be inventing a week they never played, which is the one thing
+      no screen in this app does.
+    */
+    cash: mine ? num(mine.cash) : you ? battle.startingBalance : null,
     tradingOpen: trading.open,
     closedReason: trading.reason,
     marketState: benchmarkQuote?.marketState ?? null,
@@ -830,7 +861,7 @@ export async function settledBattles(): Promise<BattleResult[]> {
     joined_at: string;
   }[]) {
     const list = rosterByLeague.get(row.league_id) ?? [];
-    list.push({ userId: row.user_id, joined: row.joined_at.slice(0, 10) });
+    list.push({ userId: row.user_id, joined: row.joined_at });
     rosterByLeague.set(row.league_id, list);
   }
 
@@ -890,7 +921,7 @@ export async function settledBattles(): Promise<BattleResult[]> {
       be a placing in a race they had not entered.
     */
     const entitled = (rosterByLeague.get(cycle.league_id) ?? [])
-      .filter((row) => row.joined <= cycle.ends_on)
+      .filter((row) => joinedBy(row.joined, cycle.ends_on))
       .map((row) => row.userId);
 
     const field = [...new Set([...scored.keys(), ...entitled])];
@@ -912,6 +943,7 @@ export async function settledBattles(): Promise<BattleResult[]> {
         players: finished.length,
         winner: finished[0],
         finished,
+        present: (rosterByLeague.get(cycle.league_id) ?? []).map((row) => row.userId),
       },
     ];
   });

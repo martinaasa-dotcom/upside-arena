@@ -163,21 +163,32 @@ export function Lineup({ view }: { view: LineupView }) {
                     aria-label={`Take ${order.symbol} out of the lineup`}
                     onClick={() =>
                       startRemoving(async () => {
-                        const result = await submitClearLineupOrder(order.id);
-
                         /*
                           Said out loud either way. The market can open between
                           this page being drawn and this button being tapped,
                           and a lineup that quietly refuses to change is worse
                           than one that says it is set.
-                        */
-                        if (!result.ok) {
-                          toast.error(result.error ?? "We could not take that out.");
-                          return;
-                        }
 
-                        track("lineup_order_cleared");
-                        toast.success(`${order.symbol} taken out.`);
+                          The catch is the other half of that. A call that
+                          never arrives -- a phone that has gone offline, a
+                          server that answered with nothing -- would otherwise
+                          throw straight past this and take the whole screen to
+                          the error boundary, which is a louder way of telling
+                          somebody nothing.
+                        */
+                        try {
+                          const result = await submitClearLineupOrder(order.id);
+
+                          if (!result.ok) {
+                            toast.error(result.error ?? "We could not take that out.");
+                            return;
+                          }
+
+                          track("lineup_order_cleared");
+                          toast.success(`${order.symbol} taken out.`);
+                        } catch {
+                          toast.error("We could not reach the server. Try again.");
+                        }
                       })
                     }
                   >

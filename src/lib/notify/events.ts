@@ -530,7 +530,17 @@ export async function notifyBattleResults(): Promise<NotifyResult> {
   ]);
 
   for (const battle of battles) {
+    const present = new Set(battle.present);
+
     for (const [index, player] of battle.finished.entries()) {
+      /*
+        Everybody who was in it counts towards the field, so a winner who has
+        since left the league does not have their win handed to second place.
+        Only the people still in it are told, because the message links to a
+        room that league membership is what opens.
+      */
+      if (!present.has(player.userId)) continue;
+
       result.considered++;
 
       const message = battleResultMessage(battle, index + 1);

@@ -220,7 +220,7 @@ export async function clearOrder(
   if (!canWriteGame) return { ok: false, error: "Not switched on yet." };
 
   const admin = createAdminClient();
-  const { error } = await admin.rpc("clear_lineup_order", {
+  const { data, error } = await admin.rpc("clear_lineup_order", {
     p_user_id: userId,
     p_order_id: orderId,
     p_today: nyDate(),
@@ -235,6 +235,20 @@ export async function clearOrder(
       };
     }
     return { ok: false, error: "We could not take that out. Try again." };
+  }
+
+  /*
+    The function returns whether a row actually went, and it can honestly
+    return false: the order may have run in the seconds since the page was
+    drawn, or belong to somebody else. Reporting success on a delete that
+    deleted nothing is the same "told nothing" failure this whole path was
+    rewritten to close, one layer further in.
+  */
+  if (data !== true) {
+    return {
+      ok: false,
+      error: "That one is not in your lineup any more. Reload to see what is.",
+    };
   }
 
   return { ok: true };

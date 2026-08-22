@@ -276,6 +276,7 @@ describe("what a settled battle says", () => {
       { userId: "s1", displayName: "Bo", returnPercent: 8.2 },
       { userId: "you", displayName: "You", returnPercent: 1.1 },
     ],
+    present: ["s1", "you"],
   };
 
   it("tells the winner they won, and where", () => {

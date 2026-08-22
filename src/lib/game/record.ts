@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { nyDate } from "@/lib/market/session";
 import type { LeagueRow, WeeklyCycleRow } from "@/lib/supabase/database.types";
 
 /*
@@ -119,7 +120,16 @@ export const getLeagueRecord = cache(async function getLeagueRecord(
   // secret, and guessing one must not show you a private league's history.
   if (!memberIds.includes(userId) || !leagueRow) return null;
 
-  const joinedBy = new Map(roster.map((m) => [m.user_id, m.joined_at.slice(0, 10)]));
+  /*
+    The joining time is a timestamp and a week's end is a New York calendar
+    date, so the two are put on the same clock before they are compared. The
+    first ten characters of the timestamp read it in UTC, which quietly drops
+    anybody who joined after about eight in the evening New York time on the
+    last day of a week: their UTC date is already tomorrow.
+  */
+  const joinedBy = new Map(
+    roster.map((m) => [m.user_id, nyDate(new Date(m.joined_at))])
+  );
 
   /*
     Every house week that has been settled. Battles are left out on purpose:
