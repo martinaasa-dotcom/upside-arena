@@ -110,9 +110,11 @@ at least 18 degrees.
 
 ### The counter-accent
 
-`--glow-secondary` is **`oklch(0.68 0.16 328)`** (`#d466d2`), a magenta. It
+`--glow-secondary` is **`oklch(0.74 0.17 328)`** (`#e380e0`), a magenta. It
 lights the far lobe of the ambient field so the page is lit from two directions
-in two hues rather than one colour twice.
+in two hues rather than one colour twice. Like every other accent it sits at
+L 0.74; it was 0.68 when first chosen, and came up with the rest of the
+palette when the lightnesses were levelled.
 
 It was chosen rather than picked. The true complement of the accent is hue 27,
 a coral, which would give the most chromatic contrast and is unusable here: it
