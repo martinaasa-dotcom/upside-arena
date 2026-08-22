@@ -187,8 +187,13 @@ async function ensurePortfolio(userId: string, cycleId: string) {
  *
  * One quote request covers every symbol held, and the quote layer shares
  * those fetches across everyone looking at the same names.
+ *
+ * Memoised per request, because Home no longer asks for this once at the top
+ * and then renders. Each figure streams in on its own, so several components
+ * ask for the same view within one render and must not each go and price a
+ * portfolio to answer.
  */
-export async function getPortfolioView(
+export const getPortfolioView = cache(async function getPortfolioView(
   userId: string
 ): Promise<PortfolioView | null> {
   const cycle = await getCurrentCycle();
@@ -325,8 +330,7 @@ export async function getPortfolioView(
     marketState: benchmarkQuote?.marketState ?? null,
     anyStale,
   };
-}
-
+})
 export type TradeOutcome =
   | { ok: true; symbol: string; side: "buy" | "sell"; quantity: number; price: number }
   | { ok: false; error: string };

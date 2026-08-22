@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Coins } from "lucide-react";
 import { Panel } from "@/components/Panel";
@@ -25,7 +26,21 @@ import { signOut } from "@/app/auth/actions";
 
 export const metadata = { title: "Profile" };
 
-export default async function ProfilePage() {
+/*
+  The heading is the room; everything about the person streams under it.
+*/
+export default function ProfilePage() {
+  return (
+    <div className={`${PAGE} ${STACK}`}>
+      <h1>Profile</h1>
+      <Suspense fallback={null}>
+        <Player />
+      </Suspense>
+    </div>
+  );
+}
+
+async function Player() {
   const { user, profile } = await getSession();
   const name = profile?.display_name ?? "Player";
 
@@ -68,9 +83,7 @@ export default async function ProfilePage() {
   const ring = flairRing(await flairStyleKey(profile?.equipped_flair ?? null));
 
   return (
-    <div className={`${PAGE} ${STACK}`}>
-      <h1>Profile</h1>
-
+    <>
       <Panel>
         <div className="flex items-center gap-4">
           <Avatar className={`size-14 rounded-xl ${ring}`}>
@@ -263,6 +276,6 @@ export default async function ProfilePage() {
           </Button>
         </form>
       </Panel>
-    </div>
+    </>
   );
 }

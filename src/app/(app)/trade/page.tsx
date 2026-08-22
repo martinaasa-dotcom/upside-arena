@@ -1,13 +1,14 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Panel, Well } from "@/components/Panel";
 import { TradeForm } from "@/components/TradeForm";
 import { Lineup } from "@/components/Lineup";
+import { BattleCard } from "@/components/BattleCard";
 import { getSession } from "@/lib/profile";
 import { getPortfolioView } from "@/lib/game/portfolio";
 import { getLineup } from "@/lib/game/lineup";
 import { getLiveBattles } from "@/lib/game/battles";
-import { BattleCard } from "@/components/BattleCard";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { TrackView } from "@/components/TrackView";
 import { formatMoney } from "@/lib/format";
@@ -16,17 +17,89 @@ import { isWeekend, lineupMonday } from "@/lib/market/session";
 export const metadata = { title: "Trade" };
 
 /*
-  One room, two jobs, decided by the clock.
+  The heading and the panel are the room, and neither needs to know anything,
+  so both are prerendered and arrive with the tap. What is priced -- the cash
+  line and the form's own limits -- streams into them.
 
-  While the market is open this is the trade screen. From Friday's close to
-  Monday's bell there is nothing to trade, and it becomes the place you say
-  what you want to own when it opens again -- which is the same intention, in
-  the same room, at the only moment somebody can act on it.
+  One room, two jobs. While the market is open this is the trade screen; from
+  Friday's close to Monday's bell there is nothing to trade, and it becomes the
+  place you say what you want to own when it opens again. Deliberately not a
+  second tab: one called "Lineup" that does nothing five days a week is a tab
+  people learn to ignore.
 
-  It is not a second screen behind a second tab, because a tab called "Lineup"
-  that does nothing five days a week is a tab people learn to ignore.
+  Which of the two it is cannot be decided up here. This component is
+  prerendered, so a clock read inside it would be the clock at build time and
+  the room would arrive insisting it was a Tuesday. The choice belongs inside
+  the boundary, where the render is actually happening.
 */
-export default async function TradePage() {
+export default function TradePage() {
+  return (
+    <div className={`${PAGE} ${STACK}`}>
+      <TrackView event="trade_screen_viewed" />
+
+      <div className="flex items-baseline justify-between gap-4">
+        <h1>Trade</h1>
+        <span className="figure text-sm text-muted-foreground">
+          <Suspense fallback={null}>
+            <CashLine />
+          </Suspense>
+        </span>
+      </div>
+
+      <Suspense
+        fallback={
+          <Panel>
+            <FormPending />
+          </Panel>
+        }
+      >
+        <Body />
+      </Suspense>
+
+      {/*
+        A battle whose market never shuts is the one thing still playable on a
+        Saturday, so it is offered here rather than left to be found. Its own
+        boundary, because it is several leagues' worth of reads and must not
+        hold up the form.
+      */}
+      <Suspense fallback={null}>
+        <AllHoursBattles />
+      </Suspense>
+    </div>
+  );
+}
+
+async function CashLine() {
+  const { user } = await getSession();
+  if (!user) return null;
+
+  const view = await getPortfolioView(user.id);
+  if (!view) return null;
+
+  /*
+    At the weekend the figure is the money next week starts with, and calling
+    that "cash" would be true of a balance nobody can spend yet.
+  */
+  return isWeekend() ? (
+    <>{formatMoney(view.startingBalance)} on Monday</>
+  ) : (
+    <>{formatMoney(view.cash)} cash</>
+  );
+}
+
+/*
+  The form's shape while its numbers are on the way. Same height as the real
+  one, so the panel does not resize under somebody's thumb once it lands.
+*/
+function FormPending() {
+  return (
+    <div className="flex min-h-64 flex-col gap-4" aria-busy="true">
+      <span className="sr-only">Loading the trade form</span>
+    </div>
+  );
+}
+
+async function Body() {
   const { user } = await getSession();
   if (!user) redirect("/");
 
@@ -34,59 +107,28 @@ export default async function TradePage() {
 
   if (!view) {
     return (
-      <div className={`${PAGE} ${STACK}`}>
-        <TrackView event="trade_screen_viewed" />
-        <h1>Trade</h1>
-        <Panel
-          title="Trading is not switched on yet"
-          description="The game engine needs its server key before trades can be placed. Nothing you do here is lost in the meantime."
-        />
-      </div>
+      <Panel>
+        <p className="text-sm text-muted-foreground">
+          Trading is not switched on yet. The game engine needs its server key
+          before trades can be placed, and nothing you do here is lost meanwhile.
+        </p>
+      </Panel>
     );
   }
 
-  const weekend = isWeekend();
-
-  /*
-    A battle whose market never shuts is the one thing that is still playable
-    on a Saturday, so it is offered here rather than left to be found.
-  */
-  const battles = await getLiveBattles(user.id);
-  const openNow = battles.filter(
-    (battle) => battle.format.tradingHours === "always" && !battle.notStarted
-  );
-
-  if (weekend) {
-    const monday = lineupMonday();
-    const lineup = await getLineup(user.id, monday, view.startingBalance);
+  if (isWeekend()) {
+    const lineup = await getLineup(user.id, lineupMonday(), view.startingBalance);
 
     return (
-      <div className={`${PAGE} ${STACK}`}>
-        <TrackView event="trade_screen_viewed" />
-
-        <div className="flex items-baseline justify-between gap-4">
-          <h1>The weekend</h1>
-          <span className="figure text-sm text-muted-foreground">
-            Market shut until Monday
-          </span>
-        </div>
-
+      <>
         <Well className="py-3">
           <p className="text-sm text-muted-foreground">
-            Nothing moves until Monday at 09:30 New York time, so there is
+            The market is shut until Monday at 09:30 New York time, so there is
             nothing to trade and nothing to miss. What you can do is decide now.
           </p>
         </Well>
 
         <Lineup view={lineup} />
-
-        {openNow.map((battle) => (
-          <BattleCard
-            key={battle.cycleId}
-            battle={battle}
-            href={`/leagues/${battle.leagueId}/battle`}
-          />
-        ))}
 
         <Well className="py-3">
           <p className="text-sm text-muted-foreground">
@@ -97,7 +139,7 @@ export default async function TradePage() {
             is two minutes.
           </p>
         </Well>
-      </div>
+      </>
     );
   }
 
@@ -105,32 +147,36 @@ export default async function TradePage() {
     "The market is closed right now. Trading runs from 09:30 to 16:00 New York time.";
 
   return (
-    <div className={`${PAGE} ${STACK}`}>
-      <TrackView event="trade_screen_viewed" />
+    <Panel>
+      <TradeForm
+        cash={view.cash}
+        ownedSymbols={view.positions.map((p) => p.symbol)}
+        tradingOpen={view.tradingOpen}
+        closedReason={closedReason}
+      />
+    </Panel>
+  );
+}
 
-      <div className="flex items-baseline justify-between gap-4">
-        <h1>Trade</h1>
-        <span className="figure text-sm text-muted-foreground">
-          {formatMoney(view.cash)} cash
-        </span>
-      </div>
+async function AllHoursBattles() {
+  const { user } = await getSession();
+  if (!user) return null;
 
-      <Panel>
-        <TradeForm
-          cash={view.cash}
-          ownedSymbols={view.positions.map((p) => p.symbol)}
-          tradingOpen={view.tradingOpen}
-          closedReason={closedReason}
-        />
-      </Panel>
+  const battles = await getLiveBattles(user.id);
 
-      {openNow.map((battle) => (
-        <BattleCard
-          key={battle.cycleId}
-          battle={battle}
-          href={`/leagues/${battle.leagueId}/battle`}
-        />
-      ))}
-    </div>
+  return (
+    <>
+      {battles
+        .filter(
+          (battle) => battle.format.tradingHours === "always" && !battle.notStarted
+        )
+        .map((battle) => (
+          <BattleCard
+            key={battle.cycleId}
+            battle={battle}
+            href={`/leagues/${battle.leagueId}/battle`}
+          />
+        ))}
+    </>
   );
 }

@@ -335,30 +335,46 @@ export async function fillLineup(
 }
 
 /**
- * What a lineup did this week, for the one line the home screen says about it.
+ * What a lineup did, for the one line the home screen says about it.
  *
  * Read after the fill rather than returned from it, because the fill happens
  * in the background of some earlier request and the screen that reports it is
  * usually a later one.
+ *
+ * Bounded by when it ran rather than by which week it was for, which is both
+ * simpler and better behaved. "Your lineup ran" is news for a day or two and
+ * then it is history, and a panel still announcing Monday's fill on Thursday
+ * is a panel somebody has stopped reading. It also keeps this file from having
+ * to ask portfolio.ts which week it is, and portfolio.ts already asks this one
+ * to run a fill -- two modules importing each other is a knot worth not tying.
  */
-export async function getLineupReport(
-  userId: string,
-  monday: string
+const REPORT_FOR_HOURS = 48;
+
+export async function getLatestLineupReport(
+  userId: string
 ): Promise<{ filled: number; missed: LineupOrder[] } | null> {
   if (!canWriteGame) return null;
+
+  const since = new Date(Date.now() - REPORT_FOR_HOURS * 60 * 60 * 1000);
 
   const admin = createAdminClient();
   const { data } = await admin
     .from("lineup_orders")
     .select("*")
     .eq("user_id", userId)
-    .eq("monday", monday)
-    .not("ran_at", "is", null);
+    .gte("ran_at", since.toISOString())
+    .order("monday", { ascending: false });
 
   const rows = (data ?? []) as LineupOrderRow[];
   if (rows.length === 0) return null;
 
-  const missed = rows
+  // One week's worth. Two Mondays inside forty-eight hours is not possible,
+  // but a report that could quietly merge two of them would be a wrong number
+  // rather than a missing one.
+  const monday = rows[0].monday;
+  const week = rows.filter((row) => row.monday === monday);
+
+  const missed = week
     .filter((row) => row.outcome !== "filled")
     .map((row) => ({
       id: row.id,
@@ -373,5 +389,5 @@ export async function getLineupReport(
       detail: row.detail,
     }));
 
-  return { filled: rows.length - missed.length, missed };
+  return { filled: week.length - missed.length, missed };
 }

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { canWriteGame } from "@/lib/env";
+import { getCurrentCycle } from "@/lib/game/portfolio";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { WeeklyGoalRow } from "@/lib/supabase/database.types";
 import type { GoalKind } from "@/lib/game/goal-kinds";
@@ -50,19 +51,24 @@ export async function getGoals(
  *
  * One indexed read across every league they are in, for the first-week list
  * on Home, which needs to know that a goal exists rather than what it is.
+ *
+ * The week is resolved here rather than passed in, so this can go out in the
+ * same wave as everything else Home asks for instead of waiting on the
+ * portfolio view to name it. getCurrentCycle is memoised for the length of a
+ * request, so asking for it again costs nothing.
  */
-export async function hasDeclaredGoal(
-  userId: string,
-  cycleId: string
-): Promise<boolean> {
+export async function hasDeclaredGoalThisWeek(userId: string): Promise<boolean> {
   if (!canWriteGame) return false;
+
+  const cycle = await getCurrentCycle();
+  if (!cycle) return false;
 
   const admin = createAdminClient();
   const { data } = await admin
     .from("weekly_goals")
     .select("id")
     .eq("user_id", userId)
-    .eq("cycle_id", cycleId)
+    .eq("cycle_id", cycle.id)
     .limit(1);
 
   return (data ?? []).length > 0;

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Check, Coins } from "lucide-react";
 import { Panel, Well } from "@/components/Panel";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +28,22 @@ import { formatDate } from "@/lib/format";
 
 export const metadata = { title: "Arena Plus" };
 
-export default async function PlusPage() {
+/*
+  The heading is the room. What somebody is entitled to, and what is on the
+  shelf, stream under it.
+*/
+export default function PlusPage() {
+  return (
+    <div className={`${PAGE} ${STACK}`}>
+      <h1>Arena Plus</h1>
+      <Suspense fallback={null}>
+        <Shop />
+      </Suspense>
+    </div>
+  );
+}
+
+async function Shop() {
   const { user } = await getSession();
 
   const [standing, rewards] = await Promise.all([
@@ -41,13 +57,14 @@ export default async function PlusPage() {
   const memberOnly = rewards.forSale.filter((item) => item.plusOnly);
 
   return (
-    <div className={`${PAGE} ${STACK}`}>
+    <>
       <TrackView event="plus_viewed" properties={{ member: standing.hasPlus }} />
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1>Arena Plus</h1>
-        {standing.hasPlus ? <Badge>Member</Badge> : null}
-      </div>
+      {standing.hasPlus ? (
+        <div>
+          <Badge>Member</Badge>
+        </div>
+      ) : null}
 
       <Panel>
         <p className="text-sm">
@@ -143,6 +160,6 @@ export default async function PlusPage() {
           </li>
         </ul>
       </Panel>
-    </div>
+    </>
   );
 }

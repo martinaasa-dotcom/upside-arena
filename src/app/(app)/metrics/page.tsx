@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Panel } from "@/components/Panel";
 import { HairlineCell, HairlineGrid } from "@/components/HairlineGrid";
@@ -57,7 +58,22 @@ function Row({
   );
 }
 
-export default async function MetricsPage() {
+/*
+  The heading is the room. Every count under it is a database read, so it
+  streams rather than holding the page.
+*/
+export default function MetricsPage() {
+  return (
+    <div className={`${PAGE} ${STACK}`}>
+      <h1>Numbers</h1>
+      <Suspense fallback={null}>
+        <Counts />
+      </Suspense>
+    </div>
+  );
+}
+
+async function Counts() {
   const { user } = await getSession();
 
   // Not a refusal. A stranger should not learn that this page is here.
@@ -67,9 +83,8 @@ export default async function MetricsPage() {
   const { engagement: e, streaks: s, leagues: l } = metrics;
 
   return (
-    <div className={`${PAGE} ${STACK}`}>
+    <>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1>Numbers</h1>
         <p className="text-sm text-muted-foreground">
           Counted from the database, as of {metrics.asOf}. Nobody is named here.
         </p>
@@ -260,6 +275,6 @@ export default async function MetricsPage() {
           everybody. Neither half answers the other one&rsquo;s questions.
         </p>
       </Panel>
-    </div>
+    </>
   );
 }
