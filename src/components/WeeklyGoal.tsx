@@ -48,7 +48,20 @@ export function WeeklyGoal({
 
   function withdraw() {
     startTransition(async () => {
-      await submitWithdrawGoal(leagueId);
+      const result = await submitWithdrawGoal(leagueId);
+
+      /*
+        Only said once it is true. This claimed the goal was taken back and
+        that nothing was recorded whatever happened, and a goal everybody in
+        the league can see is the wrong thing to be wrong about: the player
+        walks away believing they withdrew it while it is still there under
+        their name.
+      */
+      if (!result.ok) {
+        toast.error("We could not take that back. Try again.");
+        return;
+      }
+
       track("goal_withdrawn");
       toast.success("Taken back. Nothing was recorded.");
     });

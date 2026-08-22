@@ -46,6 +46,23 @@ export async function completeOnboarding(
 
   if (!user) redirect("/");
 
+  /*
+    The agreement first, and only then the account that stands on it.
+
+    This was the other way round, with the answer thrown away, so a write that
+    failed left somebody marked onboarded with nothing recording what they had
+    agreed to — and the only place that shows up is an account export, months
+    later, saying we hold no acceptance for a person who gave one.
+
+    In this order the record cannot be missing from an onboarded account.
+    Recording it and then failing to save the profile is the harmless way
+    round: the acceptance is unique on account, document and version, so
+    trying again writes nothing new.
+  */
+  if (!(await recordAcceptance())) {
+    return { error: "We could not save that. Try once more." };
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -63,8 +80,6 @@ export async function completeOnboarding(
     }
     return { error: "We could not save that. Try once more." };
   }
-
-  await recordAcceptance();
 
   /*
     A league of their own, made for them.

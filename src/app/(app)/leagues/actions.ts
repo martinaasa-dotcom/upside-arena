@@ -128,12 +128,15 @@ export async function submitGoal(
   return { ok: true };
 }
 
-export async function submitWithdrawGoal(leagueId: string): Promise<void> {
+export async function submitWithdrawGoal(
+  leagueId: string
+): Promise<{ ok: boolean }> {
   const user = await requireUser();
 
   const cycle = await getCurrentCycle();
-  if (!cycle) return;
+  if (!cycle) return { ok: false };
 
-  await withdrawGoal(user.id, leagueId, cycle.id);
+  const done = await withdrawGoal(user.id, leagueId, cycle.id);
   revalidatePath(`/leagues/${leagueId}`);
+  return { ok: done };
 }
