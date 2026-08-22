@@ -16,7 +16,8 @@
     "db:reset": "supabase db reset",
     "check": "npm run typecheck && npm run lint && npm run test",
     "test:db": "./scripts/test-db.sh",
-    "gallery": "ARENA_UI_GALLERY=1 next dev"
+    "gallery": "ARENA_UI_GALLERY=1 next dev",
+    "test:a11y": "playwright test tests/e2e/accessibility.spec.ts"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.23",
@@ -52,6 +53,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
