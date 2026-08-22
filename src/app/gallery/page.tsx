@@ -18,6 +18,9 @@ import { PlusControls } from "@/components/PlusControls";
 import { AccountControls } from "@/components/AccountControls";
 import { SharedCards } from "@/components/SharedCards";
 import { WeekShape } from "@/components/WeekShape";
+import { AppHeader } from "@/components/AppHeader";
+import { BottomDock } from "@/components/BottomDock";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ErrorPreview } from "./ErrorPreview";
 import { COIN_BUNDLES } from "@/lib/billing/plan";
 import { PAGE, STACK } from "@/lib/page-shell";
@@ -63,6 +66,35 @@ export default function GalleryPage() {
 
   return (
     <div className={`${PAGE} ${STACK}`}>
+      {/*
+        The chrome, which is the one part of the app that had never been in
+        here.
+
+        It lives behind a sign-in, so nothing signed-out could render it and
+        no browser test had ever laid eyes on it. dock.spec.ts works around
+        that by rebuilding the dock's markup by hand and measuring the copy.
+        This is the real thing, so the clipping probe reads it at every width
+        a phone reports, along with everything else on this page -- and the
+        fault the dock has actually shipped is running off the side of a
+        narrow screen, which is exactly what that probe is looking for.
+
+        Deliberately not wrapped in <Case>. The header is sticky and the dock
+        is fixed, so neither takes up room in the flow, and a <Case> around
+        them measures nothing but its own heading. That would fail the check
+        that every case drew something, and that check is worth more than the
+        two entries: it is what stops a gallery of empty shells passing
+        everything. So they sit here instead, out of the inventory and still
+        in front of the probe.
+      */}
+      <AppHeader
+        avatar={
+          <Avatar>
+            <AvatarFallback>UA</AvatarFallback>
+          </Avatar>
+        }
+      />
+      <BottomDock />
+
       <h1>Gallery</h1>
 
       <Case name="season-table">
