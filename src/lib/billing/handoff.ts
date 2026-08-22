@@ -124,11 +124,18 @@ export async function recordHandoffOutcome(
 /*
   Where the link goes.
 
+  Written down rather than configured. It was an environment variable with
+  this same value as its fallback, which read like a knob and was not one:
+  NEXT_PUBLIC_ values are inlined when the app is built, so changing one costs
+  exactly the redeploy that changing this line costs. All it bought was a row
+  in a settings table and a line in a setup guide, both of which said to leave
+  it alone.
+
   The token is opaque and per player. It is enough for Lab to recognise where
   somebody arrived from without Arena putting an email address, a name or an
   account id into a URL that gets pasted into a browser bar and a chat window.
 */
-const LAB_URL = process.env.NEXT_PUBLIC_LAB_URL ?? "https://upsidelab.app";
+const LAB_URL = "https://upsidelab.app";
 
 export function labUrl(token: string): string {
   const url = new URL(LAB_URL);

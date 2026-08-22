@@ -27,7 +27,7 @@ Production and Preview both. None of them belongs in the repository.
 | `SUPABASE_SERVICE_ROLE_KEY` | the secret key | **Server only.** Bypasses row level security. Never prefix it with `NEXT_PUBLIC_`. |
 | `NEXT_PUBLIC_SITE_URL` | `https://upsidearena.com` | Set, on All Environments. Builds sign-in links, notification emails and share urls. If it were ever unset, production falls back to the project's production domain rather than to a deployment url, but that is a safety net rather than the setting. |
 | `GOOGLE_CLIENT_ID` | from the Arena Google Cloud project | The Google button appears when this and the secret are both set, and not otherwise. |
-| `GOOGLE_CLIENT_SECRET` | from the same client | **Server only.** Arena exchanges the code itself. See [SWITCH_ON.md](SWITCH_ON.md#7-sign-in-with-google). |
+| `GOOGLE_CLIENT_SECRET` | from the same client | **Server only.** Arena exchanges the code itself. See [SWITCH_ON.md](SWITCH_ON.md#6-sign-in-with-google). |
 | `CRON_SECRET` | a long random string | **Server only.** Shared with the GitHub workflows below. |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | the VAPID public key | Public. It is handed to the browser to subscribe with. |
 | `VAPID_PRIVATE_KEY` | the VAPID private key | **Server only.** Signs every push. |
@@ -39,7 +39,6 @@ Production and Preview both. None of them belongs in the repository.
 | `STRIPE_PLUS_PRICE_ID` | the monthly price's id | The subscription only appears once this is set. |
 | `STRIPE_PLUS_YEARLY_PRICE_ID` | the yearly price's id | Optional. Without it there is no yearly choice, only the monthly one. |
 | `STRIPE_PORTAL_CONFIGURATION_ID` | Arena's own portal configuration | Only needed when the Stripe account is shared with another product. |
-| `NEXT_PUBLIC_LAB_URL` | `https://upsidelab.app` | Optional. Where the handoff points. |
 
 Everything to do with notifications is optional. With no VAPID keys the panel
 on the profile page hides itself and nothing is ever sent; with no Resend key
