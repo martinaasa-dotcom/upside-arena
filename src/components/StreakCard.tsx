@@ -57,12 +57,19 @@ export function StreakCard({ streak }: { streak: Streak }) {
               </span>
             </span>
             <span className="text-sm text-muted-foreground">
-              Longest {longest === 0 ? "none yet" : plural(longest, "day")}
+              {/*
+                Kept on one line. "Longest 12 days" broke after the number on
+                a narrow phone, which read as two separate facts rather than
+                one, and left the row looking broken next to the flame.
+              */}
+              <span className="whitespace-nowrap">
+                Longest {longest === 0 ? "none yet" : plural(longest, "day")}
+              </span>
             </span>
           </div>
 
           {streak.countedToday ? (
-            <span className="ml-auto flex shrink-0 items-center gap-1.5 text-sm text-gain">
+            <span className="ml-auto flex shrink-0 items-center gap-1.5 text-sm whitespace-nowrap text-gain">
               <Check className="size-4" aria-hidden="true" />
               Counted today
             </span>
