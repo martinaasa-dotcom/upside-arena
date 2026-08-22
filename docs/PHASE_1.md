@@ -72,6 +72,28 @@ npm run test:e2e   # Playwright, signed out flows
 machine whose Chromium does not match the pinned Playwright version, point at
 the local one: `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chromium npm run test:e2e`.
 
+### The gallery, and what it is for
+
+`npm run gallery` mounts `/gallery`: every component that lays out somebody
+else's data, holding the widest values it will ever be given — the longest
+name the profile form accepts, a figure with a million in it, a subtitle under
+a name that already fills its row. Read a design change here rather than
+building a scaffold by hand.
+
+The same page is what `tests/e2e/clipping.spec.ts` measures. Four layout
+faults shipped in a row that no test could see — a fixed-height row cropping a
+wrapped name, a percentage wrapping into the row below, two descriptions
+truncated to nothing — and all four are the same fault: an element smaller
+than what is inside it. The probe asks the browser that question directly, of
+every element, at every width a phone reports. It is checked against a planted
+fault so that a skip added later cannot quietly turn it into a test that
+passes on everything.
+
+The route is behind `ARENA_UI_GALLERY`, set by the Playwright web server and
+by `npm run gallery` and nowhere a deployment can read it. Without it the
+proxy sends a signed-out visitor to sign in and the page answers 404 to
+anybody with a session, so it cannot be reached on a real site.
+
 `npm run test:db` needs a local Postgres and nothing else. It rebuilds a
 scratch database, applies `supabase/tests/shim.sql` (which recreates only the
 parts of a Supabase project the migration leans on: the auth schema, the three

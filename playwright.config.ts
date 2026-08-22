@@ -43,6 +43,12 @@ export default defineConfig({
         Harmless everywhere else.
       */
       NODE_USE_ENV_PROXY: "1",
+      /*
+        Mounts /gallery, which the clipping probe measures. Set here and in
+        `npm run gallery`, and nowhere a deployment can read it, so the route
+        404s in production.
+      */
+      ARENA_UI_GALLERY: "1",
     },
   },
 });
