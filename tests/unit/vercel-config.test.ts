@@ -8,10 +8,10 @@ const config = JSON.parse(
 
 describe("vercel.json", () => {
   it("does not pin a region", () => {
-    // On this plan a `regions` key stops Vercel creating the deployment at
-    // all: no build, no failure, no comment, nothing in the log. The merge
-    // just never reaches production. The region is a project setting
-    // (Settings -> Functions), and docs/DEPLOY.md says why.
+    // The region is set on the Vercel project (Settings -> Functions), which
+    // is what is actually in effect. A `regions` key here would be a second
+    // place to write the same thing, and two of those disagree eventually
+    // without anyone noticing which one won. docs/DEPLOY.md has the rest.
     expect(config).not.toHaveProperty("regions");
   });
 

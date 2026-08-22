@@ -20,6 +20,37 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
 
   /*
+    One App Shell per room, rather than one prefetch per link.
+
+    The dock is on every room and points at all five, so under the old
+    behaviour arriving anywhere fetched five destinations, and arriving
+    somewhere else fetched the same five again. With this on there is one
+    reusable shell per room, cached on the client, and the second visit to a
+    room costs nothing at all.
+
+    What makes it worth more than the saved requests: a room whose shell
+    reads cookies gets a shell built for that session, so the shell a tap
+    paints is that player's room rather than a generic one. That is the
+    difference between a frame with their name and money already in it and a
+    frame of dashes waiting for the server.
+
+    There is nothing to audit alongside it. `prefetch={true}` changes meaning
+    under this flag and no link in this app sets it.
+  */
+  partialPrefetching: true,
+
+  experimental: {
+    /*
+      The browser tests run against `next build && next start`, and the
+      `instant()` helper they use to assert on the first frame needs the
+      testing API that `next dev` exposes for free. Without this the helper
+      has nothing to talk to and the guard silently measures nothing, which
+      is the one kind of test worth less than none.
+    */
+    exposeTestingApiInProductionBuild: true,
+  },
+
+  /*
     yahoo-finance2 is a CommonJS package that reads its own files at runtime.
     Bundling it breaks that, so it stays external and is required normally on
     the server. Upside Lab does the same.

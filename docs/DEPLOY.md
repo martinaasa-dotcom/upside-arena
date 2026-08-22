@@ -374,6 +374,13 @@ curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
 window 24 hours after they were made, so it says when the first slot frees
 rather than when the message first appeared.
 
+**A count under 100 does not mean there is capacity.** On the night of
+2026-08-22 the window held 75 and two merges in a row still produced no
+deployment at all. The list only contains deployments that were created, so
+whatever was refused is not in it and cannot be counted from here. Treat the
+number as a lower bound on what has been spent, and treat "production has not
+moved since the last merge" as the real signal.
+
 Once there is capacity, **one production deploy catches up every merge since
 the last one**, because it builds `main`'s head rather than a single commit.
 Nothing is lost by the wait. To trigger it: press **Redeploy** on the latest
@@ -397,13 +404,10 @@ The rule is simply that the functions belong next to the database. If the
 Supabase project is ever moved, this moves with it, and the two should be
 checked together rather than separately.
 
-**Do not set this with a `regions` key in `vercel.json`.** On this plan that
-key is not merely ignored: it stops Vercel creating the deployment at all.
-There is no build, no failed deployment, no comment on the pull request and
-nothing in the log — the merge simply never reaches production, and the
-symptom is indistinguishable from the daily deploy cap. It cost a merge to
-find. The region belongs in the project setting, which is also where it can
-be read back:
+`vercel.json` also accepts a `regions` key. Do not use it. Not because it is
+broken — the setting is what is actually in effect, and two places to write
+the same thing is how they come to disagree without anyone noticing. One
+source of truth, and it is the one that can be read back:
 
 ```bash
 curl -sS -H "Authorization: Bearer $VERCEL_TOKEN" \
