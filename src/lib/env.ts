@@ -25,9 +25,12 @@ export const canWriteGame = Boolean(
   SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
 );
 
-/** Google sign-in only shows when the provider is turned on in Supabase. */
-export const isGoogleEnabled =
-  process.env.NEXT_PUBLIC_ENABLE_GOOGLE_AUTH === "true";
+/*
+  Google sign-in has no flag of its own. The button appears when Arena holds
+  the credentials to complete the handshake, and not otherwise, because a
+  switch that says a button should exist is not the same as being able to
+  sign anybody in. See googleConfigured in src/lib/auth/google.ts.
+*/
 
 const LOCAL_ORIGIN = "http://localhost:3000";
 
