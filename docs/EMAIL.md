@@ -68,9 +68,9 @@ it came from an account rather than a form. An account created before these
 checks existed would otherwise be mailed every week for ever, bouncing every
 time.
 
-## What is left to do in the dashboard, and cannot be done in code
+## The dashboard half, which cannot be done in code
 
-### Move auth email onto Resend
+### Auth email is on Resend — done, 2026-08-22
 
 Supabase's built-in email service is shared infrastructure with a small hourly
 allowance, and its reputation is shared with every other project using it.
@@ -78,8 +78,9 @@ Arena already has a Resend account and a verified domain for the notification
 fallback, so pointing auth at the same place means one sender, one reputation
 and metrics that actually name the bounces.
 
-In **Supabase, Project Settings, Authentication, SMTP Settings**, turn on
-*Enable Custom SMTP*:
+Recorded here so the settings can be checked without hunting for them. In
+**Supabase, Project Settings, Authentication, SMTP Settings**, *Enable Custom
+SMTP* is on:
 
 | Field | Value |
 |---|---|
@@ -90,8 +91,11 @@ In **Supabase, Project Settings, Authentication, SMTP Settings**, turn on
 | Sender email | the same verified address as `RESEND_FROM` |
 | Sender name | `Upside Arena` |
 
-Use a separate API key from the notification one, named `supabase-auth`, so
-either can be revoked without taking the other down.
+The API key is a separate one from the notification key, named `supabase-auth`,
+so either can be revoked without taking the other down.
+
+The sender address has to be on a domain verified in Resend. An unverified one
+does not bounce, it fails outright, which is worse: nobody can sign in at all.
 
 **Confirm it worked.** Request a sign-in link, then look in Resend's **Emails**
 list. The message should be there. If it is not, Supabase is still sending it
@@ -99,13 +103,15 @@ itself and the settings did not save.
 
 ### Set the rate limits alongside it
 
-**Authentication, Rate Limits**, once custom SMTP is on:
+*Minimum interval per user* is set to 60 seconds, on the same screen. Somebody
+pressing the button four times does not need four links, and four links to a
+dead address is four bounces rather than one.
 
-- *Emails per hour* — the built-in cap is a few an hour and is meant for
-  development. Set it to something a real day of sign-ups needs, and no more.
-- *Minimum interval between emails* — 60 seconds. Somebody pressing the button
-  four times does not need four links, and four links to a dead address is four
-  bounces rather than one.
+*Emails per hour* is the one still worth a decision. Turning custom SMTP on
+raises it to 30 an hour, which is fine for a quiet week and is not a launch
+day: thirty people signing in inside an hour is not an unusual afternoon, and
+the thirty-first is simply refused. **Authentication, Rate Limits** is where to
+raise it, and it should be set to what a real day needs and no more.
 
 ### Watch the number
 

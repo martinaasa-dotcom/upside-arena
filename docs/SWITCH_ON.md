@@ -481,6 +481,25 @@ Recorded so nobody has to reconstruct it from the dashboard.
 2026-08-22. To check rather than trust this line: open `/season` signed in and
 see whether it names the current quarter.
 
+### Auth email goes through Resend
+
+Set on 2026-08-22. **Supabase, Project Settings, Authentication, SMTP
+Settings**, custom SMTP on: `smtp.resend.com` on port 465, username `resend`,
+password a Resend API key of its own, sender name Upside Arena and the sender
+address the same verified Resend domain as `RESEND_FROM`. Minimum interval per
+user, 60 seconds.
+
+So the sign-in link and the notification fallback now leave from one account
+with one reputation, and a bounce is something Resend names rather than
+something Supabase writes a letter about. Enabling custom SMTP sets the auth
+rate limit to 30 emails an hour, which is a real ceiling on a launch day:
+**Authentication, Rate Limits** is where to raise it. See
+[EMAIL.md](EMAIL.md).
+
+To check rather than trust this line: request a sign-in link, then look in
+Resend's **Emails** list. If the message is not there, Supabase is still
+sending it itself and the settings did not save.
+
 ### Arena
 
 | | |
