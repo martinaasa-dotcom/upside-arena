@@ -113,7 +113,26 @@ flagged a submit button at 1.51:1, which was the aqua primary a third of the
 way through fading in. Nobody sees that state to read it, and a check that
 reports it is a check somebody switches off.
 
-`npm run test:db` needs a local Postgres and nothing else. It rebuilds a
+`npm run test:db` runs on every pull request as the "Migrations, triggers, row
+level security" job, against a Postgres 16 service container. It did not until
+2026-08-22, which meant four hundred assertions about who may write what were
+written and never run: a migration could have taken row level security off a
+table and the checks would have gone green.
+
+It needs a local Postgres and nothing else.
+
+As root in a container, where `initdb` refuses to run, the server has to be
+started as the `postgres` user first:
+
+```bash
+export PATH=/usr/lib/postgresql/16/bin:$PATH
+mkdir -p /tmp/pgdata && chown postgres:postgres /tmp/pgdata
+su postgres -c "initdb -D /tmp/pgdata -U postgres --auth=trust"
+su postgres -c "pg_ctl -D /tmp/pgdata -l /tmp/pg.log -o '-k /tmp -p 5433' start"
+
+PGHOST=/tmp PGPORT=5433 PGUSER=postgres npm run test:db
+```
+ It rebuilds a
 scratch database, applies `supabase/tests/shim.sql` (which recreates only the
 parts of a Supabase project the migration leans on: the auth schema, the three
 PostgREST roles and `auth.uid()`), runs the migrations, then asserts the
