@@ -55,6 +55,34 @@ export type WeeklyGoalRow = {
   declared_at: string;
 };
 
+export type PodRow = {
+  id: string;
+  cycle_id: string;
+  tier: "bronze" | "silver" | "gold" | "diamond";
+  number: number;
+  max_members: number;
+  created_at: string;
+  settled_at: string | null;
+};
+
+export type PodMemberRow = {
+  id: string;
+  pod_id: string;
+  user_id: string;
+  rating_at_placement: number;
+  joined_at: string;
+  final_rank: number | null;
+  outcome: "promoted" | "held" | "relegated" | null;
+  rating_change: number | null;
+};
+
+export type PodTierRow = {
+  tier: string;
+  min_rating: number;
+  sort_order: number;
+  name: string;
+};
+
 export type SeasonRow = {
   id: string;
   starts_on: string;
@@ -321,6 +349,9 @@ export type Database = {
       terms_acceptances: Table<TermsAcceptanceRow>;
       weekly_cycles: Table<WeeklyCycleRow>;
       weekly_goals: Table<WeeklyGoalRow>;
+      pods: Table<PodRow>;
+      pod_members: Table<PodMemberRow>;
+      pod_tiers: Table<PodTierRow>;
       seasons: Table<SeasonRow>;
       season_results: Table<SeasonResultRow>;
       portfolios: Table<PortfolioRow>;
@@ -403,6 +434,27 @@ export type Database = {
           p_kind: string;
         };
         Returns: WeeklyGoalRow;
+      };
+      tier_for_rating: {
+        Args: { p_rating: number };
+        Returns: string;
+      };
+      place_in_pod: {
+        Args: { p_user_id: string; p_cycle_id: string; p_target_size?: number };
+        Returns: PodRow;
+      };
+      settle_pod: {
+        Args: {
+          p_pod_id: string;
+          p_move_fraction?: number;
+          p_min_members?: number;
+          p_rating_step?: number;
+        };
+        Returns: number;
+      };
+      due_pods: {
+        Args: Record<never, never>;
+        Returns: PodRow[];
       };
       season_for: {
         Args: { p_monday: string };
