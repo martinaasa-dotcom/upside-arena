@@ -1,15 +1,13 @@
-import { SkeletonPage, SkeletonPanel } from "@/components/Skeleton";
+import { RoomSkeleton } from "@/components/Skeleton";
 
 /*
-  The fallback for any room without one of its own.
+  The fallback for any room that has not written one of its own.
 
-  A room that adds its own loading.tsx describes itself more exactly; this is
-  what stops a new room ever shipping with nothing at all.
+  Every room has one today, and each of those describes its own shape more
+  exactly than this can. This is here so that the next room to be added
+  cannot ship without a loading boundary at all, which is the state that
+  makes a dock tab feel like it ignored the tap.
 */
 export default function Loading() {
-  return (
-    <SkeletonPage>
-      <SkeletonPanel rows={3} />
-    </SkeletonPage>
-  );
+  return <RoomSkeleton panels={[3]} />;
 }

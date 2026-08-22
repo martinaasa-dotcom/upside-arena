@@ -1,11 +1,5 @@
-import { SkeletonPage, SkeletonPanel, SkeletonScoreboard } from "@/components/Skeleton";
+import { RoomSkeleton } from "@/components/Skeleton";
 
-/** The season, before its settled weeks are added up. */
 export default function Loading() {
-  return (
-    <SkeletonPage title="w-48">
-      <SkeletonScoreboard cells={3} />
-      <SkeletonPanel rows={6} />
-    </SkeletonPage>
-  );
+  return <RoomSkeleton title="w-40" panels={[6, 2]} />;
 }

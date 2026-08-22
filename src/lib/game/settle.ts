@@ -4,6 +4,7 @@ import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClosingPrices } from "@/lib/market/benchmark";
 import { nyDate } from "@/lib/market/session";
+import { settleDuePods } from "@/lib/game/pods";
 import type { SeasonRow, WeeklyCycleRow } from "@/lib/supabase/database.types";
 
 /*
@@ -73,11 +74,12 @@ export async function settleDueCycles(): Promise<SettlementResult[]> {
   }
 
   /*
-    Then any season those weeks completed. Done after, not before: the
-    database refuses to close a season with an unsettled week inside it, so
-    settling first is what lets a quarter close the moment its last Friday is
-    scored rather than a week later.
+    Then the pods that week finished, and then any season those weeks
+    completed. In that order, and both after the weeks themselves: a pod
+    ranks on a scored portfolio, and the database refuses to close a season
+    with an unsettled week inside it.
   */
+  await settleDuePods();
   await closeDueSeasons();
 
   return results;

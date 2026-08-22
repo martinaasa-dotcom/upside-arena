@@ -30,36 +30,37 @@ export default async function ProfilePage() {
   const name = profile?.display_name ?? "Player";
 
   /*
-    Six independent reads, asked for together.
-
-    None of these needs an answer from any of the others, and asked one after
-    another they added up: the page waited for the reward catalogue before it
-    would even ask about leagues. Issued at once the screen costs the slowest
-    of the six rather than the sum of all of them.
+    All at once, because none of these six wants anything the others produce.
+    Awaited one after another they queued behind each other for no reason, and
+    the profile screen took as long as all of them added together.
   */
-  const [rewards, leagues, seasons, cards, standing, notifications] =
-    await Promise.all([
-      user
-        ? getRewards(user.id)
-        : {
-            owned: [],
-            locked: [],
-            forSale: [],
-            equipped: { title: null, flair: null, theme: null },
-          },
-      user ? getLeagues(user.id) : [],
-      user ? getSeasonHistory(user.id) : [],
-      user ? getMyCards(user.id) : [],
-      user ? getStanding(user.id) : FREE_STANDING,
-      user
-        ? getNotificationState(user.id)
-        : {
-            settings: DEFAULT_SETTINGS,
-            devices: 0,
-            pushAvailable: false,
-            emailAvailable: false,
-          },
-    ]);
+  const [rewards, leagues, seasons, cards, standing, notifications] = user
+    ? await Promise.all([
+        getRewards(user.id),
+        getLeagues(user.id),
+        getSeasonHistory(user.id),
+        getMyCards(user.id),
+        getStanding(user.id),
+        getNotificationState(user.id),
+      ])
+    : [
+        {
+          owned: [],
+          locked: [],
+          forSale: [],
+          equipped: { title: null, flair: null, theme: null },
+        },
+        [],
+        [],
+        [],
+        FREE_STANDING,
+        {
+          settings: DEFAULT_SETTINGS,
+          devices: 0,
+          pushAvailable: false,
+          emailAvailable: false,
+        },
+      ];
 
   const wearing = rewards.owned.find(
     (item) => item.kind === "title" && item.equipped

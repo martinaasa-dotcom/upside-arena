@@ -13,12 +13,21 @@ import { test, expect } from "@playwright/test";
   The dock lives behind a sign-in, so its markup is drawn onto a real page
   instead. The stylesheet, the font and the classes are the real ones, which
   is what the width depends on. The rooms and the label rule are read out of
-  the component itself so this cannot quietly drift away from it.
+  the source itself so this cannot quietly drift away from it.
+
+  The rooms come from lib/rooms rather than from the dock, because that is
+  where they went when the consent notice needed to know which routes have a
+  dock under them. Read from the dock they came back empty, and an empty list
+  measures an empty row, which fits inside every screen there is: the width
+  probe passed while measuring nothing at all. That is what the first test
+  below is for.
 */
 
 const SOURCE = readFileSync("src/components/BottomDock.tsx", "utf8");
 
-const ROOMS = [...SOURCE.matchAll(/label:\s*"([^"]+)"/g)].map((m) => m[1]);
+const ROOM_SOURCE = readFileSync("src/lib/rooms.ts", "utf8");
+
+const ROOMS = [...ROOM_SOURCE.matchAll(/label:\s*"([^"]+)"/g)].map((m) => m[1]);
 
 const LABELS_FIT = SOURCE.match(/const LABELS_FIT = "([^"]+)"/)?.[1] ?? "";
 
