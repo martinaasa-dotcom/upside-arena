@@ -92,7 +92,7 @@ export function CoinShop({
                 {item.kind === "flair" ? <FlairSwatch styleKey={item.styleKey} /> : null}
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-sm font-medium">{item.name}</span>
-                  <span className="truncate text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {item.description}
                   </span>
                 </span>
@@ -133,7 +133,7 @@ export function CoinShop({
               {item.kind === "flair" ? <FlairSwatch styleKey={item.styleKey} /> : null}
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate text-sm">{item.name}</span>
-                <span className="truncate text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {item.description}
                 </span>
               </span>
