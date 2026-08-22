@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -30,11 +31,34 @@ export async function generateMetadata({
   return { title: data?.league.name ?? "League" };
 }
 
-export default async function LeaguePage({
+/*
+  The way back is the room. It is the same for every league and needs nothing,
+  so it is prerendered and on screen with the tap; the table streams under it.
+*/
+export default function LeaguePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  return (
+    <div className={`${PAGE} ${STACK}`}>
+      <div>
+        <Button asChild variant="ghost" size="sm" className="-ml-2 mb-2">
+          <Link href="/leagues">
+            <ArrowLeft />
+            All leagues
+          </Link>
+        </Button>
+      </div>
+
+      <Suspense fallback={null}>
+        <League params={params} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function League({ params }: { params: Promise<{ id: string }> }) {
   const { user } = await getSession();
   if (!user) redirect("/");
 
@@ -77,16 +101,9 @@ export default async function LeaguePage({
   };
 
   return (
-    <div className={`${PAGE} ${STACK}`}>
+    <>
       <TrackView event="standings_viewed" />
       <div>
-        <Button asChild variant="ghost" size="sm" className="-ml-2 mb-2">
-          <Link href="/leagues">
-            <ArrowLeft />
-            All leagues
-          </Link>
-        </Button>
-
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="flex items-center gap-2">
             <span aria-hidden="true">{league.icon ?? "\u{1F3C6}"}</span>
@@ -162,6 +179,6 @@ export default async function LeaguePage({
           </Button>
         </form>
       </Panel>
-    </div>
+    </>
   );
 }

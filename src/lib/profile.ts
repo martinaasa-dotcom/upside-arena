@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { Profile } from "@/lib/types";
@@ -59,9 +60,21 @@ async function identify(
 /**
  * The signed-in account and its profile row. Cached per request so a layout
  * and its pages share one round trip.
+ *
+ * Never prerendered. Who is signed in is not knowable when the app is built,
+ * and `connection()` is what says so: without it a component that only reads
+ * the session resolves happily at build time to nobody, and that answer is
+ * baked into the static shell. The greeting on Home did exactly that -- the
+ * shell said "Hi there", and a signed-in player watched it turn into their own
+ * name a moment later.
+ *
+ * Everything that needs a session goes through here, so saying it once here
+ * is what makes every caller right rather than every caller remembering.
  */
 export const getSession = cache(
   async (): Promise<{ user: SessionUser | null; profile: Profile | null }> => {
+    await connection();
+
     // Without a project wired up there is no session to have. Callers redirect.
     if (!isSupabaseConfigured) return { user: null, profile: null };
 
