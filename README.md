@@ -6,17 +6,26 @@ nothing redeemable, nothing real at stake.
 Arena shares Upside Lab's shipped visual system as its brand shell. The tokens,
 type, radius and glass treatment in `src/app/globals.css` come from
 [`docs/brand/UPSIDE_LAB_BRAND_FOR_ARENA.md`](docs/brand/UPSIDE_LAB_BRAND_FOR_ARENA.md)
-and are a locked constraint, not a starting point. There is one brand accent, a
-quiet warm yellow. There is no second palette, no light theme, and no violet.
+and are a locked constraint, not a starting point. There is no light theme.
 
-Arena's logo mark is its own: the same faceted gem-cut technique and gold hue
-family as Lab, cut into an open chevron rather than Lab's solid standing "A".
+Arena has since diverged from that shell by explicit decision, and
+[`docs/brand/ARENA_MARK.md`](docs/brand/ARENA_MARK.md) wins wherever the two
+disagree. The mark is a parted aqua stone rather than Lab's gold letterform,
+and `--primary` is that same aqua (`oklch(0.74 0.125 207)`, `#11c0d3`) so the
+accent and the mark are one colour rather than two competing ones.
 
 ## Status
 
-Phase 1 of nine: auth, user profiles, the installable shell, and the 16+ age
-gate. See [`docs/PHASE_1.md`](docs/PHASE_1.md) for what is built, how to run
-it, and what is deliberately absent.
+Phases 1 to 8 are built: auth and profiles, the paper portfolio engine, private
+leagues, streaks and cosmetics, notifications, the share card, analytics, and
+payments. On top of those, a quarterly season, milestone rewards, and a weekly
+goal declared inside a league.
+
+Phase 9, public matchmade pods with promotion and relegation, is deliberately
+not built. The plan defers it until daily volume supports it.
+
+[`docs/PHASE_1.md`](docs/PHASE_1.md) is the record of what phase 1 shipped and
+why, not a description of the app today.
 
 ## Quick start
 
@@ -25,6 +34,10 @@ npm install
 cp .env.example .env.local   # fill in the Supabase values
 npm run dev
 ```
+
+The schema is not applied automatically. Every file under
+`supabase/migrations` has to be run against the Supabase project before the app
+will work — see [Migrations](docs/DEPLOY.md#migrations).
 
 ## Stack
 
@@ -37,6 +50,7 @@ shadcn/ui, Geist, and a hand-rolled service worker for the PWA shell.
 |---|---|
 | `npm run dev` | Development server |
 | `npm run check` | Types, lint and unit tests |
+| `npm run test:db` | Migrations, triggers and row level security, against a plain Postgres |
 | `npm run test:e2e` | Playwright, signed-out flows |
 | `npm run icons` | Regenerates icons from the Arena mark |
 

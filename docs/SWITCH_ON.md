@@ -17,18 +17,28 @@ one. Vercel, Deployments, the three dots on the newest one, Redeploy.
 
 ---
 
-## 0. Merge the pull request
+## 0. Get the code and the schema into production
 
-Nothing below exists in production until this is done.
+Two separate things, and doing one does not do the other.
 
-1. Open the pull request titled **Phases 5 to 8**.
-2. Check it says **Able to merge** and the Vercel check is green.
-3. **Merge pull request**, then **Confirm merge**.
-4. Watch Vercel deploy `main`. Two or three minutes.
+**The code.** Merging to `main` deploys it, in two or three minutes. Watch out
+for the free plan's cap of 100 deployments a day: past it every build fails
+with `api-deployments-free-per-day` and the merge simply does not ship, while
+production carries on serving the last build that got through. See
+[DEPLOY.md](DEPLOY.md#there-is-a-daily-cap-and-it-is-easy-to-hit).
 
-Confirm it worked: open `https://upsidearena.com/plus` while signed in. You
-should see the Arena Plus page saying it is not on sale yet. If you get sent to
-the sign-in page instead, the deploy has not finished.
+**The schema.** Every file under `supabase/migrations` has to be run against
+the Supabase project by hand, either with `npx supabase db push` against a
+linked project or by pasting it into the SQL editor. Nothing applies them for
+you, and the service role key cannot do it — see
+[DEPLOY.md](DEPLOY.md#migrations).
+
+Confirm both worked, while signed in:
+
+- `https://upsidearena.com/plus` shows the Arena Plus page. If you are sent to
+  sign in instead, the deploy has not finished.
+- `https://upsidearena.com/season` names the current quarter. If it says the
+  season starts with your first settled week, the migrations are not applied.
 
 ---
 
@@ -332,13 +342,19 @@ recorded on Arena's side, and nothing is lost.
 
 Recorded so nobody has to reconstruct it from the dashboard.
 
+### The schema
+
+`0001` to `0013` applied to the Arena Supabase project, `0011` to `0013` on
+2026-08-22. To check rather than trust this line: open `/season` signed in and
+see whether it names the current quarter.
+
 ### Arena
 
 | | |
 |---|---|
 | Product | `prod_V7DVO5SBjpEe8W`, Upside Arena Plus |
 | Price, monthly | `price_1U6z460X9LyRmQJ8fJ1hM9zv`, EUR 2.99 a month |
-| Price, yearly | not made yet. Add it in the dashboard per 5c, then set `STRIPE_PLUS_YEARLY_PRICE_ID` |
+| Price, yearly | not made yet. Add it per 5c, then set `STRIPE_PLUS_YEARLY_PRICE_ID`. Until then `/plus` shows the monthly price alone, with no picker |
 | Webhook | `https://upsidearena.com/api/stripe/webhook`, five events |
 | Portal | `bpc_1U6zpm0X9LyRmQJ8WC43tQkK`, named by `STRIPE_PORTAL_CONFIGURATION_ID` |
 

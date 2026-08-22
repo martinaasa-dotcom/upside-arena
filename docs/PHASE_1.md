@@ -1,7 +1,13 @@
 # Phase 1: auth, profiles, PWA shell, age gate
 
-What is built, how to run it, and what deliberately is not here yet.
-Phase order is set by section 11 of the product plan.
+> **A record, not a description of the app today.** This is what phase 1
+> shipped and why. Phases 2 to 8 have since been built on top of it, so where
+> this file says something is absent, check the README before believing it.
+> Decisions taken here still hold unless a later phase says otherwise, and the
+> ones that were left open have since been settled — see *Still open* below.
+
+What phase 1 built, how to run it, and what was deliberately absent at the
+time. Phase order is set by section 11 of the product plan.
 
 ## What phase 1 covers
 
@@ -151,26 +157,29 @@ than escalated.
 - **The dock carries only rooms that exist.** Home and Profile. A tab leading
   nowhere is worse than a short dock.
 
-## Deliberately not built yet
+## Not built at the time
 
 No portfolio, no trades, no market data, no leagues, no streaks, no
-notifications, no share card, no payments. Those are phases 2 to 8.
+notifications, no share card, no payments. Those were phases 2 to 8, and all of
+them have since been built.
 
-Nothing in the app displays an invented number. `/home` shows lifetime totals,
-which are genuinely zero for a new account, and says plainly that the first
-week has not started. A placeholder portfolio value would teach players to
-distrust every number in the product.
+The rule that outlasted the phase: nothing in the app displays an invented
+number. Where a real figure does not exist yet the screen says so. A
+placeholder portfolio value would teach players to distrust every number in the
+product, and that still governs every screen added since.
 
-## Still open
+## Open decisions, and where they landed
 
-Section 13 of the plan lists three open decisions. None of them blocked phase
-1, and all three are needed before the phase they belong to:
+Section 13 of the plan listed three open decisions. None blocked phase 1, and
+all three have since been settled by the phase they belonged to:
 
 - ~~Starting virtual balance~~. Settled at **$100,000**, in `src/lib/game.ts`.
-- **What earns a streak day** (opening the app, or making a trade). Needed for
-  phase 4.
-- **Season length** (monthly or quarterly). Needed after the weekly loop is
-  validated.
+- ~~What earns a streak day~~. Settled in phase 4 at **opening the app**,
+  credited on the home screen and nowhere else, and counted in trading days so
+  that a weekend never breaks one.
+- ~~Season length~~. Settled at **quarterly**, in `0011_seasons.sql`. A season
+  is made when the first week inside it is scored rather than laid out in
+  advance, and ranks on points ahead of the market per week.
 
 Two more that phase 1 has surfaced:
 
