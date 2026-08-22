@@ -61,10 +61,21 @@ function Column({ label, rows }: { label: string; rows: Mover[] }) {
           const up = row.changePercent >= 0;
 
           return (
-            <div
+            /*
+              A link rather than a tile.
+
+              Somebody who has just read a name and decided something about it
+              is one tap from acting on it, and without this that tap landed on
+              an empty search box asking them to type what they had just read.
+              It goes to the trade screen with the company already chosen; it
+              buys nothing, and the number of shares is still theirs to say.
+            */
+            <Link
               key={row.symbol}
+              href={`/trade?symbol=${encodeURIComponent(row.symbol)}`}
               className={cn(
-                "glass-well flex min-w-0 flex-col gap-0.5 rounded-lg px-3 py-2.5",
+                "glass-well flex min-w-0 flex-col gap-0.5 rounded-lg px-3 py-2.5 transition-colors",
+                "hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                 up ? "border-l-4 border-l-gain" : "border-l-4 border-l-loss"
               )}
             >
@@ -89,7 +100,7 @@ function Column({ label, rows }: { label: string; rows: Mover[] }) {
               <span className="figure truncate text-xs text-muted-foreground">
                 {formatMoney(row.price, "USD", 2)}
               </span>
-            </div>
+            </Link>
           );
         })}
       </div>

@@ -254,7 +254,14 @@ async function ThisWeek({ params }: Params) {
         </Panel>
       ) : null}
 
-      <Panel title="This week" description="Everyone started Monday with the same money.">
+      <Panel
+        title="This week"
+        description={
+          standings.length < 2
+            ? "This is your week so far. It becomes a table when somebody else is in here."
+            : "Everyone started Monday with the same money."
+        }
+      >
         <StandingsTable standings={standings} goalFor={goalFor} />
       </Panel>
 
@@ -305,21 +312,50 @@ async function Aside({ params }: Params) {
   if (!data) return null;
   const { league } = data;
 
+  /*
+    A league of one is the state everybody starts in and the one the product
+    does not work in: a table with a single row, a rival panel with nobody to
+    name, and a battle that would be a contest against nothing. /metrics
+    already counts these separately and calls them what they are -- a failed
+    invite -- and the screen may as well say so too.
+
+    So the invite goes first and says the true thing, and the battle form waits
+    until there is somebody to have a battle with.
+  */
+  const alone = league.memberCount < 2;
+
   return (
     <>
+      {alone ? (
+        <Panel
+          title="Nobody else is here yet"
+          description="A league of one is a spreadsheet. Send this code to one person and it becomes a game — that is the whole difference, and two is enough."
+        >
+          <InviteCode code={league.inviteCode} leagueName={league.name} />
+        </Panel>
+      ) : null}
+
       {/*
         A league with a battle running does not get offered another. One at a
         time is the whole point: four contests at once is four scoreboards and
         no conversation.
-      */}
-      {battle && !battle.finished ? null : <StartBattleForm leagueId={league.id} />}
 
-      <Panel
-        title="Invite someone"
-        description="Anyone with this code can join. Send it to people you want in, not to a public place."
-      >
-        <InviteCode code={league.inviteCode} leagueName={league.name} />
-      </Panel>
+        And a league of one is not offered one at all. A battle is a contest
+        between people, and starting one against nobody would be four screens
+        of setup for a table with a single row on it.
+      */}
+      {alone || (battle && !battle.finished) ? null : (
+        <StartBattleForm leagueId={league.id} />
+      )}
+
+      {alone ? null : (
+        <Panel
+          title="Invite someone"
+          description="Anyone with this code can join. Send it to people you want in, not to a public place."
+        >
+          <InviteCode code={league.inviteCode} leagueName={league.name} />
+        </Panel>
+      )}
 
       <Panel
         title="Leave this league"
