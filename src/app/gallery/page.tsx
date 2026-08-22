@@ -33,6 +33,7 @@ import { WeekShape } from "@/components/WeekShape";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomDock } from "@/components/BottomDock";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { ErrorPreview } from "./ErrorPreview";
 import { COIN_BUNDLES } from "@/lib/billing/plan";
 import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
@@ -344,6 +345,52 @@ export default function GalleryPage() {
       <Case name="week-log">
         <Panel title="Every week">
           <WeekLog weeks={fixture.recordedWeeks} />
+        </Panel>
+      </Case>
+
+      {/*
+        A league row on the index. Four things compete for one row: an icon, a
+        name long enough to need truncating, a battle badge, and a placing --
+        which is the row most likely to run out of width on a phone, and the
+        reason the badge is held back until there is room for it.
+      */}
+      <Case name="league-row">
+        <Panel title="Your leagues">
+          <div className="flex flex-col gap-2">
+            <span className="glass-well flex min-h-16 items-center gap-3 rounded-lg px-4 py-2">
+              <span className="shrink-0 text-lg" aria-hidden="true">
+                {"\u{1F3C6}"}
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-sm font-medium">
+                  {fixture.LONG_LEAGUE}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">
+                  Aleksandra Wiśniewska-Rodríguez is top
+                </span>
+              </span>
+              <Badge variant="outline" className="hidden shrink-0 sm:inline-flex">
+                <span aria-hidden="true">{"\u{1F9E0}"}</span>
+                Silicon
+              </Badge>
+              <span className="flex shrink-0 flex-col items-end">
+                <span className="figure text-sm font-semibold">12th of 20</span>
+                <span className="figure text-xs text-loss">-128.5%</span>
+              </span>
+            </span>
+
+            <span className="glass-well flex min-h-16 items-center gap-3 rounded-lg px-4 py-2">
+              <span className="shrink-0 text-lg" aria-hidden="true">
+                {"\u{1F525}"}
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-sm font-medium">Sunday Roasters</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  Nobody else yet — send them the code
+                </span>
+              </span>
+            </span>
+          </div>
         </Panel>
       </Case>
 

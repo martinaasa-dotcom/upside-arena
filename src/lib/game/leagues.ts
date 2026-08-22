@@ -397,3 +397,161 @@ export async function leaveLeague(
   if (error) return { ok: false, error: "We could not leave that league. Try again." };
   return { ok: true };
 }
+
+/** Where somebody stands in one league, for a list of them. */
+export type LeaguePosition = {
+  leagueId: string;
+  rank: number;
+  players: number;
+  returnPercent: number;
+  /** Whoever is top, unless that is the viewer. */
+  leader: { displayName: string; returnPercent: number } | null;
+};
+
+/**
+ * Where a player stands in every league at once.
+ *
+ * The leagues screen was a list of names and member counts, which is the one
+ * thing somebody opening it already knows. What they want is where they are
+ * standing in each, and the obvious way to get that -- asking
+ * getLeagueStandings once per league -- is six database round trips each, ten
+ * times over for somebody on the free tier's limit.
+ *
+ * So this asks the same questions once, across every league together: one
+ * roster, one set of portfolios, one set of holdings, one batch of quotes.
+ * Four round trips whether somebody is in one league or ten, and the quote
+ * layer shares the prices with whatever else is on the screen.
+ *
+ * Nothing here is a second opinion about the league screen's table. It is the
+ * same arithmetic on the same rows, which is why it lives in this file beside
+ * it rather than somewhere it could drift.
+ */
+export async function getLeaguePositions(
+  userId: string,
+  leagueIds: readonly string[]
+): Promise<Map<string, LeaguePosition>> {
+  const out = new Map<string, LeaguePosition>();
+  if (!canWriteGame || leagueIds.length === 0) return out;
+
+  const admin = createAdminClient();
+
+  const [{ data: members }, cycle] = await Promise.all([
+    admin
+      .from("league_members")
+      .select("league_id, user_id")
+      .in("league_id", [...leagueIds]),
+    getCurrentCycle(),
+  ]);
+
+  const roster = (members ?? []) as { league_id: string; user_id: string }[];
+  if (roster.length === 0 || !cycle) return out;
+
+  const everybody = [...new Set(roster.map((row) => row.user_id))];
+
+  const [{ data: profiles }, { data: portfolios }] = await Promise.all([
+    admin.from("profiles").select("id, display_name").in("id", everybody),
+    admin
+      .from("portfolios")
+      .select("id, user_id, cash, starting_balance")
+      .eq("cycle_id", cycle.id)
+      .in("user_id", everybody),
+  ]);
+
+  const portfolioRows = (portfolios ?? []) as {
+    id: string;
+    user_id: string;
+    cash: string;
+    starting_balance: string;
+  }[];
+
+  const { data: holdings } = portfolioRows.length
+    ? await admin
+        .from("holdings")
+        .select("portfolio_id, symbol, quantity")
+        .in(
+          "portfolio_id",
+          portfolioRows.map((p) => p.id)
+        )
+    : { data: [] as never[] };
+
+  const holdingRows = (holdings ?? []) as {
+    portfolio_id: string;
+    symbol: string;
+    quantity: string;
+  }[];
+
+  const quotes = await getQuotes([...new Set(holdingRows.map((h) => h.symbol))]);
+
+  const valueByPortfolio = new Map<string, number>();
+  for (const row of holdingRows) {
+    const quote = quotes[row.symbol];
+    if (!quote) continue;
+    valueByPortfolio.set(
+      row.portfolio_id,
+      (valueByPortfolio.get(row.portfolio_id) ?? 0) + num(row.quantity) * quote.price
+    );
+  }
+
+  const nameById = new Map(
+    ((profiles ?? []) as { id: string; display_name: string | null }[]).map((p) => [
+      p.id,
+      p.display_name ?? "Player",
+    ])
+  );
+
+  const returnByUser = new Map<string, number>();
+  const portfolioByUser = new Map(portfolioRows.map((p) => [p.user_id, p]));
+
+  for (const id of everybody) {
+    const portfolio = portfolioByUser.get(id);
+
+    /*
+      Somebody who has not opened the app this week has no portfolio row and is
+      counted at the starting balance, exactly as the league table counts them.
+      A list that quietly left them out would put somebody second of four on
+      one screen and second of five on the next.
+    */
+    const startingBalance = portfolio
+      ? num(portfolio.starting_balance)
+      : cycle.starting_balance;
+    const total = portfolio
+      ? num(portfolio.cash) + (valueByPortfolio.get(portfolio.id) ?? 0)
+      : startingBalance;
+
+    returnByUser.set(
+      id,
+      startingBalance > 0 ? ((total - startingBalance) / startingBalance) * 100 : 0
+    );
+  }
+
+  const byLeague = new Map<string, string[]>();
+  for (const row of roster) {
+    const list = byLeague.get(row.league_id) ?? [];
+    list.push(row.user_id);
+    byLeague.set(row.league_id, list);
+  }
+
+  for (const [leagueId, ids] of byLeague) {
+    const ranked = ids
+      .map((id) => ({ id, returnPercent: returnByUser.get(id) ?? 0 }))
+      .sort((a, b) => b.returnPercent - a.returnPercent);
+
+    const index = ranked.findIndex((row) => row.id === userId);
+    if (index < 0) continue;
+
+    const top = ranked[0];
+
+    out.set(leagueId, {
+      leagueId,
+      rank: index + 1,
+      players: ranked.length,
+      returnPercent: ranked[index].returnPercent,
+      leader:
+        top.id === userId
+          ? null
+          : { displayName: nameById.get(top.id) ?? "Player", returnPercent: top.returnPercent },
+    });
+  }
+
+  return out;
+}
