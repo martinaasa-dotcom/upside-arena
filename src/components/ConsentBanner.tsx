@@ -58,11 +58,11 @@ export function ConsentBanner() {
       /*
         Lifted clear of the bottom dock wherever there is one, and left at the
         bottom edge where there is none. Which of those applies is decided in
-        CSS by `.consent-notice`, from whether a [data-dock] element is on the
+        CSS by `.bottom-notice`, from whether a [data-dock] element is on the
         page -- not from the path, which was a list of the dock's five tabs
         and so was wrong on the two rooms that have a dock but no tab.
       */
-      className="consent-notice card-sheen glass-notice fixed inset-x-4 z-50 mx-auto max-w-md rounded-xl p-4 ring-1 ring-foreground/20 sm:right-6 sm:left-auto"
+      className="bottom-notice card-sheen glass-notice fixed inset-x-4 z-50 mx-auto max-w-md rounded-xl p-4 ring-1 ring-foreground/20 sm:right-6 sm:left-auto"
     >
       <p className="text-sm text-muted-foreground">
         Measuring page views and load times is optional. Sign-in cookies
