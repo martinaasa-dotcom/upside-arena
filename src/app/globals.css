@@ -163,6 +163,25 @@
   html {
     color-scheme: dark;
     -webkit-text-size-adjust: 100%;
+
+    /*
+      The header is sticky at the very top, and a rubber-band overscroll drags
+      the whole document down with it, so pulling up at the top opened a gap
+      between the bar and the real top of the window and let the field show
+      through above it. There is nothing up there to reach, this runs as an
+      installed app, and a pull-to-refresh on a page whose figures already
+      refresh themselves only ever reloads it by accident.
+    */
+    overscroll-behavior-y: none;
+
+    /*
+      Anything scrolled to by the browser stops below the bar rather than
+      under it: the skip link's target, a hash, and the scroll Next performs
+      on a client navigation, which skips fixed and sticky elements when it
+      looks for where the page starts. Same 3.5rem the bar is, plus whatever
+      the top safe area is on this device.
+    */
+    scroll-padding-top: calc(3.5rem + env(safe-area-inset-top));
   }
 
   body {
@@ -171,7 +190,12 @@
     font-family: var(--font-sans);
     font-weight: 400;
     -webkit-font-smoothing: antialiased;
-    /* Safe areas matter once the PWA runs standalone. */
+    /*
+      Safe areas matter once the PWA runs standalone. The top one is not here:
+      it belongs to the header, which paints through it, so that the glass
+      reaches the real top of the window rather than stopping at the status
+      bar and leaving a strip the page scrolls through.
+    */
     padding-bottom: env(safe-area-inset-bottom);
   }
 
