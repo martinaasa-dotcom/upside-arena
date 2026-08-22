@@ -432,6 +432,13 @@ like a key that should.
 | `0012_streak_bonuses.sql` | What a streak milestone pays |
 | `0013_weekly_goals.sql` | The goal declared inside a league |
 | `0014_pods.sql` | The public ladder: tiers, pods, placement and settlement |
+| `0015_score_needs_every_price.sql` | Refuses to score a week on a price it does not have |
+
+`0015` is the one to apply promptly. Without it a settlement handed an
+incomplete set of closing prices values the missing companies at zero and
+writes the result as final. The app will not call it that way, so nothing is
+wrong today; the migration is what makes that true of the database rather than
+of one `if` statement in `settle.ts`.
 
 ### How a missing one shows up
 
