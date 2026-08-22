@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
+  decideCallback,
   readStateCookie,
   sameState,
   stateFor,
@@ -126,5 +127,97 @@ describe("where Google is sent and what it is asked for", () => {
       GOOGLE_CLIENT_SECRET: "the-secret",
     });
     expect(g.authorizeUrl("state123")).not.toContain("the-secret");
+  });
+});
+
+describe("deciding what to do with a callback", () => {
+  const good = stateFor("/leagues");
+
+  it("lets a matching callback through, with the destination from the cookie", () => {
+    expect(
+      decideCallback({
+        error: null,
+        code: "abc",
+        state: good.param,
+        cookie: good.cookie,
+      })
+    ).toEqual({ kind: "proceed", code: "abc", next: "/leagues" });
+  });
+
+  it("treats a refusal as a refusal, not an error", () => {
+    // Somebody who pressed cancel has not hit a fault and should not be shown
+    // an error page for it.
+    expect(
+      decideCallback({
+        error: "access_denied",
+        code: null,
+        state: null,
+        cookie: null,
+      })
+    ).toEqual({ kind: "cancelled" });
+  });
+
+  it("refuses a code whose state was never issued to this browser", () => {
+    // The whole point of the state. Without this, an authorization code from
+    // somebody else's sign-in could be spent on this session.
+    const other = stateFor("/home");
+    expect(
+      decideCallback({
+        error: null,
+        code: "abc",
+        state: other.param,
+        cookie: good.cookie,
+      })
+    ).toEqual({ kind: "fail", reason: "state" });
+  });
+
+  it("refuses a callback from a browser holding no cookie", () => {
+    expect(
+      decideCallback({ error: null, code: "abc", state: good.param, cookie: null })
+    ).toEqual({ kind: "fail", reason: "state" });
+  });
+
+  it("refuses a callback carrying no state at all", () => {
+    // The case an empty-string comparison would have let through.
+    expect(
+      decideCallback({ error: null, code: "abc", state: "", cookie: "" })
+    ).toEqual({ kind: "fail", reason: "state" });
+    expect(
+      decideCallback({ error: null, code: "abc", state: null, cookie: null })
+    ).toEqual({ kind: "fail", reason: "state" });
+  });
+
+  it("checks the state before it cares about the code", () => {
+    // Ordering matters: a bad-state request must be refused for that reason
+    // rather than being reported as anything the code could influence.
+    expect(
+      decideCallback({ error: null, code: "abc", state: "wrong", cookie: good.cookie })
+        .kind
+    ).toBe("fail");
+  });
+
+  it("wants a code before it will proceed", () => {
+    expect(
+      decideCallback({ error: null, code: null, state: good.param, cookie: good.cookie })
+    ).toEqual({ kind: "fail", reason: "missing-code" });
+  });
+
+  it("will not send somebody off the site, whatever the cookie says", () => {
+    // The cookie is ours, but it is only as trustworthy as the last thing
+    // that wrote it, and an open redirect is not worth the assumption.
+    for (const hostile of [
+      "//evil.example",
+      "https://evil.example",
+      "/\\evil.example",
+    ]) {
+      const state = stateFor(hostile);
+      const decision = decideCallback({
+        error: null,
+        code: "abc",
+        state: state.param,
+        cookie: state.cookie,
+      });
+      expect(decision).toEqual({ kind: "proceed", code: "abc", next: "/home" });
+    }
   });
 });

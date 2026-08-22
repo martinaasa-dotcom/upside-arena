@@ -1,13 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { safeNext } from "@/lib/redirects";
 import { exchangeCode } from "@/lib/auth/google";
-import {
-  STATE_COOKIE,
-  readStateCookie,
-  sameState,
-} from "@/lib/auth/google-state";
+import { STATE_COOKIE, decideCallback } from "@/lib/auth/google-state";
 
 /*
   The return leg of Google sign-in.
@@ -15,43 +10,39 @@ import {
   Google sends the browser here, to Arena's own domain, which is the whole
   point: the domain it returns to is the name it shows on the consent screen.
 
-  Nothing in the query string is trusted until the state matches the cookie
-  set when the request started. An authorization code arriving without that
-  is somebody else's, and spending it would sign this browser into their
-  account.
+  What to do with the request is decided in google-state.ts, so that the order
+  of the checks can be tested. This file does only the parts that need the
+  outside world: the cookie jar, Google's token endpoint, and Supabase.
 */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
-  const fail = (reason: string) =>
-    NextResponse.redirect(`${origin}/auth/error?reason=${reason}`);
-
-  // Google reports a refusal here rather than by failing. Somebody who
-  // pressed cancel has not hit an error, so they go back to the sign-in page.
-  if (searchParams.get("error")) return NextResponse.redirect(`${origin}/`);
-
-  const code = searchParams.get("code");
-  const state = searchParams.get("state") ?? "";
-  if (!code) return fail("missing-code");
 
   const jar = await cookies();
-  const cookie = jar.get(STATE_COOKIE)?.value ?? "";
-
-  // Single use, whatever happens next. A state that survives its callback is
-  // a state that can be replayed.
-  jar.delete(STATE_COOKIE);
-
-  const expected = readStateCookie(cookie);
-  if (!sameState(state, expected.secret)) return fail("state");
+  const cookie = jar.get(STATE_COOKIE)?.value ?? null;
 
   /*
-    Where they were heading comes from the cookie this server set, never from
-    the query string. Google does not carry it back, and anything that did
-    come back would be a destination chosen by whoever sent the browser here.
+    Single use, before anything is acted on. A state that survives its own
+    callback is a state that can be replayed, and that has to be true whether
+    this request goes on to succeed or fail.
   */
-  const next = safeNext(expected.next);
+  jar.delete(STATE_COOKIE);
 
-  const tokens = await exchangeCode(code);
-  if (!tokens.ok) return fail(tokens.reason);
+  const decision = decideCallback({
+    error: searchParams.get("error"),
+    code: searchParams.get("code"),
+    state: searchParams.get("state"),
+    cookie,
+  });
+
+  if (decision.kind === "cancelled") return NextResponse.redirect(`${origin}/`);
+  if (decision.kind === "fail") {
+    return NextResponse.redirect(`${origin}/auth/error?reason=${decision.reason}`);
+  }
+
+  const tokens = await exchangeCode(decision.code);
+  if (!tokens.ok) {
+    return NextResponse.redirect(`${origin}/auth/error?reason=${tokens.reason}`);
+  }
 
   /*
     Supabase verifies the token's signature against Google's keys, checks it
@@ -66,7 +57,7 @@ export async function GET(request: NextRequest) {
     access_token: tokens.accessToken,
   });
 
-  if (error) return fail("identity");
+  if (error) return NextResponse.redirect(`${origin}/auth/error?reason=identity`);
 
-  return NextResponse.redirect(`${origin}${next}`);
+  return NextResponse.redirect(`${origin}${decision.next}`);
 }
