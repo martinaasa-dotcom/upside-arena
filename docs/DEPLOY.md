@@ -374,12 +374,34 @@ curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
 window 24 hours after they were made, so it says when the first slot frees
 rather than when the message first appeared.
 
-**A count under 100 does not mean there is capacity.** On the night of
-2026-08-22 the window held 75 and two merges in a row still produced no
-deployment at all. The list only contains deployments that were created, so
-whatever was refused is not in it and cannot be counted from here. Treat the
-number as a lower bound on what has been spent, and treat "production has not
-moved since the last merge" as the real signal.
+**A count under 100 does not mean the cap is why.** The list only contains
+deployments that were created, so anything refused is not in it and cannot be
+counted from here. Treat the number as a lower bound, and treat "production
+has not moved since the last merge" as the real signal.
+
+#### The other reason production stops moving
+
+A merge can also produce nothing because **GitHub never told anyone it
+happened**. On the night of 2026-08-22 two merges in a row produced no
+deployment with the window at 75, and the give-away was that the same pushes
+produced no **GitHub Actions run** either — on a public repo, where Actions
+are free and no quota can apply. A workflow dispatched by hand on the same
+commit ran immediately and went green. Nothing was misconfigured and nothing
+was over a limit; the push event simply did not reach the things that listen
+for it.
+
+This is worth checking first because it is quick and it looks identical to
+the cap from the Vercel side:
+
+```bash
+# Is there an Actions run for the commit that is missing a deployment?
+gh run list --branch main --limit 5
+```
+
+No run for a commit that was definitely pushed means the webhook, not the
+plan. Both are fixed the same way — trigger the work by hand — and neither
+loses anything, because a production deploy builds `main`'s head and catches
+up every merge since the last one.
 
 Once there is capacity, **one production deploy catches up every merge since
 the last one**, because it builds `main`'s head rather than a single commit.
