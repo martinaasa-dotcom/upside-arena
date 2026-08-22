@@ -5,6 +5,9 @@ import { Panel } from "@/components/Panel";
 import { CreateLeagueForm, JoinLeagueForm } from "@/components/LeagueForms";
 import { getSession } from "@/lib/profile";
 import { getLeagues } from "@/lib/game/leagues";
+import { getPodView } from "@/lib/game/pods";
+import { getCurrentCycle } from "@/lib/game/portfolio";
+import { PodStandings } from "@/components/PodStandings";
 import { PAGE, STACK } from "@/lib/page-shell";
 
 export const metadata = { title: "Leagues" };
@@ -14,11 +17,24 @@ export default async function LeaguesPage() {
   const { user } = await getSession();
   if (!user) redirect("/");
 
-  const leagues = await getLeagues(user.id);
+  /*
+    The pod, when there is one. Section 2.2 keeps these switched off until
+    enough people are playing to fill them, so this is usually nothing and
+    the page reads exactly as it did before. It sits above the private
+    leagues because it is the one somebody did not choose to be in, so it is
+    the one they have not already seen.
+  */
+  const [leagues, cycle] = await Promise.all([
+    getLeagues(user.id),
+    getCurrentCycle(),
+  ]);
+  const pod = cycle ? await getPodView(user.id, cycle.id, null) : null;
 
   return (
     <div className={`${PAGE} ${STACK}`}>
       <h1>Leagues</h1>
+
+      {pod ? <PodStandings view={pod} /> : null}
 
       {leagues.length > 0 ? (
         <Panel title="Your leagues">
