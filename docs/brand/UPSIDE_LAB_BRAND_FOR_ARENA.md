@@ -512,6 +512,30 @@ section label clips at any of them; four portfolios stay inline from 1024 up.
 household has four portfolios, so a cap of 8 would have folded the dock for the
 person who asked for the redesign.
 
+### A transparent full-width overlay still takes every click
+
+The dock's `nav` spans the viewport while only the pill inside it draws
+anything. A `fixed` element captures pointer events across its whole box
+whether or not it paints, so the empty band either side of the pill eats every
+click along the bottom of the page — in Arena's case the "Make your first
+trade" button in the bottom-right corner of `/home`, which did nothing at all
+when pressed.
+
+`pointer-events-none` on the container, `pointer-events-auto` on the part that
+draws. Nothing else changes: same layout, same look, same stacking.
+
+**The general rule, and it is not only about docks:** anything full-width and
+transparent laid over content — a toast host, a banner, a scrim that is not
+meant to be modal — needs the same pair. A modal overlay is the exception,
+because taking the clicks is its job.
+
+Measured rather than reasoned about, because both elements render perfectly
+either way and only hit-testing can see it. With the container as it was,
+`document.elementFromPoint` at the corner button's own centre returned the
+`nav`, and a real click never reached the button's handler. With the pair in
+place it returns the button, the click fires, and the dock still takes the
+clicks that land on it.
+
 ### Anything floating above the dock must clear it at every width
 
 (New 2026-08-21.) Lab's assistant button carried `lg:bottom-8` — a flat 2rem offset —
