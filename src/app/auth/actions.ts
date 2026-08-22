@@ -2,8 +2,15 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured, siteUrl } from "@/lib/env";
+import { authorizeUrl, googleConfigured } from "@/lib/auth/google";
+import {
+  STATE_COOKIE,
+  STATE_MAX_AGE_SECONDS,
+  stateFor,
+} from "@/lib/auth/google-state";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 import { safeNext } from "@/lib/redirects";
 
@@ -54,27 +61,37 @@ export async function signInWithEmail(
   return { sent: true };
 }
 
+/**
+ * Starts Google sign-in, on Arena's own domain.
+ *
+ * Deliberately not `signInWithOAuth`, which would send the browser to
+ * Supabase's callback and make Google name the app after a hostname nobody
+ * recognises. See src/lib/auth/google.ts for why that matters and what this
+ * costs instead.
+ */
 export async function signInWithGoogle(formData: FormData) {
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseConfigured || !googleConfigured) {
     redirect("/auth/error?reason=not-configured");
   }
 
-  const supabase = await createClient();
   const next = safeNext(formData.get("next")?.toString());
+  const state = stateFor(next);
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent(next)}`,
-      queryParams: { prompt: "select_account" },
-    },
+  /*
+    The half of the state that stays with the browser. Http-only so no script
+    can read it, and short lived because a sign-in somebody wandered away from
+    should not still be answerable an hour later.
+  */
+  const jar = await cookies();
+  jar.set(STATE_COOKIE, state.cookie, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: siteUrl().startsWith("https://"),
+    path: "/auth/google",
+    maxAge: STATE_MAX_AGE_SECONDS,
   });
 
-  if (error || !data.url) {
-    redirect("/auth/error?reason=oauth");
-  }
-
-  redirect(data.url);
+  redirect(authorizeUrl(state.param));
 }
 
 export async function signOut() {
