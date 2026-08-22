@@ -61,6 +61,14 @@ export function BottomDock() {
     <nav
       aria-label="Rooms"
       /*
+       * `data-dock` is how anything else on the page finds out there is a
+       * dock at the bottom of it. Asking the dock beats keeping a list of
+       * the routes that have one: the dock renders from (app)/layout, so it
+       * is on every room in the group, while any list is of something else
+       * and drifts from this the moment the two disagree.
+       */
+      data-dock
+      /*
        * `pointer-events-none` because this element spans the whole viewport
        * while only the pill inside it draws anything. A fixed element
        * captures clicks across its entire box whether or not it paints, so

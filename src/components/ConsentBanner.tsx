@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import {
   getConsent,
   getServerConsent,
@@ -11,7 +9,6 @@ import {
   subscribeToConsent,
 } from "@/lib/consent";
 import { track } from "@/lib/analytics";
-import { hasDock } from "@/lib/rooms";
 
 /*
   Asks before any optional measurement runs. Sign-in cookies are strictly
@@ -23,11 +20,6 @@ import { hasDock } from "@/lib/rooms";
   valid consent.
 */
 export function ConsentBanner() {
-  const pathname = usePathname();
-  // Which routes carry the dock is read from the rooms themselves, so adding
-  // a room cannot leave this notice sitting on top of it.
-  const overDock = hasDock(pathname);
-
   const consent = useSyncExternalStore(
     subscribeToConsent,
     getConsent,
@@ -64,18 +56,13 @@ export function ConsentBanner() {
       role="dialog"
       aria-label="Optional measurement"
       /*
-        Lifted above the bottom dock on the rooms that have one, and left at
-        the bottom edge where there is none. Fixed at bottom-28 everywhere it
-        sat on top of the sign-in button on a phone, which is a cookie notice
-        covering the one thing a new visitor came to do.
+        Lifted clear of the bottom dock wherever there is one, and left at the
+        bottom edge where there is none. Which of those applies is decided in
+        CSS by `.consent-notice`, from whether a [data-dock] element is on the
+        page -- not from the path, which was a list of the dock's five tabs
+        and so was wrong on the two rooms that have a dock but no tab.
       */
-      className={cn(
-        "card-sheen glass-notice fixed inset-x-4 z-50 mx-auto max-w-md rounded-xl p-4 ring-1 ring-foreground/20 sm:right-6 sm:left-auto",
-        // The dock is centred and wide, so on a desktop it reaches the
-        // right-hand edge where this sits. Clearing it needs the lift at
-        // every width, not just on a phone.
-        overDock ? "bottom-28 sm:bottom-28" : "bottom-4 sm:bottom-6"
-      )}
+      className="consent-notice card-sheen glass-notice fixed inset-x-4 z-50 mx-auto max-w-md rounded-xl p-4 ring-1 ring-foreground/20 sm:right-6 sm:left-auto"
     >
       <p className="text-sm text-muted-foreground">
         Measuring page views and load times is optional. Sign-in cookies

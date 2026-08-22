@@ -247,6 +247,36 @@
     Set and removed by the banner itself, so a visitor who has already
     answered never carries the gap.
   */
+  /*
+    The measurement notice sits at the bottom of the window, which is also
+    where the dock is. It clears the dock by asking whether one is on the
+    page rather than by checking the path against a list of rooms.
+
+    The list was the bug. It was built from the dock's five tabs, but the
+    dock is rendered by (app)/layout and so is on every room in the group --
+    including Arena Plus and Numbers, which have no tab of their own. On
+    those two the notice was told there was no dock, sat at the bottom edge,
+    and at z-50 over the dock's z-40 covered the navigation with a cookie
+    banner. Measured at 390px: the notice spanned the dock exactly.
+
+    `:has` cannot go stale, because the thing it asks about is the dock
+    itself. A room added, removed or renamed changes nothing here.
+  */
+  .consent-notice {
+    bottom: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .consent-notice {
+      bottom: 1.5rem;
+    }
+  }
+
+  /* Higher specificity than either rule above, so width does not matter. */
+  :root:has([data-dock]) .consent-notice {
+    bottom: 7rem;
+  }
+
   :root[data-consent-asking] .page-frame {
     padding-bottom: 11rem;
   }
