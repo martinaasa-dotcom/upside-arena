@@ -6,7 +6,8 @@ import type { PodView } from "@/lib/game/pods";
 import type { Recap } from "@/lib/share/card";
 import type { Battle } from "@/lib/game/battles";
 import type { LineupView } from "@/lib/game/lineup";
-import type { HeadToHead, Honour, RecordedWeek } from "@/lib/game/record";
+import type { HeadToHead, Honour, PlayedWeek, RecordedWeek } from "@/lib/game/record";
+import type { MoversView } from "@/lib/market/movers";
 import { formatById } from "@/lib/game/formats";
 import { lengthById } from "@/lib/game/lengths";
 
@@ -456,4 +457,34 @@ export const headToHead: HeadToHead[] = [
   { userId: "s1", displayName: LONG_NAME, won: 9, lost: 21, together: 30 },
   { userId: "s2", displayName: "Bo", won: 4, lost: 4, together: 9 },
   { userId: "s3", displayName: "Priya", won: 1, lost: 0, together: 1 },
+];
+
+/*
+  What moved, with the two rows that break it: a company name long enough to
+  need truncating, and a move wide enough to fill its own cell.
+*/
+export const movers: MoversView = {
+  anyStale: false,
+  up: [
+    { symbol: "NVDA", name: "NVIDIA Corporation", price: 1284.55, changePercent: 12.42, owned: true, stale: false },
+    { symbol: "GOOGL", name: "Alphabet Inc. Class A", price: 204.1, changePercent: 3.8, owned: false, stale: false },
+    { symbol: "BRK-B", name: "Berkshire Hathaway Inc. New", price: 486.22, changePercent: 1.05, owned: false, stale: false },
+    { symbol: "F", name: "Ford Motor Company", price: 11.4, changePercent: 0.04, owned: false, stale: false },
+  ],
+  down: [
+    { symbol: "TSLA", name: "Tesla, Inc.", price: 198.4, changePercent: -128.5, owned: true, stale: false },
+    { symbol: "COIN", name: "Coinbase Global, Inc.", price: 240.15, changePercent: -6.2, owned: false, stale: false },
+    { symbol: "PLTR", name: "Palantir Technologies Inc.", price: 71.05, changePercent: -2.1, owned: false, stale: false },
+    { symbol: "DIS", name: "The Walt Disney Company", price: 96.8, changePercent: -0.11, owned: false, stale: false },
+  ],
+};
+
+export const moversStale: MoversView = { ...movers, anyStale: true };
+
+/** A player's own weeks, including one the market was never recorded for. */
+export const playedWeeks: PlayedWeek[] = [
+  { cycleId: "p1", monday: "2026-08-17", returnPercent: 9.42, versusMarket: 10.77, finalValue: 109_420 },
+  { cycleId: "p2", monday: "2026-08-10", returnPercent: -3.1, versusMarket: -4.0, finalValue: 96_900 },
+  { cycleId: "p3", monday: "2026-08-03", returnPercent: 0.0, versusMarket: null, finalValue: 100_000 },
+  { cycleId: "p4", monday: "2026-07-27", returnPercent: -128.5, versusMarket: -129.4, finalValue: 0 },
 ];

@@ -318,3 +318,71 @@ export const getLeagueRecord = cache(async function getLeagueRecord(
     you: honours.find((row) => row.isYou) ?? null,
   };
 });
+
+/** One week somebody played, as their own record remembers it. */
+export type PlayedWeek = {
+  cycleId: string;
+  monday: string;
+  returnPercent: number;
+  /** Points ahead of the market that week. Null if it was never recorded. */
+  versusMarket: number | null;
+  finalValue: number;
+};
+
+/**
+ * Every week a player has played, newest first.
+ *
+ * The profile had lifetime totals and no weeks: how many, the best one, the
+ * average against the market. All true, and all of it the kind of number that
+ * describes somebody rather than reminding them of anything. What a person
+ * recognises is the week itself -- the one they were up nine per cent, the
+ * three in a row they were behind -- and the totals are what those add up to.
+ *
+ * Read rather than worked out, like everything else in this file. Each of
+ * these was settled on a Friday and has not been touched since.
+ */
+export async function getPlayedWeeks(
+  userId: string,
+  limit = 26
+): Promise<PlayedWeek[]> {
+  if (!canWriteGame) return [];
+
+  const admin = createAdminClient();
+
+  const { data } = await admin
+    .from("portfolios")
+    .select("cycle_id, return_percent, benchmark_diff, final_value, weekly_cycles!inner(monday, league_id)")
+    .eq("user_id", userId)
+    .not("return_percent", "is", null)
+    /*
+      House weeks only. A battle has its own rule book and its own benchmark,
+      so listing one here beside the ordinary weeks would put two different
+      games in one column under one heading.
+    */
+    .is("weekly_cycles.league_id", null)
+    .order("monday", { ascending: false, referencedTable: "weekly_cycles" })
+    .limit(limit);
+
+  const rows = (data ?? []) as unknown as {
+    cycle_id: string;
+    return_percent: string;
+    benchmark_diff: string | null;
+    final_value: string | null;
+    weekly_cycles: { monday: string; league_id: string | null };
+  }[];
+
+  return rows
+    .map((row) => ({
+      cycleId: row.cycle_id,
+      monday: row.weekly_cycles.monday,
+      returnPercent: num(row.return_percent),
+      versusMarket: row.benchmark_diff == null ? null : num(row.benchmark_diff),
+      finalValue: num(row.final_value),
+    }))
+    /*
+      Sorted here as well as in the query. Ordering on a joined table is the
+      sort of thing that quietly stops working across a client upgrade, and a
+      record in the wrong order is a record somebody stops believing.
+    */
+    .sort((a, b) => b.monday.localeCompare(a.monday));
+}

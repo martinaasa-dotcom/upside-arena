@@ -16,6 +16,8 @@ import { getSession } from "@/lib/profile";
 import { getRewards } from "@/lib/game/streaks";
 import { getLeagues } from "@/lib/game/leagues";
 import { getSeasonHistory } from "@/lib/game/seasons";
+import { getPlayedWeeks } from "@/lib/game/record";
+import { PlayedWeeks } from "@/components/LeagueRecord";
 import { getMyCards } from "@/lib/game/share";
 import { getStanding, FREE_STANDING } from "@/lib/billing/entitlements";
 import { flairStyleKey } from "@/lib/game/cosmetics";
@@ -49,7 +51,7 @@ async function Player() {
     Awaited one after another they queued behind each other for no reason, and
     the profile screen took as long as all of them added together.
   */
-  const [rewards, leagues, seasons, cards, standing, notifications] = user
+  const [rewards, leagues, seasons, cards, standing, notifications, weeks] = user
     ? await Promise.all([
         getRewards(user.id),
         getLeagues(user.id),
@@ -57,6 +59,7 @@ async function Player() {
         getMyCards(user.id),
         getStanding(user.id),
         getNotificationState(user.id),
+        getPlayedWeeks(user.id),
       ])
     : [
         {
@@ -75,6 +78,7 @@ async function Player() {
           pushAvailable: false,
           emailAvailable: false,
         },
+        [],
       ];
 
   const wearing = rewards.owned.find(
@@ -142,6 +146,25 @@ async function Player() {
           </HairlineCell>
         </HairlineGrid>
       </Panel>
+
+      {/*
+        Every week, before the seasons that add them up.
+
+        This screen had lifetime totals and no weeks -- how many played, the
+        best one, the average against the market. All true, and all of it the
+        kind of number that describes somebody rather than reminding them of
+        anything. What a person recognises is the week itself: the one they
+        were up nine per cent, the three in a row they were behind. The totals
+        above are what these come to.
+      */}
+      {weeks.length > 0 ? (
+        <Panel
+          title="Every week you have played"
+          description="Newest first, and settled on the Friday it happened. An aqua edge is a week you finished ahead of the market, which is the one that counts."
+        >
+          <PlayedWeeks weeks={weeks} />
+        </Panel>
+      ) : null}
 
       {seasons.length > 0 ? (
         <Panel

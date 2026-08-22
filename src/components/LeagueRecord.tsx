@@ -269,3 +269,82 @@ const SHORT = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" 
 function shortDate(iso: string) {
   return SHORT.format(new Date(`${iso}T12:00:00Z`));
 }
+
+/**
+ * Every week somebody has played, on their own profile.
+ *
+ * The same shape as the league's week log and deliberately not the same
+ * component: this one has no winner, because a personal record is not a table
+ * of other people. What it has instead is the market, which is the thing a
+ * week is actually measured against.
+ */
+export function PlayedWeeks({
+  weeks,
+}: {
+  weeks: {
+    cycleId: string;
+    monday: string;
+    returnPercent: number;
+    versusMarket: number | null;
+  }[];
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      {weeks.map((week) => {
+        const up = week.returnPercent >= 0;
+        const beat = week.versusMarket != null && week.versusMarket > 0;
+
+        return (
+          <div
+            key={week.cycleId}
+            className={cn(
+              "glass-well flex min-h-14 items-center gap-3 rounded-lg px-4 py-2",
+              beat ? "border-l-4 border-l-gain" : "border-l-4 border-l-border"
+            )}
+          >
+            <span className="figure w-20 shrink-0 text-sm text-muted-foreground">
+              {shortDate(week.monday)}
+            </span>
+
+            {/*
+              A figure rather than a sentence.
+
+              "Beat the market by 10.8%" is the clearer thing to read and it is
+              the wrong thing to put in the middle of a row on a phone: between
+              a date and a percentage it had about ninety pixels and rendered
+              as "Beat the market…", which says less than nothing. The pair on
+              the right is the shape the honours board already uses, and the
+              aqua edge says the same thing again without any words at all.
+            */}
+            <span className="min-w-0 flex-1" />
+
+            <span className="flex shrink-0 flex-col items-end">
+              <span
+                className={cn(
+                  "figure text-sm font-semibold",
+                  up ? "text-gain" : "text-loss"
+                )}
+              >
+                {formatPercent(week.returnPercent)}
+              </span>
+              <span
+                className={cn(
+                  "figure text-xs",
+                  week.versusMarket == null
+                    ? "text-muted-foreground"
+                    : beat
+                      ? "text-gain"
+                      : "text-loss"
+                )}
+              >
+                {week.versusMarket == null
+                  ? "market not recorded"
+                  : `${formatPercent(week.versusMarket)} vs market`}
+              </span>
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

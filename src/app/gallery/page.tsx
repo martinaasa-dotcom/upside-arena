@@ -17,8 +17,10 @@ import {
   FormStrip,
   HeadToHeadTable,
   HonoursBoard,
+  PlayedWeeks,
   WeekLog,
 } from "@/components/LeagueRecord";
+import { Movers } from "@/components/Movers";
 import { FirstRun } from "@/components/FirstRun";
 import { Scoreboard, Score } from "@/components/Scoreboard";
 import { InviteCode } from "@/components/InviteCode";
@@ -343,6 +345,25 @@ export default function GalleryPage() {
         <Panel title="Every week">
           <WeekLog weeks={fixture.recordedWeeks} />
         </Panel>
+      </Case>
+
+      <Case name="played-weeks">
+        <Panel title="Every week you have played">
+          <PlayedWeeks weeks={fixture.playedWeeks} />
+        </Panel>
+      </Case>
+
+      {/*
+        Eight cells two across a phone, each with a ticker, a percentage and a
+        price. The widest thing on it is a three figure move, which is the one
+        that decides whether the cell holds.
+      */}
+      <Case name="movers">
+        <Movers movers={fixture.movers} />
+      </Case>
+
+      <Case name="movers-stale">
+        <Movers movers={fixture.moversStale} />
       </Case>
 
       <Case name="invite-code">

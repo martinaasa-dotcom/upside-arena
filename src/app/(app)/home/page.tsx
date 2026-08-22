@@ -22,6 +22,8 @@ import { getLatestRecap } from "@/lib/game/share";
 import { getLiveBattles, hasEverPlayedBattle } from "@/lib/game/battles";
 import { hasDeclaredGoalThisWeek } from "@/lib/game/goals";
 import { getLatestLineupReport } from "@/lib/game/lineup";
+import { getMovers } from "@/lib/market/movers";
+import { Movers } from "@/components/Movers";
 import { BattleCard } from "@/components/BattleCard";
 import { LineupReport } from "@/components/Lineup";
 import { considerHandoff, labUrl } from "@/lib/billing/handoff";
@@ -260,6 +262,17 @@ async function Rest() {
 
 
   /*
+    What moved today, including anything they hold.
+
+    After the wave above rather than in it, because it wants to know what they
+    own before it can mark a row as theirs. It costs one batched quote request
+    for a watchlist that is the same for everybody, so it is a cache hit for
+    all but the first person to look in any given minute -- which is the cost
+    model the plan asks for: per symbol, not per player.
+  */
+  const movers = await getMovers(view.positions.map((position) => position.symbol));
+
+  /*
     Somebody who has never traded is still being told what this is. It goes
     the moment they do, because an explainer that outlives its usefulness is
     an advert for something they already have.
@@ -345,6 +358,8 @@ async function Rest() {
               <StreakCard streak={activity.streak} />
             </>
           ) : null}
+
+          {movers ? <Movers movers={movers} /> : null}
 
           <Panel
             title="What you own"
