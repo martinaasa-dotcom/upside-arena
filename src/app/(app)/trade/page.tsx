@@ -93,11 +93,17 @@ async function CashLine() {
   /*
     Before the week starts the figure is the money it starts with, and calling
     that "cash" would be true of a balance nobody can spend yet.
+
+    "On Monday" only while Monday is still ahead. Said on the Monday morning
+    itself -- which is inside this window, and the whole reason the window is
+    wider than the weekend -- it names the day it is being read on.
   */
-  return isLineupWindow() ? (
+  if (!isLineupWindow()) return <>{formatMoney(view.cash)} cash</>;
+
+  return isWeekend() ? (
     <>{formatMoney(view.startingBalance)} on Monday</>
   ) : (
-    <>{formatMoney(view.cash)} cash</>
+    <>{formatMoney(view.startingBalance)} at the open</>
   );
 }
 

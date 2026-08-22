@@ -15,7 +15,6 @@ import { getSessionOpen } from "@/lib/market/benchmark";
 import { isTradingOpen, nyDate } from "@/lib/market/session";
 import {
   DEFAULT_FORMAT,
-  allowedSymbols,
   checkTrade,
   formatById,
   positionValue,
@@ -452,16 +451,43 @@ export const getBattleView = cache(async function getBattleView(
   const cycle = cycleRow as WeeklyCycleRow | null;
   if (!cycle || !cycle.league_id) return null;
 
-  const [{ data: members }, { data: leagueRow }] = await Promise.all([
-    admin.from("league_members").select("user_id").eq("league_id", cycle.league_id),
+  const [{ data: members }, { data: leagueRow }, { data: played }] = await Promise.all([
+    admin
+      .from("league_members")
+      .select("user_id, joined_at")
+      .eq("league_id", cycle.league_id),
     admin.from("leagues").select("id, name, icon").eq("id", cycle.league_id).maybeSingle(),
+    /*
+      Anybody who has a book in this contest, whether or not they are still in
+      the league. One of them may have left since, and dropping somebody who
+      played would hand their result to whoever came behind them.
+    */
+    admin.from("portfolios").select("user_id").eq("cycle_id", cycle.id),
   ]);
 
-  const memberIds = (members ?? []).map((m) => m.user_id as string);
+  const roster = (members ?? []) as { user_id: string; joined_at: string }[];
 
   // Membership established from the roster rather than assumed from the url.
   // A cycle id is not a secret, and guessing one must not show a private room.
-  if (!memberIds.includes(userId) || !leagueRow) return null;
+  if (!roster.some((row) => row.user_id === userId) || !leagueRow) return null;
+
+  /*
+    Who is in this contest, which is the same rule the notification about it
+    uses -- because a room and a message that ranked different fields would say
+    "second of six" and "second of four" about the same battle on the same
+    evening.
+
+    Everybody who played, plus everybody who was a member by the day it ended
+    and did not. Somebody who joined the league afterwards was never in it.
+  */
+  const memberIds = [
+    ...new Set([
+      ...((played ?? []) as { user_id: string }[]).map((row) => row.user_id),
+      ...roster
+        .filter((row) => row.joined_at.slice(0, 10) <= cycle.ends_on)
+        .map((row) => row.user_id),
+    ]),
+  ];
 
   const battle = toBattle(cycle, leagueRow as LeagueRow, userId);
   const format = battle.format;
@@ -762,7 +788,7 @@ export async function settledBattles(): Promise<BattleResult[]> {
 
   const { data: rows } = await admin
     .from("weekly_cycles")
-    .select("id, league_id, format, starting_balance, closed_at")
+    .select("id, league_id, format, ends_on, closed_at")
     .not("league_id", "is", null)
     .eq("status", "closed")
     .order("closed_at", { ascending: false })
@@ -772,7 +798,7 @@ export async function settledBattles(): Promise<BattleResult[]> {
     id: string;
     league_id: string;
     format: string;
-    starting_balance: string;
+    ends_on: string;
     closed_at: string | null;
   }[];
 
@@ -782,7 +808,10 @@ export async function settledBattles(): Promise<BattleResult[]> {
 
   const [{ data: leagues }, { data: members }, { data: portfolios }] = await Promise.all([
     admin.from("leagues").select("id, name").in("id", leagueIds),
-    admin.from("league_members").select("league_id, user_id").in("league_id", leagueIds),
+    admin
+      .from("league_members")
+      .select("league_id, user_id, joined_at")
+      .in("league_id", leagueIds),
     admin
       .from("portfolios")
       .select("user_id, cycle_id, return_percent")
@@ -794,10 +823,14 @@ export async function settledBattles(): Promise<BattleResult[]> {
     ((leagues ?? []) as { id: string; name: string }[]).map((l) => [l.id, l.name])
   );
 
-  const rosterByLeague = new Map<string, string[]>();
-  for (const row of (members ?? []) as { league_id: string; user_id: string }[]) {
+  const rosterByLeague = new Map<string, { userId: string; joined: string }[]>();
+  for (const row of (members ?? []) as {
+    league_id: string;
+    user_id: string;
+    joined_at: string;
+  }[]) {
     const list = rosterByLeague.get(row.league_id) ?? [];
-    list.push(row.user_id);
+    list.push({ userId: row.user_id, joined: row.joined_at.slice(0, 10) });
     rosterByLeague.set(row.league_id, list);
   }
 
@@ -812,7 +845,12 @@ export async function settledBattles(): Promise<BattleResult[]> {
     scoredByCycle.set(row.cycle_id, forCycle);
   }
 
-  const everybody = [...new Set([...rosterByLeague.values()].flat())];
+  const everybody = [
+    ...new Set([
+      ...[...rosterByLeague.values()].flat().map((row) => row.userId),
+      ...[...scoredByCycle.values()].flatMap((forCycle) => [...forCycle.keys()]),
+    ]),
+  ];
 
   const { data: profiles } = everybody.length
     ? await admin.from("profiles").select("id, display_name").in("id", everybody)
@@ -826,22 +864,38 @@ export async function settledBattles(): Promise<BattleResult[]> {
   );
 
   return cycles.flatMap((cycle) => {
-    const roster = rosterByLeague.get(cycle.league_id) ?? [];
-    if (roster.length === 0) return [];
-
     const scored = scoredByCycle.get(cycle.id) ?? new Map<string, number>();
 
     /*
-      Every member of the league, not only the ones with a portfolio.
+      Nobody played it, so there is nothing to announce.
 
-      This has to be the same field the battle room shows, and the room ranks
-      the whole roster -- somebody who never opened it has no portfolio row and
-      is shown level, because a table with people missing from it is not a
-      table. Ranking only the players here produced a second, smaller field:
-      the screen said second of six and the notification said second of four,
-      about the same battle, on the same evening.
+      This guard was here, went missing when the field widened from "people
+      with a portfolio" to "the league", and took a real result with it: a
+      battle nobody opened became one where everybody was level at nothing and
+      whoever the database returned first had won it.
     */
-    const finished = roster
+    if (scored.size === 0) return [];
+
+    /*
+      Who was in it, which is not the same as who is in the league now.
+
+      Everybody who played -- they have a scored portfolio, and one of them may
+      since have left, in which case dropping them would hand their win to
+      whoever came second. Plus everybody who was a member by the day it ended
+      and did not open it, who is shown level in the room for the same reason a
+      league table does not hide people.
+
+      What that leaves out is somebody who joined the league afterwards. They
+      were never in this contest, and telling them where they came in it would
+      be a placing in a race they had not entered.
+    */
+    const entitled = (rosterByLeague.get(cycle.league_id) ?? [])
+      .filter((row) => row.joined <= cycle.ends_on)
+      .map((row) => row.userId);
+
+    const field = [...new Set([...scored.keys(), ...entitled])];
+
+    const finished = field
       .map((userId) => ({
         userId,
         displayName: nameById.get(userId) ?? "Player",
@@ -965,11 +1019,6 @@ function friendlyBattleError(message: string): string {
   if (text.includes("not a member")) return "You are not in this league any more.";
   if (text.includes("whole number")) return "Enter a whole number of shares.";
   return "We could not place that. Try again.";
-}
-
-/** What the trade screen offers when a format names its universe by hand. */
-export function battleUniverse(format: Format): readonly string[] | null {
-  return allowedSymbols(format);
 }
 
 /**

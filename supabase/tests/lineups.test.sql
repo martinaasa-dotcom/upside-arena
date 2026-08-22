@@ -4,9 +4,11 @@
 -- opened on the week being queued for? -- and one guarantee: nothing is
 -- dropped quietly. Both are here.
 --
--- Note what is not here. The caller works out whether the week has begun,
--- because it is the only party that knows what time it is in New York, so
--- these tests hand the answer in exactly as the application does.
+-- Note what is not here. The caller does not work out whether a week is
+-- locked -- it did once, and got it wrong for every order ever queued, which
+-- is what 0021 is about. It hands in the two facts only it knows, today's date
+-- in New York and whether the bell has gone, exactly as the application does,
+-- and the database decides.
 
 \set ON_ERROR_STOP on
 \o /dev/null

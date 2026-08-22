@@ -381,15 +381,6 @@ export function positionValue(
   return Math.max(costBasis + (entry - price) * quantity, 0);
 }
 
-/** What covering some of a short pays back. Never less than nothing. */
-export function coverProceeds(input: {
-  quantity: number;
-  soldCost: number;
-  price: number;
-}): number {
-  return Math.max(2 * input.soldCost - input.quantity * input.price, 0);
-}
-
 export type HeldPosition = {
   symbol: string;
   quantity: number;
@@ -468,34 +459,4 @@ export function checkTrade(
   }
 
   return { ok: true };
-}
-
-/**
- * The most shares of a name a format still allows, or null when it does not
- * cap it. Used to offer "buy the most you can" rather than make somebody
- * find the number by being refused.
- */
-export function maxAffordableShares(
-  format: Format,
-  input: {
-    symbol: string;
-    price: number;
-    cash: number;
-    startingBalance: number;
-    positions: readonly HeldPosition[];
-  }
-): number {
-  if (input.price <= 0) return 0;
-
-  let budget = input.cash;
-
-  if (format.maxWeightPercent != null && input.startingBalance > 0) {
-    const cap = (format.maxWeightPercent / 100) * input.startingBalance;
-    const existing = input.positions.find(
-      (p) => p.symbol.toUpperCase() === input.symbol.toUpperCase()
-    );
-    budget = Math.min(budget, cap - (existing?.costBasis ?? 0));
-  }
-
-  return Math.max(Math.floor(budget / input.price), 0);
 }

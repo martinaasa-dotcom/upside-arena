@@ -3,10 +3,8 @@ import {
   FORMATS,
   allowedSymbols,
   checkTrade,
-  coverProceeds,
   formatById,
   isFormatId,
-  maxAffordableShares,
   positionValue,
 } from "@/lib/game/formats";
 
@@ -114,12 +112,6 @@ describe("what a position is worth", () => {
     expect(positionValue(open, { quantity: 10, costBasis: 1000, price: null })).toBe(1000);
     expect(positionValue(inverse, { quantity: 10, costBasis: 1000, price: null })).toBe(1000);
   });
-
-  it("pays back what covering a short is worth, and never less than nothing", () => {
-    expect(coverProceeds({ quantity: 10, soldCost: 1000, price: 90 })).toBe(1100);
-    expect(coverProceeds({ quantity: 10, soldCost: 1000, price: 110 })).toBe(900);
-    expect(coverProceeds({ quantity: 10, soldCost: 1000, price: 500 })).toBe(0);
-  });
 });
 
 describe("what a format lets you buy", () => {
@@ -223,51 +215,5 @@ describe("how much of one thing", () => {
       startingBalance: 100_000,
     });
     expect(generous.ok).toBe(true);
-  });
-
-  it("works out the most somebody can buy, so they are not refused into it", () => {
-    expect(
-      maxAffordableShares(spread, {
-        symbol: "AAPL",
-        price: 100,
-        cash: 100_000,
-        startingBalance: 100_000,
-        positions: [],
-      })
-    ).toBe(250);
-
-    // Cash is the tighter limit here, so cash wins.
-    expect(
-      maxAffordableShares(spread, {
-        symbol: "AAPL",
-        price: 100,
-        cash: 5_000,
-        startingBalance: 100_000,
-        positions: [],
-      })
-    ).toBe(50);
-
-    // Already at the cap: nothing more.
-    expect(
-      maxAffordableShares(spread, {
-        symbol: "AAPL",
-        price: 100,
-        cash: 50_000,
-        startingBalance: 100_000,
-        positions: [{ symbol: "AAPL", quantity: 250, costBasis: 25_000 }],
-      })
-    ).toBe(0);
-  });
-
-  it("has no cap to hit in the open market", () => {
-    expect(
-      maxAffordableShares(open, {
-        symbol: "AAPL",
-        price: 100,
-        cash: 100_000,
-        startingBalance: 100_000,
-        positions: [],
-      })
-    ).toBe(1000);
   });
 });

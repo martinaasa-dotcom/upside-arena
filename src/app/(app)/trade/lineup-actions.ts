@@ -75,14 +75,28 @@ export async function submitLineupOrder(
   };
 }
 
-export async function submitClearLineupOrder(formData: FormData) {
+/**
+ * Taking one out of the lineup.
+ *
+ * Returns what happened rather than swallowing it. Until the lock was moved
+ * into the database it could not fail -- p_locked was false for every order
+ * ever passed -- so a form that ignored the answer looked harmless. Now a
+ * refusal is reachable: somebody with the page still open from before Monday's
+ * bell taps Remove, the week is set, and nothing happens. Being told no is
+ * fine; being told nothing is not.
+ */
+export async function submitClearLineupOrder(
+  orderId: string
+): Promise<{ ok: boolean; error?: string }> {
   const user = await requireUser();
 
-  const orderId = String(formData.get("orderId") ?? "");
-  if (!orderId) return;
+  if (!orderId) return { ok: false, error: "We could not find that order." };
 
-  await clearOrder(user.id, orderId);
+  const result = await clearOrder(user.id, orderId);
+  if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath("/trade");
   revalidatePath("/home");
+
+  return { ok: true };
 }

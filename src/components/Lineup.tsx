@@ -1,6 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { CalendarClock, Loader2, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Panel, Well } from "@/components/Panel";
@@ -39,6 +46,7 @@ export function Lineup({ view }: { view: LineupView }) {
   const [matches, setMatches] = useState<SymbolMatch[]>([]);
   const [searching, setSearching] = useState(false);
   const [quantity, setQuantity] = useState("");
+  const [removing, startRemoving] = useTransition();
 
   const searchId = useId();
   const quantityId = useId();
@@ -146,18 +154,35 @@ export function Lineup({ view }: { view: LineupView }) {
                   {order.estimate == null ? "—" : `about ${formatMoney(order.estimate)}`}
                 </span>
                 {view.locked ? null : (
-                  <form action={submitClearLineupOrder} className="shrink-0">
-                    <input type="hidden" name="orderId" value={order.id} />
-                    <Button
-                      type="submit"
-                      variant="ghost"
-                      size="sm"
-                      aria-label={`Take ${order.symbol} out of the lineup`}
-                      onClick={() => track("lineup_order_cleared")}
-                    >
-                      <X className="size-4" aria-hidden="true" />
-                    </Button>
-                  </form>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0"
+                    disabled={removing}
+                    aria-label={`Take ${order.symbol} out of the lineup`}
+                    onClick={() =>
+                      startRemoving(async () => {
+                        const result = await submitClearLineupOrder(order.id);
+
+                        /*
+                          Said out loud either way. The market can open between
+                          this page being drawn and this button being tapped,
+                          and a lineup that quietly refuses to change is worse
+                          than one that says it is set.
+                        */
+                        if (!result.ok) {
+                          toast.error(result.error ?? "We could not take that out.");
+                          return;
+                        }
+
+                        track("lineup_order_cleared");
+                        toast.success(`${order.symbol} taken out.`);
+                      })
+                    }
+                  >
+                    <X className="size-4" aria-hidden="true" />
+                  </Button>
                 )}
               </Well>
             ))}
