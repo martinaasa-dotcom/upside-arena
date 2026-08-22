@@ -1,4 +1,25 @@
-# Fonts for the share card
+# Fonts
+
+Two subsets, for two different jobs.
+
+## GeistMono-Variable.subset.woff2
+
+The mono face the app itself ships, for everything in the `.figure` class:
+money, percents, counts, ranks and the invite code. Subset because the full
+variable font carries Cyrillic, Greek and 128 box-drawing glyphs this app can
+never print, and woff2 does not shrink again on the wire.
+
+What goes in it is decided by `MONO_SUBSET_RANGES` in
+`src/lib/brand/mono-subset.ts`. Rebuild with:
+
+    pip install fonttools brotli
+    npm run fonts
+
+Do not hand-edit the ranges into a command here. The list in that module is
+what the script builds from and what `tests/unit/mono-subset.test.ts` checks,
+and a copy in this file is a copy that goes stale.
+
+## The three share-card subsets
 
 Geist and Geist Mono, subset to the characters a share card can contain.
 

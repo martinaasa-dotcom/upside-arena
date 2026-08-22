@@ -63,49 +63,30 @@ jobs:
 
       - run: npm ci
 
-      # These drive a real signed-out app, and the proxy that redirects a
+      # These drive a signed-out app, and the proxy that redirects a
       # signed-out visitor to the sign-in page is switched off when Supabase
-      # is unconfigured -- so without these two the suite fails on the
+      # is unconfigured -- so without a URL and a key the suite fails on the
       # redirect tests for a reason that has nothing to do with the change
       # under review.
       #
-      # Both are public values: the project URL, and the publishable client
-      # key that ships to every browser anyway. They are secrets here only
-      # because that is the mechanism for getting a value into a workflow.
+      # They do not have to name a real project. Every test in this suite is
+      # signed out, and supabase-js answers getUser() from storage before it
+      # ever reaches the network: with no session cookie there is no session
+      # and it says so without making a request. Nothing here talks to the
+      # host below. What these values do is make isSupabaseConfigured true,
+      # which is the switch the proxy actually reads.
       #
-      # Gated at the step rather than on the job, because the secrets context
-      # is not readable from a job-level `if` -- written there the condition
-      # is always false and the job never runs, which looks exactly like
-      # having no browser tests at all.
-      - id: creds
+      # They were repository secrets, which sounded safer and was worse. An
+      # unset secret is an empty string, so the job skipped the tests and the
+      # check went green in twenty seconds having run nothing -- a guard
+      # reporting a pass it did not earn, which is the exact failure this
+      # file was written to stop. Written here they cannot be unset.
+      - run: npx playwright install --with-deps chromium
+
+      - run: npx playwright test
         env:
-          URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-        run: |
-          if [ -n "$URL" ] && [ -n "$KEY" ]; then
-            echo "have=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "have=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      # Says so out loud rather than reporting a pass it did not earn. Set
-      # NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in the
-      # repository's Actions secrets to turn the browser tests on.
-      - if: steps.creds.outputs.have != 'true'
-        run: |
-          echo "::warning title=Browser tests skipped::Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Actions secrets to run them."
-          echo "### Browser tests skipped" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Playwright needs the Supabase project URL and publishable key to exercise the signed-out redirects. Add them as Actions secrets." >> "$GITHUB_STEP_SUMMARY"
-
-      - if: steps.creds.outputs.have == 'true'
-        run: npx playwright install --with-deps chromium
-
-      - if: steps.creds.outputs.have == 'true'
-        run: npx playwright test
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-no-project-behind-it
           NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3100
 
       - uses: actions/upload-artifact@v7
