@@ -302,8 +302,7 @@ Resource is limited - try again in 24 hours
 ```
 
 This is not a build failure and no change to the code fixes it. It hit on
-2026-08-21 and stayed hit for hours, so treat the 24-hour message as literal
-rather than as a rolling window that clears in minutes.
+2026-08-21 and again on 2026-08-22, and stayed hit for hours both times.
 
 What it means in practice:
 
@@ -315,6 +314,48 @@ What it means in practice:
 - Pushing again to clear it makes it worse.
 
 Upgrading the plan removes the cap. Nothing else does.
+
+#### Why it is easy to miss
+
+A blocked production deploy is silent. On 2026-08-22 three merges landed on
+`main` before anybody noticed production had not moved for over an hour.
+
+- **No deployment is created**, so there is nothing in the Vercel list to see
+  as failed — the merge simply produces no build at all.
+- **No check fails on the pull request.** GitHub Actions is green, the PR
+  merges normally, and nothing anywhere is red. A rejected *preview* does post
+  a comment from the Vercel bot, but a rejected *production* deploy on merge
+  posts nothing.
+- **Nothing retries it.** When capacity returns Vercel does not go back and
+  build `main`. It stays stale until something triggers a deploy.
+
+So the merge looks exactly like a successful one. The only way to know is to
+ask what is deployed.
+
+#### Checking, and getting unstuck
+
+What production is actually serving, and how much of the cap is spent:
+
+```bash
+# The live build, and the commit it came from
+curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+  "https://api.vercel.com/v6/deployments?app=upside-arena&limit=1&target=production&state=READY" \
+  | jq -r '.deployments[0].meta | "\(.githubCommitSha[0:12])  \(.githubCommitMessage)"'
+
+# How many deployments are inside the trailing 24 hours
+curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+  "https://api.vercel.com/v6/deployments?app=upside-arena&limit=100&since=$(( ($(date +%s) - 86400) * 1000 ))" \
+  | jq '.deployments | length'
+```
+
+`created` on the oldest entry is worth reading too: deployments leave the
+window 24 hours after they were made, so it says when the first slot frees
+rather than when the message first appeared.
+
+Once there is capacity, **one production deploy catches up every merge since
+the last one**, because it builds `main`'s head rather than a single commit.
+Nothing is lost by the wait. To trigger it: press **Redeploy** on the latest
+`main` deployment in the Vercel dashboard, or merge the next pull request.
 
 ## Migrations
 
