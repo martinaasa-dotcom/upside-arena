@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import Stripe from "stripe";
 import { mapSubscriptionStatus, subscriptionEnd } from "@/lib/billing/subscription";
+import { purchaseRefusal } from "@/lib/billing/entitlements";
 import {
   COIN_BUNDLES,
   FREE,
@@ -320,5 +321,49 @@ describe("how often somebody pays for Arena Plus", () => {
     // strings have to be Stripe's own.
     expect(PLUS_PLANS.monthly.interval).toBe("month");
     expect(PLUS_PLANS.yearly.interval).toBe("year");
+  });
+});
+
+/*
+  What a failed purchase says.
+
+  Coins are bought with money, so a message about where they went has to be
+  one the app can actually stand behind. The three refusals below come back
+  from a single plpgsql function, which means the whole thing rolled back and
+  nothing was taken. The fourth case is the one worth having a test for: no
+  answer came back at all, the write may have committed with the response lost
+  on the way, and the app must not claim to know either way.
+*/
+describe("what a refused purchase says", () => {
+  // What PostgREST returns for a raised exception in a plpgsql function.
+  const raised = (message: string) => ({ message, code: "P0001" });
+
+  it("names the reason the database gave", () => {
+    expect(purchaseRefusal(raised("not enough coins"))).toContain("enough coins");
+    expect(purchaseRefusal(raised("you already own that"))).toContain("already have");
+    expect(purchaseRefusal(raised("that is not for sale"))).toContain("not for sale");
+  });
+
+  it("says nothing was taken when the database refused it", () => {
+    // One function, one transaction: a raised exception rolls back the spend.
+    expect(purchaseRefusal(raised("some new refusal nobody mapped"))).toContain(
+      "Nothing was taken"
+    );
+  });
+
+  it("does not claim to know when nothing answered", () => {
+    // A transport failure has no Postgres code, because Postgres never spoke.
+    const lost = { message: "TypeError: fetch failed" };
+    const said = purchaseRefusal(lost);
+
+    expect(said).not.toContain("Nothing was taken");
+    expect(said).toContain("Check your coins");
+  });
+
+  it("treats an empty code as no answer, not as an answer", () => {
+    // supabase-js fills these in as empty strings rather than leaving them off.
+    expect(purchaseRefusal({ message: "network error", code: "" })).not.toContain(
+      "Nothing was taken"
+    );
   });
 });
