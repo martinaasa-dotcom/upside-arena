@@ -231,3 +231,37 @@ export const recap: Recap = {
   streakDays: 41,
   marks: [1.2, -0.4, 3.9, 0.1, 3.6],
 };
+
+/*
+  The rest of the rooms.
+
+  Everything below lays out text or figures somebody else supplied, which is
+  the only thing that qualifies a component for this page. Every string is the
+  longest plausible one rather than a tidy one: the league somebody actually
+  names, the goal somebody actually declares, a balance with seven digits in
+  it. A gallery of short strings measures nothing.
+*/
+
+/** As long as the create-league form will accept. */
+export const LONG_LEAGUE = "The Wednesday Afternoon Investment Society";
+
+export const sharedCards = [
+  { id: "s1", url: "https://upsidearena.com/w/aB3dEf9h", monday: "2026-08-17", returnPercent: 12.4 },
+  { id: "s2", url: "https://upsidearena.com/w/zZ9yXw8v", monday: "2026-08-10", returnPercent: -8.9 },
+  { id: "s3", url: "https://upsidearena.com/w/qQ1rTy2u", monday: "2026-08-03", returnPercent: 0 },
+];
+
+export const notificationSettings = {
+  push: true,
+  email: false,
+  rivalAlerts: true,
+  weekResult: true,
+  streakReminder: false,
+  timezone: "Europe/Tallinn",
+};
+
+/** Five days that were not all the same, so the shape is a shape. */
+export const weekMarks = [1.2, -0.4, 3.9, 0.1, -2.6];
+
+/** And a week that barely moved, which has to stay readable as flat. */
+export const flatMarks = [0.01, 0.0, 0.01, 0.0, 0.01];

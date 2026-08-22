@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { test, expect } from "@playwright/test";
 
 /*
@@ -164,16 +165,31 @@ test("reports a row that crops its own second line", async ({ page }) => {
   the thing being measured is actually there. It is the same trap the dock
   probe fell into once, where an empty room list measured an empty row and the
   width assertion passed while measuring nothing at all.
+
+  The expected names are read out of the page's own source rather than counted
+  by hand, so adding a case to the gallery and forgetting to check it renders
+  is not a thing that can happen. A component that throws on the server takes
+  its whole case with it, and this is what notices.
 */
+const CASES = [
+  ...readFileSync("src/app/gallery/page.tsx", "utf8").matchAll(/<Case name="([^"]+)"/g),
+].map((m) => m[1]);
+
 test("the gallery is rendering the components it claims to", async ({ page }) => {
+  expect(CASES.length, "cases were read out of the gallery source").toBeGreaterThan(10);
+
   await page.goto("/gallery");
-  const cases = await page.locator("[data-case]").count();
-  expect(cases, "the gallery renders its cases").toBeGreaterThanOrEqual(10);
+
+  const rendered = await page.locator("[data-case]").evaluateAll((els) =>
+    els.map((el) => el.getAttribute("data-case") ?? "")
+  );
+  expect(rendered.sort(), "every case in the source reached the page").toEqual(
+    [...CASES].sort()
+  );
 
   // And that each of them drew something with contents, not an empty shell.
-  for (const el of await page.locator("[data-case]").all()) {
-    const name = await el.getAttribute("data-case");
-    const box = await el.boundingBox();
+  for (const name of CASES) {
+    const box = await page.locator(`[data-case="${name}"]`).boundingBox();
     expect(box?.height ?? 0, `${name} drew something`).toBeGreaterThan(40);
   }
 });
