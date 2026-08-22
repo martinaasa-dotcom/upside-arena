@@ -97,6 +97,14 @@ export default function HowPage() {
               while the market lost 4% is one of the better things you can do
               here, and the app says so.
             </p>
+            <p>
+              Home also shows <strong>what moved today</strong> — the largest
+              real moves among companies you would recognise, and anything you
+              hold. It is there because a screen that only shows two slowly
+              moving numbers gives you no reason to open it on a Tuesday. It is
+              not a shortlist and it is not advice: a big move is what happened,
+              not a reason to buy anything.
+            </p>
           </Section>
 
           <Section title="4. A league is where the game actually happens">
@@ -207,6 +215,12 @@ export default function HowPage() {
               breaks one, and it has nothing to do with how well you did.
             </p>
             <p>
+              Your <strong>own record</strong> is on your profile: every week
+              you have played, what you made, and how that compared to the
+              market. Each of those was settled on the Friday it happened and
+              has not been touched since.
+            </p>
+            <p>
               A <strong>season</strong> is a quarter of weeks, ranked on how far
               ahead of the market you finished per week rather than on how much
               you made in total — otherwise it would rank whoever showed up
@@ -236,8 +250,8 @@ export default function HowPage() {
               </li>
               <li>
                 <span className="text-foreground">Any weekday.</span> Open it
-                once, see where you are, see who is immediately above you. That
-                is the whole visit.
+                once, see where you are, see who is immediately above you, and
+                see what actually moved today. That is the whole visit.
               </li>
               <li>
                 <span className="text-foreground">Friday.</span> The week is

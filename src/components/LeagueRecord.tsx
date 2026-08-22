@@ -126,7 +126,29 @@ export function HonoursBoard({ honours }: { honours: Honour[] }) {
               {row.displayName}
               {row.isYou ? <span className="ml-2 text-xs text-primary">You</span> : null}
             </span>
-            <span className="text-xs text-muted-foreground">
+
+            {/*
+              Everything on one line under the name on a phone, and in a column
+              on the right on anything wider.
+
+              In one row at 390px the wins and the market figure took enough
+              width that "31 weeks played, best +128.5%" wrapped to three lines
+              and the name above it truncated to "Aleksan…" -- a row four lines
+              tall that had lost the only thing it was for.
+            */}
+            <span className="figure text-xs text-muted-foreground sm:hidden">
+              <span className="text-foreground">{plural(row.wins, "win")}</span>
+              {" \u00b7 "}
+              {plural(row.weeks, "week")}
+              {" \u00b7 "}
+              <span
+                className={row.averageVersusMarket >= 0 ? "text-gain" : "text-loss"}
+              >
+                {formatPercent(row.averageVersusMarket)} vs market
+              </span>
+            </span>
+
+            <span className="hidden text-xs text-muted-foreground sm:inline">
               {plural(row.weeks, "week")} played
               {row.bestWeek == null
                 ? ""
@@ -134,7 +156,7 @@ export function HonoursBoard({ honours }: { honours: Honour[] }) {
             </span>
           </span>
 
-          <span className="flex shrink-0 flex-col items-end">
+          <span className="hidden shrink-0 flex-col items-end sm:flex">
             <span className="figure text-sm font-semibold">
               {plural(row.wins, "win")}
             </span>
@@ -220,10 +242,16 @@ export function WeekLog({ weeks }: { weeks: RecordedWeek[] }) {
             <span className="truncate text-sm font-medium">
               {week.winner?.displayName ?? "Nobody"}
             </span>
+            {/*
+              What the winner made is the first thing to go when the row runs
+              out of width. At 390px it left the name about twenty pixels, so
+              the winner rendered as "A…" -- and who won is the entire point of
+              the row, while what they made by is a detail beside it.
+            */}
             {week.winner ? (
               <span
                 className={cn(
-                  "figure shrink-0 text-xs",
+                  "figure hidden shrink-0 text-xs sm:inline",
                   week.winner.returnPercent >= 0 ? "text-gain" : "text-loss"
                 )}
               >

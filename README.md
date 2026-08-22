@@ -57,6 +57,21 @@ the fill actually runs, and it locks at the bell, because from that moment the
 price is known. An order that cannot be priced or afforded is recorded as not
 having run and says why on screen.
 
+**A league that remembers.** The week resets every Monday, which is what keeps
+somebody who joined last night level with somebody who has played for a year --
+and it left a league with no memory at all, which is the other half of why
+people stay. So a league keeps a record: who won each week, weeks won all time,
+and how you have done against each other person one at a time. A five week form
+strip on the league page and a room behind it.
+[`src/lib/game/record.ts`](src/lib/game/record.ts) reads it; nothing there is
+recomputed, because every figure was settled on a Friday.
+
+**A reason to open it on a Tuesday.** Home shows what actually moved today,
+from a watchlist shared by everybody plus whatever the player holds, so the
+cost is per symbol rather than per person. It says outright that a big move is
+not a reason to buy anything. And the profile shows every week somebody has
+played, rather than only the totals those weeks add up to.
+
 **The rules, written down.** [`/how`](src/app/how/page.tsx) is what the app is
 and how it is meant to be played, readable without an account, rendered from
 the same data the game is played by so it cannot disagree with the rules. It is
