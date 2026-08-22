@@ -331,23 +331,7 @@ all.
 
 ---
 
-## 6. Where the Upside Lab link goes
-
-Optional. It defaults to `https://upsidelab.app`, which is right.
-
-| Name | Value |
-|---|---|
-| `NEXT_PUBLIC_LAB_URL` | only if Lab ever moves |
-
-The link carries an opaque token so Lab can tell that somebody came from Arena,
-without Arena putting an email address into a web address that gets pasted
-around. For that to be worth anything, Lab has to eventually read the `t=`
-parameter and store it. Until it does, the link still works, the click is still
-recorded on Arena's side, and nothing is lost.
-
----
-
-## 7. Sign in with Google
+## 6. Sign in with Google
 
 The code has been there since phase 1 and needs no change: the button, the
 OAuth handshake, the callback that swaps the code for a session, and the
@@ -357,7 +341,7 @@ rather than an email stub.
 
 What is missing is the configuration, in three places, in this order.
 
-### 7a. Google Cloud Console
+### 6a. Google Cloud Console
 
 **console.cloud.google.com**, on **a Google Cloud project of Arena's own**.
 
@@ -422,7 +406,7 @@ session exactly as before. See `src/lib/auth/google.ts`.
 
 Copy the **Client ID** and **Client secret**.
 
-### 7b. Supabase
+### 6b. Supabase
 
 **Authentication, Providers, Google.** Enable it, paste the client ID and
 secret, save.
@@ -436,7 +420,7 @@ contains `https://upsidearena.com/auth/callback`. That is where Arena asks
 Supabase to send people once the exchange is done, and Supabase refuses any
 destination not on the list. It should already be there from the domain setup.
 
-### 7c. Vercel, and a redeploy
+### 6c. Vercel, and a redeploy
 
 | Name | Value |
 |---|---|
@@ -452,7 +436,7 @@ anybody in, and a button that can only fail is worse than no button.
 a build runs, so changing them in the dashboard does nothing until the next
 deploy. Redeploy after saving.
 
-### 7d. Confirm it worked
+### 6d. Confirm it worked
 
 1. Open `https://upsidearena.com` signed out. There should be a **Continue
    with Google** button above the email field.

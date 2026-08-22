@@ -54,8 +54,9 @@ security mistake must not be able to reach the real-money product.
    SQL editor.
 3. In Authentication, add `http://localhost:3000/auth/confirm` and
    `http://localhost:3000/auth/callback` to the redirect allow list.
-4. Email sign-in works immediately. For Google, turn the provider on in
-   Supabase and set `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH=true`.
+4. Email sign-in works immediately. For Google, set `GOOGLE_CLIENT_ID` and
+   `GOOGLE_CLIENT_SECRET`; the button appears when both are present and not
+   otherwise, so there is no flag to turn on.
 
 The whole local stack (`npx supabase start`) also works if Docker can reach
 Docker Hub.
