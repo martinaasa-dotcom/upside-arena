@@ -24,14 +24,17 @@ Two separate things, and doing one does not do the other.
 **The code.** Merging to `main` deploys it, in two or three minutes. Watch out
 for the free plan's cap of 100 deployments a day: past it every build fails
 with `api-deployments-free-per-day` and the merge simply does not ship, while
-production carries on serving the last build that got through. See
+production carries on serving the last build that got through. Nothing goes
+red when this happens — no failed check, no failed deployment, just no build —
+so confirm what is deployed rather than trusting a green merge. See
 [DEPLOY.md](DEPLOY.md#there-is-a-daily-cap-and-it-is-easy-to-hit).
 
 **The schema.** Every file under `supabase/migrations` has to be run against
-the Supabase project by hand, either with `npx supabase db push` against a
-linked project or by pasting it into the SQL editor. Nothing applies them for
-you, and the service role key cannot do it — see
-[DEPLOY.md](DEPLOY.md#migrations).
+the Supabase project by hand: `npx supabase db push` against a linked project,
+pasting it into the SQL editor, or posting it to the Management API with a
+personal access token, which is the only one of the three that needs nothing
+but HTTPS. Nothing applies them for you, and the service role key cannot do it
+— see [DEPLOY.md](DEPLOY.md#migrations).
 
 Confirm both worked, while signed in:
 
