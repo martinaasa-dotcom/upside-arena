@@ -25,6 +25,10 @@ export type AnalyticsEvent =
   | "signin_viewed"
   | "age_gate_blocked"
   | "signin_link_requested"
+  /* The address was one edit from a common domain and the person was asked. */
+  | "signin_email_questioned"
+  /* The address could not receive mail, so nothing was sent. */
+  | "signin_email_refused"
   | "signin_google_started"
   | "signin_completed"
   | "onboarding_viewed"

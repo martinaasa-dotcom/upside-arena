@@ -227,13 +227,19 @@ enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
-max_frequency = "1s"
+# Matches what the live project should be set to. Somebody pressing "email me a
+# link" four times does not need four links, and four links to a mistyped
+# address is four bounces rather than one. See docs/EMAIL.md.
+max_frequency = "60s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
-# Use a production-ready SMTP server
+# Use a production-ready SMTP server.
+# Local runs deliberately do not: mail goes to the local inbox on port 54324
+# and reaches nobody. The live project sends auth mail through Resend, which is
+# a dashboard setting rather than anything in this file — docs/EMAIL.md.
 # [auth.email.smtp]
 # enabled = true
 # host = "smtp.sendgrid.net"
