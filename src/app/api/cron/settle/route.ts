@@ -10,7 +10,6 @@ import { settleDueCycles } from "@/lib/game/settle";
   the same as calling it once.
 */
 
-export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 function authorised(request: NextRequest) {

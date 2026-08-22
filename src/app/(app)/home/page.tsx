@@ -27,8 +27,6 @@ import { sessionLabel } from "@/lib/market/session";
 
 export const metadata = { title: "Home" };
 
-// Prices move, so this page is never served from a cache.
-export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const { user, profile } = await getSession();

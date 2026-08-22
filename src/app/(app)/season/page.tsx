@@ -24,7 +24,6 @@ import { formatDate, formatPercent, plural } from "@/lib/format";
 */
 
 export const metadata = { title: "Season" };
-export const dynamic = "force-dynamic";
 
 export default async function SeasonPage() {
   const { user } = await getSession();

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Trophy, Users } from "lucide-react";
 import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
@@ -27,6 +28,31 @@ const POINTS = [
   },
 ];
 
+/*
+  The one part of this page that is not the same for everybody.
+
+  googleConfigured is called here rather than read from module scope, so what
+  it reports is what this server holds now. Read at module scope it would have
+  been read while the page was being built, and a credential present only at
+  runtime would have hidden the button for the life of the deployment with
+  nothing to say why.
+*/
+async function SignIn({ searchParams }: { searchParams: Search }) {
+  const { next, error } = await searchParams;
+
+  return (
+    <SignInCard
+      googleEnabled={googleConfigured()}
+      next={next}
+      initialError={
+        error === "age"
+          ? `You need to be ${MINIMUM_AGE} or older to play.`
+          : undefined
+      }
+    />
+  );
+}
+
 /** A league at Friday's close. Fixed numbers, labelled as a sample. */
 const SAMPLE = [
   { rank: 1, name: "Sarah", value: "+4.2%", tone: "gain" as const },
@@ -35,13 +61,26 @@ const SAMPLE = [
   { rank: 4, name: "Priya", value: "-0.6%", tone: "loss" as const },
 ];
 
-export default async function LandingPage({
+type Search = Promise<{ next?: string; error?: string }>;
+
+/*
+  The signed-out page, prerendered except for the one part that cannot be.
+
+  Everything here is the same for everybody: the wordmark, the headline, the
+  two points, the sample league, the legal line. The only thing that depends
+  on the request is the sign-in card, which needs the `next` the proxy put in
+  the URL, the age error if there is one, and whether Google sign-in is
+  configured on this deployment. So that card, and nothing else, waits.
+
+  This is the page every new visitor lands on. It now arrives as HTML from a
+  CDN with the card filling in, rather than being rendered from scratch for
+  each of them.
+*/
+export default function LandingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Search;
 }) {
-  const { next, error } = await searchParams;
-
   return (
     <div className="page-frame">
       <main
@@ -87,15 +126,14 @@ export default async function LandingPage({
             </ul>
 
             <div className="rise rise-3 mt-8 w-full max-w-sm md:mt-10">
-              <SignInCard
-                googleEnabled={googleConfigured}
-                next={next}
-                initialError={
-                  error === "age"
-                    ? `You need to be ${MINIMUM_AGE} or older to play.`
-                    : undefined
-                }
-              />
+              {/*
+                The fallback is the card's own resting height, so the legal
+                line under it and the sample beside it do not move when the
+                real one arrives.
+              */}
+              <Suspense fallback={<div className="h-[7.5rem]" aria-hidden="true" />}>
+                <SignIn searchParams={searchParams} />
+              </Suspense>
             </div>
 
             {/*

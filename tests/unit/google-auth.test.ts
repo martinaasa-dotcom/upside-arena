@@ -26,17 +26,37 @@ beforeEach(() => vi.unstubAllEnvs());
 
 describe("whether Google sign-in is offered at all", () => {
   it("is off without credentials, so no button can appear that only fails", async () => {
-    expect((await load()).googleConfigured).toBe(false);
+    expect((await load()).googleConfigured()).toBe(false);
   });
 
   it("needs both halves, not just the public one", async () => {
-    expect((await load({ GOOGLE_CLIENT_ID: "id" })).googleConfigured).toBe(false);
-    expect((await load({ GOOGLE_CLIENT_SECRET: "s" })).googleConfigured).toBe(false);
+    expect((await load({ GOOGLE_CLIENT_ID: "id" })).googleConfigured()).toBe(false);
+    expect((await load({ GOOGLE_CLIENT_SECRET: "s" })).googleConfigured()).toBe(false);
   });
 
   it("is on once it can actually complete a sign-in", async () => {
     const g = await load({ GOOGLE_CLIENT_ID: "id", GOOGLE_CLIENT_SECRET: "s" });
-    expect(g.googleConfigured).toBe(true);
+    expect(g.googleConfigured()).toBe(true);
+  });
+
+  it("reads the credentials when asked, not when the module loaded", async () => {
+    /*
+      This is why it is a function rather than a constant.
+
+      The sign-in page has a prerendered shell now, so a value computed at
+      module scope is computed while the page is being built. A credential
+      present only at runtime would have been recorded as absent for the life
+      of the deployment, the button would simply not be there, and nothing
+      would say why.
+    */
+    const g = await load();
+    expect(g.googleConfigured()).toBe(false);
+
+    vi.stubEnv("GOOGLE_CLIENT_ID", "id");
+    vi.stubEnv("GOOGLE_CLIENT_SECRET", "s");
+
+    // Same module instance, credentials arrived later, answer changes.
+    expect(g.googleConfigured()).toBe(true);
   });
 });
 

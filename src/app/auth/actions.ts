@@ -117,7 +117,7 @@ export async function signInWithEmail(
  * costs instead.
  */
 export async function signInWithGoogle(formData: FormData) {
-  if (!isSupabaseConfigured || !googleConfigured) {
+  if (!isSupabaseConfigured || !googleConfigured()) {
     redirect("/auth/error?reason=not-configured");
   }
 

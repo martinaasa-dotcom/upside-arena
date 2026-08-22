@@ -7,6 +7,23 @@ import { getSession, isOnboarded } from "@/lib/profile";
 import { themeStyleKey } from "@/lib/game/cosmetics";
 import { PAGE_FRAME } from "@/lib/page-shell";
 
+/*
+  Allowed to block, for now.
+
+  This layout establishes who is asking before it renders anything, and two
+  redirects hang off the answer: a signed-out visitor goes to the sign-in
+  page, and somebody who has not finished onboarding goes to finish it. Both
+  have to happen before a room is shown, not streamed in after it.
+
+  Giving these rooms a static shell means moving the session read below the
+  chrome and letting the gates run inside a boundary, which changes when a
+  redirect fires and what has already been painted when it does. That is its
+  own piece of work with its own testing, and it is not folded into the pass
+  that turned Cache Components on. The public routes, which are where a cold
+  visitor actually lands, are converted.
+*/
+export const instant = false;
+
 export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {

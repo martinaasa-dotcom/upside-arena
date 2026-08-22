@@ -26,7 +26,6 @@ import { formatDate } from "@/lib/format";
 */
 
 export const metadata = { title: "Arena Plus" };
-export const dynamic = "force-dynamic";
 
 export default async function PlusPage() {
   const { user } = await getSession();

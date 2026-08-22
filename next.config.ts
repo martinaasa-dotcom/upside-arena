@@ -5,6 +5,21 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
 
   /*
+    Partial prerendering, and `use cache` to go with it.
+
+    Every room in this app reads something live -- a price, a standing, a
+    streak -- so under the old model every room was dynamic end to end, and a
+    dynamic route has no static shell to send. That is why tapping a dock tab
+    used to do nothing until the server came back: there was nothing to paint.
+
+    With this on, the shell of a route is prerendered and the live parts
+    stream into their Suspense fallbacks. The fallbacks are the loading
+    screens that are already here, so the shape a room paints instantly is
+    the shape it was already painting while it waited.
+  */
+  cacheComponents: true,
+
+  /*
     yahoo-finance2 is a CommonJS package that reads its own files at runtime.
     Bundling it breaks that, so it stays external and is required normally on
     the server. Upside Lab does the same.

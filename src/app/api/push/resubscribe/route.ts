@@ -11,7 +11,6 @@ import { removePushSubscription, savePushSubscription } from "@/lib/notify/setti
   than never having agreed.
 */
 
-export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   if (!isSupabaseConfigured) {

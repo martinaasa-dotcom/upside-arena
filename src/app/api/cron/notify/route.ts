@@ -25,7 +25,6 @@ import { recordDailyMarks } from "@/lib/game/marks";
   already running every hour through the trading day.
 */
 
-export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 function authorised(request: NextRequest) {

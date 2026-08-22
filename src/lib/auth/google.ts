@@ -23,8 +23,13 @@ import { siteUrl } from "@/lib/env";
   right rather than theirs.
 */
 
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
-const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
+function clientId() {
+  return process.env.GOOGLE_CLIENT_ID ?? "";
+}
+
+function clientSecret() {
+  return process.env.GOOGLE_CLIENT_SECRET ?? "";
+}
 
 const AUTHORIZE = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN = "https://oauth2.googleapis.com/token";
@@ -35,7 +40,22 @@ const TOKEN = "https://oauth2.googleapis.com/token";
  * A flag saying a button should appear is not the same as being able to sign
  * somebody in, and a button that can only fail is worse than no button.
  */
-export const googleConfigured = Boolean(CLIENT_ID && CLIENT_SECRET);
+/**
+ * Whether Arena holds the credentials to complete the handshake.
+ *
+ * Asked as a question rather than answered once when this module loads. The
+ * difference matters now that the sign-in page has a prerendered shell: a
+ * value read at module scope is read while the page is being built, and a
+ * credential that is only present at runtime would have been recorded as
+ * absent for the life of the deployment. The button would simply not be
+ * there, and nothing anywhere would say why.
+ *
+ * It is called from the request-time part of that page, so what it reads is
+ * what the running server actually has.
+ */
+export function googleConfigured(): boolean {
+  return Boolean(clientId() && clientSecret());
+}
 
 /** Where Google returns to. Registered in the Google client, and ours. */
 export function googleRedirectUri() {
@@ -45,7 +65,7 @@ export function googleRedirectUri() {
 export function authorizeUrl(state: string): string {
   const url = new URL(AUTHORIZE);
 
-  url.searchParams.set("client_id", CLIENT_ID);
+  url.searchParams.set("client_id", clientId());
   url.searchParams.set("redirect_uri", googleRedirectUri());
   url.searchParams.set("response_type", "code");
   /*
@@ -83,7 +103,7 @@ export type GoogleTokens =
  * on a server rather than in the page that started it.
  */
 export async function exchangeCode(code: string): Promise<GoogleTokens> {
-  if (!googleConfigured) return { ok: false, reason: "not-configured" };
+  if (!googleConfigured()) return { ok: false, reason: "not-configured" };
 
   try {
     const response = await fetch(TOKEN, {
@@ -91,8 +111,8 @@ export async function exchangeCode(code: string): Promise<GoogleTokens> {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         code,
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
+        client_id: clientId(),
+        client_secret: clientSecret(),
         redirect_uri: googleRedirectUri(),
         grant_type: "authorization_code",
       }),

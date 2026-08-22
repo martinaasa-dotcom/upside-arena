@@ -1,6 +1,6 @@
 import "server-only";
 
-import { cache } from "react";
+import { cacheLife, cacheTag } from "next/cache";
 
 import { canWriteGame, siteUrl } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -307,16 +307,32 @@ export async function shareLatestWeek(userId: string): Promise<ShareOutcome> {
 }
 
 /** The card behind a public link, or null when there is nothing to show. */
-/*
-  Cached for the length of one request.
+/** The tag a card's cached copy is filed under, so revoking can drop it. */
+export function shareCardTag(token: string) {
+  return `share-card:${token}`;
+}
 
-  Rendering /w/<token> asks for the same card twice: once to build the page's
-  metadata and once to draw the page itself. That was two identical queries
-  for one view of one frozen week.
+/*
+  Cached until the card is taken down.
+
+  A settled week is frozen: the numbers were true on a Friday and will not
+  move again. The link, meanwhile, is the one thing here built to travel --
+  posted into a group chat and then fetched once per person who opens it, once
+  per app that unfurls it, and twice per view besides, because the page asks
+  for the card once for its metadata and again to draw itself.
+
+  So it is cached for as long as it can be, and revoking is what ends that
+  rather than a timer. unshareCard calls updateTag on the tag below, which
+  expires this immediately: the next request reads the row again, finds
+  revoked_at set, and the page says the link no longer works. There is no
+  window in which a revoked card is still served, which is the property that
+  made a plain time-based cache the wrong answer here.
 */
-export const getSharedCard = cache(async function getSharedCard(
-  token: string
-): Promise<ShareCard | null> {
+export async function getSharedCard(token: string): Promise<ShareCard | null> {
+  "use cache";
+  cacheLife("max");
+  cacheTag(shareCardTag(token));
+
   if (!canWriteGame || !token) return null;
 
   const admin = createAdminClient();
@@ -332,7 +348,7 @@ export const getSharedCard = cache(async function getSharedCard(
   if (!row || row.revoked_at != null) return null;
 
   return toCard(row);
-});
+}
 
 /** Every card this player has made, newest first. */
 export async function getMyCards(userId: string): Promise<ShareCard[]> {
@@ -349,14 +365,32 @@ export async function getMyCards(userId: string): Promise<ShareCard[]> {
   return ((data ?? []) as ShareCardRow[]).map(toCard);
 }
 
-export async function revokeCard(userId: string, cardId: string): Promise<boolean> {
-  if (!canWriteGame) return false;
+/**
+ * Takes a card down, and says which link it was.
+ *
+ * The token is read before the revoke rather than after, because the caller
+ * needs it to expire the cached copy of a page that must stop being served.
+ * One extra read, on something a player does approximately never.
+ */
+export async function revokeCard(
+  userId: string,
+  cardId: string
+): Promise<{ ok: boolean; token: string | null }> {
+  if (!canWriteGame) return { ok: false, token: null };
 
   const admin = createAdminClient();
+
+  const { data: row } = await admin
+    .from("share_cards")
+    .select("token")
+    .eq("id", cardId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
   const { data } = await admin.rpc("revoke_share_card", {
     p_user_id: userId,
     p_card_id: cardId,
   });
 
-  return data === true;
+  return { ok: data === true, token: (row as { token: string } | null)?.token ?? null };
 }

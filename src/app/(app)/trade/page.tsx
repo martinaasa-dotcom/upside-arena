@@ -10,8 +10,6 @@ import { isWeekend } from "@/lib/market/session";
 
 export const metadata = { title: "Trade" };
 
-// Prices move, so this page is never served from a cache.
-export const dynamic = "force-dynamic";
 
 export default async function TradePage() {
   const { user } = await getSession();
