@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import {
   subscribeToConsent,
 } from "@/lib/consent";
 import { track } from "@/lib/analytics";
+import { hasDock } from "@/lib/rooms";
 
 /*
   Asks before any optional measurement runs. Sign-in cookies are strictly
@@ -21,14 +22,11 @@ import { track } from "@/lib/analytics";
   weight. A banner where refusing is harder than accepting does not collect
   valid consent.
 */
-/* Rooms that carry the bottom dock. The notice has to sit above it there. */
-const DOCK_ROUTES = ["/home", "/trade", "/leagues", "/profile"];
-
 export function ConsentBanner() {
   const pathname = usePathname();
-  const overDock = DOCK_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
-  );
+  // Which routes carry the dock is read from the rooms themselves, so adding
+  // a room cannot leave this notice sitting on top of it.
+  const overDock = hasDock(pathname);
 
   const consent = useSyncExternalStore(
     subscribeToConsent,
@@ -36,8 +34,24 @@ export function ConsentBanner() {
     getServerConsent
   );
 
+  const asking = consent === "unset";
+
+  /*
+    Tell the page it is being asked something, so the frame can leave room at
+    the bottom for this. Without it the notice sits on top of whatever the
+    page ends with: on a wide screen that is empty space, but on a phone the
+    column is narrower and the last card runs underneath, with figures
+    legible through the glass.
+  */
+  useEffect(() => {
+    if (!asking) return;
+    const root = document.documentElement;
+    root.setAttribute("data-consent-asking", "");
+    return () => root.removeAttribute("data-consent-asking");
+  }, [asking]);
+
   // "unknown" is the server render, where the answer is not knowable yet.
-  if (consent !== "unset") return null;
+  if (!asking) return null;
 
   const choose = (choice: "granted" | "denied") => {
     setConsent(choice);
@@ -56,7 +70,7 @@ export function ConsentBanner() {
         covering the one thing a new visitor came to do.
       */
       className={cn(
-        "card-sheen glass fixed inset-x-4 z-50 mx-auto max-w-md rounded-xl p-4 ring-1 ring-foreground/20 sm:right-6 sm:left-auto",
+        "card-sheen glass-notice fixed inset-x-4 z-50 mx-auto max-w-md rounded-xl p-4 ring-1 ring-foreground/20 sm:right-6 sm:left-auto",
         // The dock is centred and wide, so on a desktop it reaches the
         // right-hand edge where this sits. Clearing it needs the lift at
         // every width, not just on a phone.

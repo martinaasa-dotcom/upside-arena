@@ -212,6 +212,27 @@
     min-height: 100dvh;
   }
 
+  /*
+    Room to scroll past the consent notice, while there is one.
+
+    It is fixed to the bottom corner, so the end of the page sits underneath
+    it and cannot be scrolled into view. This does not stop it covering
+    things on the way down, which is what .glass-notice below is for; it
+    stops the last thing on the page being permanently hidden.
+
+    Set and removed by the banner itself, so a visitor who has already
+    answered never carries the gap.
+  */
+  :root[data-consent-asking] .page-frame {
+    padding-bottom: 11rem;
+  }
+
+  @media (min-width: 640px) {
+    :root[data-consent-asking] .page-frame {
+      padding-bottom: 8rem;
+    }
+  }
+
   .page-frame::before {
     content: "";
     position: fixed;
@@ -320,6 +341,22 @@
     /* 66%, well past Lab's 55%. Arena's field carries two hues, and the
        panels should let that through rather than sit on top of it. */
     background-color: color-mix(in oklch, var(--card), transparent 66%);
+    -webkit-backdrop-filter: blur(40px) saturate(1.9);
+    backdrop-filter: blur(40px) saturate(1.9);
+  }
+
+  /*
+    The consent notice, which is the one pane that has to be read against
+    whatever happens to be behind it.
+
+    Everything else made of glass sits over the field, where 66% transparent
+    is the point: the two hues carry through and the pane reads as a pane. A
+    notice fixed to the corner of a phone sits over content instead, and at
+    that transparency a scoreboard behind it stays legible through the text,
+    so neither can be read. Same material, much less of it let through.
+  */
+  .glass-notice {
+    background-color: color-mix(in oklch, var(--card), transparent 8%);
     -webkit-backdrop-filter: blur(40px) saturate(1.9);
     backdrop-filter: blur(40px) saturate(1.9);
   }

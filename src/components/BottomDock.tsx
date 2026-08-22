@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeftRight, CalendarRange, Home, Trophy, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ROOMS } from "@/lib/rooms";
 
 /*
   Bottom dock, on desktop and phone alike. Active tab is the aqua pill
@@ -20,13 +20,6 @@ import { cn } from "@/lib/utils";
 */
 const LABELS_FIT = "max-[544px]:sr-only";
 
-const ROOMS = [
-  { href: "/home", label: "Home", icon: Home },
-  { href: "/trade", label: "Trade", icon: ArrowLeftRight },
-  { href: "/leagues", label: "Leagues", icon: Trophy },
-  { href: "/season", label: "Season", icon: CalendarRange },
-  { href: "/profile", label: "Profile", icon: User },
-];
 
 export function BottomDock() {
   const pathname = usePathname();
