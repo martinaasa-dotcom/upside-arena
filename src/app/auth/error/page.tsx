@@ -4,14 +4,27 @@ import { Panel } from "@/components/Panel";
 import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
 import { PAGE, PAGE_FRAME } from "@/lib/page-shell";
 
+/*
+  Every reason the app can redirect here with, and what it says about it.
+
+  A reason with nothing written for it falls back to "something went wrong",
+  which is the least useful thing a screen can say to somebody who cannot get
+  in. There is a test that keeps this list level with the reasons the code
+  actually emits.
+*/
 const REASONS: Record<string, string> = {
   expired: "That sign-in link has already been used, or it timed out. Links last one hour.",
   "missing-token": "That link is missing part of its address. Ask for a fresh one.",
   "missing-code": "Google sent us back without a sign-in code. Try once more.",
-  exchange: "We could not finish signing you in. Try once more.",
-  oauth: "Google sign-in is unavailable right now.",
+  exchange: "We could not finish signing you in with Google. Try once more.",
+  state:
+    "That sign-in took too long, or it was not started on this device. Start again from the beginning.",
+  identity:
+    "Google confirmed who you are, but we could not finish signing you in. Try once more.",
   "not-configured": "Sign-in is not connected yet.",
 };
+
+export const KNOWN_REASONS = Object.keys(REASONS);
 
 export default async function AuthErrorPage({
   searchParams,
