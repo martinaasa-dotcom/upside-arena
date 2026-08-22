@@ -374,10 +374,39 @@ curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
 window 24 hours after they were made, so it says when the first slot frees
 rather than when the message first appeared.
 
-Once there is capacity, **one production deploy catches up every merge since
-the last one**, because it builds `main`'s head rather than a single commit.
-Nothing is lost by the wait. To trigger it: press **Redeploy** on the latest
-`main` deployment in the Vercel dashboard, or merge the next pull request.
+**A count under 100 does not mean the cap is why.** The list only contains
+deployments that were created, so anything refused is not in it and cannot be
+counted from here. Treat the number as a lower bound, and treat "production
+has not moved since the last merge" as the real signal.
+
+#### The other reason production stops moving
+
+A merge can also produce nothing because **GitHub never told anyone it
+happened**. On the night of 2026-08-22 two merges in a row produced no
+deployment with the window at 75, and the give-away was that the same pushes
+produced no **GitHub Actions run** either — on a public repo, where Actions
+are free and no quota can apply. A workflow dispatched by hand on the same
+commit ran immediately and went green. Nothing was misconfigured and nothing
+was over a limit; the push event simply did not reach the things that listen
+for it.
+
+This is worth checking first because it is quick and it looks identical to
+the cap from the Vercel side:
+
+```bash
+# Is there an Actions run for the commit that is missing a deployment?
+gh run list --branch main --limit 5
+```
+
+No run for a commit that was definitely pushed means the webhook, not the
+plan. Re-run the checks with `gh workflow run check.yml --ref <branch>`, which
+works when the trigger did not.
+
+Either way — cap or webhook — **one production deploy catches up every merge
+since the last one**, because it builds `main`'s head rather than a single
+commit. Nothing is lost by the wait. To trigger it: press **Redeploy** on the
+latest `main` deployment in the Vercel dashboard, or merge the next pull
+request once deploys are being created again.
 
 ## Where it runs
 
@@ -397,13 +426,10 @@ The rule is simply that the functions belong next to the database. If the
 Supabase project is ever moved, this moves with it, and the two should be
 checked together rather than separately.
 
-**Do not set this with a `regions` key in `vercel.json`.** On this plan that
-key is not merely ignored: it stops Vercel creating the deployment at all.
-There is no build, no failed deployment, no comment on the pull request and
-nothing in the log — the merge simply never reaches production, and the
-symptom is indistinguishable from the daily deploy cap. It cost a merge to
-find. The region belongs in the project setting, which is also where it can
-be read back:
+`vercel.json` also accepts a `regions` key. Do not use it. Not because it is
+broken — the setting is what is actually in effect, and two places to write
+the same thing is how they come to disagree without anyone noticing. One
+source of truth, and it is the one that can be read back:
 
 ```bash
 curl -sS -H "Authorization: Bearer $VERCEL_TOKEN" \
