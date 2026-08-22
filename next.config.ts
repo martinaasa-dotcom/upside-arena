@@ -30,6 +30,40 @@ const nextConfig: NextConfig = {
         source: "/(home|trade|profile|onboarding)/:path*",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
+      {
+        /*
+          The mark, the icons and the share picture.
+
+          Next gives everything under /_next/static a year and an immutable
+          flag, because those names contain a hash of their contents. Files in
+          public/ carry no hash, so they got the default of no caching at all
+          and were re-fetched on every visit -- including og.png, which is
+          80KB and changes about never.
+
+          These are not immutable, because a rebrand really does replace them
+          under the same names, so they get a lifetime rather than a promise:
+          an hour in the browser, a day at the edge, and up to a week of
+          serving the old one while the new one is fetched behind it. The
+          worst case is somebody seeing yesterday's icon for a few hours, and
+          the best case is that a returning player fetches none of it.
+        */
+        source: "/:file(favicon.png|og.png|arena-mark.svg)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+      {
+        source: "/icons/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
     ];
   },
 };

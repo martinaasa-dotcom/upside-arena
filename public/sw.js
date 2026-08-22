@@ -6,10 +6,17 @@
   quote shown as live would be worse than no quote at all.
 */
 
-const VERSION = "arena-v2";
+const VERSION = "arena-v3";
 const SHELL_CACHE = `${VERSION}-shell`;
 
 const SHELL_ASSETS = ["/offline", "/icons/icon-192.png", "/manifest.webmanifest"];
+
+/*
+  Small, rarely-changed files worth holding on to. Kept as a set so the fetch
+  handler decides with a lookup rather than a chain of comparisons on the
+  critical path of every request the page makes.
+*/
+const STATIC_FILES = new Set(["/favicon.png", "/arena-mark.svg", "/og.png"]);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -55,8 +62,37 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets are cheap to serve from cache and revalidate in background.
-  if (url.pathname.startsWith("/icons/") || url.pathname.startsWith("/_next/static/")) {
+  /*
+    Build output, addressed by content.
+
+    Everything under /_next/static/ has a hash of its own contents in its
+    name, so a hit is not merely probably right, it is exactly the file that
+    was asked for. Revalidating it in the background, as this used to, spent a
+    request per asset on every load to be told what the URL already said. A
+    changed file is a changed name and misses the cache on its own.
+  */
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(
+      caches.match(request).then(
+        (cached) =>
+          cached ??
+          fetch(request).then((response) => {
+            if (response.ok) {
+              const copy = response.clone();
+              caches.open(SHELL_CACHE).then((cache) => cache.put(request, copy));
+            }
+            return response;
+          })
+      )
+    );
+    return;
+  }
+
+  /*
+    Icons and the mark. Not content-addressed, so these are served from cache
+    and refreshed behind the screen: shown instantly, correct by the next load.
+  */
+  if (url.pathname.startsWith("/icons/") || STATIC_FILES.has(url.pathname)) {
     event.respondWith(
       caches.match(request).then((cached) => {
         const network = fetch(request)

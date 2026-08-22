@@ -31,8 +31,32 @@ export const contentType = "image/png";
 */
 const FONTS = path.join(process.cwd(), "assets", "fonts");
 
-async function face(file: string) {
-  return readFile(path.join(FONTS, file));
+/*
+  Read once per process rather than once per card.
+
+  These three files are the same bytes on every request, and this route is hit
+  by every unfurl of every link anyone has ever posted. Re-reading them off
+  disk each time was three file reads standing between a chat app and the
+  picture it is waiting to show.
+
+  Held as the promise rather than the bytes so that two requests arriving
+  together share one read instead of racing to do it twice.
+*/
+let faces: Promise<[Buffer, Buffer, Buffer]> | null = null;
+
+function loadFaces() {
+  faces ??= Promise.all([
+    readFile(path.join(FONTS, "Geist-Regular.subset.ttf")),
+    readFile(path.join(FONTS, "Geist-SemiBold.subset.ttf")),
+    readFile(path.join(FONTS, "GeistMono-Medium.subset.ttf")),
+  ]).catch((error) => {
+    // A failed read must not poison every later request with a rejected
+    // promise that is never retried.
+    faces = null;
+    throw error;
+  }) as Promise<[Buffer, Buffer, Buffer]>;
+
+  return faces;
 }
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -101,11 +125,7 @@ export default async function Image({
   const { token } = await params;
   const card = await getSharedCard(token);
 
-  const [regular, semibold, mono] = await Promise.all([
-    face("Geist-Regular.subset.ttf"),
-    face("Geist-SemiBold.subset.ttf"),
-    face("GeistMono-Medium.subset.ttf"),
-  ]);
+  const [regular, semibold, mono] = await loadFaces();
 
   const fonts = [
     { name: "Geist", data: regular, weight: 400 as const, style: "normal" as const },

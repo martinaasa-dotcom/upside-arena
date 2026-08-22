@@ -117,6 +117,12 @@ function toQuote(raw: YahooQuote, symbol: string): Quote | null {
   };
 }
 
+function accept(raw: YahooQuote | null | undefined, symbol: string): Quote | null {
+  if (!raw) return null;
+  if (raw.quoteType && !ALLOWED_TYPES.has(raw.quoteType)) return null;
+  return toQuote(raw, symbol);
+}
+
 async function fetchOne(symbol: string): Promise<Quote | null> {
   try {
     const yahoo = await getYahoo();
@@ -124,13 +130,53 @@ async function fetchOne(symbol: string): Promise<Quote | null> {
       yahoo as { quote: (s: string) => Promise<YahooQuote> }
     ).quote(symbol)) as YahooQuote;
 
-    if (!raw) return null;
-    if (raw.quoteType && !ALLOWED_TYPES.has(raw.quoteType)) return null;
-
-    return toQuote(raw, symbol);
+    return accept(raw, symbol);
   } catch {
     // A single bad symbol must not take down a whole portfolio view.
     return null;
+  }
+}
+
+/*
+  Every symbol we still need, in one request.
+
+  Yahoo prices a list as readily as a single name, and a portfolio of eight
+  holdings asking eight times paid eight round trips for one screen. The cost
+  model the plan asks for -- per symbol, not per user -- is unchanged; this
+  only stops the per-symbol cost being a serial network hop.
+
+  A batch that fails as a whole falls back to fetching each symbol on its own,
+  so one unquotable name still cannot take the rest of a portfolio down with
+  it. That is the property the per-symbol version had and the reason the
+  fallback is here rather than an error.
+*/
+async function fetchMany(symbols: string[]): Promise<Map<string, Quote | null>> {
+  const out = new Map<string, Quote | null>();
+  if (symbols.length === 0) return out;
+  if (symbols.length === 1) {
+    out.set(symbols[0], await fetchOne(symbols[0]));
+    return out;
+  }
+
+  try {
+    const yahoo = await getYahoo();
+    const raw = (await (
+      yahoo as {
+        quote: (
+          s: string[],
+          o: Record<string, unknown>
+        ) => Promise<Record<string, YahooQuote>>;
+      }
+    ).quote(symbols, { return: "object" })) as Record<string, YahooQuote>;
+
+    for (const symbol of symbols) out.set(symbol, accept(raw?.[symbol], symbol));
+    return out;
+  } catch {
+    // The batch failed as a whole. Ask one at a time rather than reporting
+    // every symbol dead, which would mark a whole portfolio stale at once.
+    const each = await Promise.all(symbols.map((symbol) => fetchOne(symbol)));
+    symbols.forEach((symbol, index) => out.set(symbol, each[index]));
+    return out;
   }
 }
 
@@ -154,15 +200,27 @@ export async function getQuotes(
     else toFetch.push(symbol);
   }
 
+  /*
+    Anything already being fetched is waited on rather than asked for again,
+    and everything else goes out together. Ten players arriving at once still
+    cause one fetch per symbol, which is what the in-flight map was always
+    for; batching only changes how many requests those fetches take.
+  */
+  const fresh = toFetch.filter((symbol) => !inFlight.has(symbol));
+
+  if (fresh.length > 0) {
+    const batch = fetchMany(fresh);
+    for (const symbol of fresh) {
+      const pending = batch
+        .then((results) => results.get(symbol) ?? null)
+        .finally(() => inFlight.delete(symbol));
+      inFlight.set(symbol, pending);
+    }
+  }
+
   await Promise.all(
     toFetch.map(async (symbol) => {
-      let pending = inFlight.get(symbol);
-      if (!pending) {
-        pending = fetchOne(symbol).finally(() => inFlight.delete(symbol));
-        inFlight.set(symbol, pending);
-      }
-
-      const quote = await pending;
+      const quote = await (inFlight.get(symbol) ?? Promise.resolve(null));
 
       if (quote) {
         cache.set(symbol, { quote, fetchedAt: quote.fetchedAt });

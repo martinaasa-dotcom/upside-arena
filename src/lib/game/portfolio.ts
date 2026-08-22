@@ -102,37 +102,36 @@ export const getCurrentCycle = cache(async (): Promise<Cycle | null> => {
   if (!canWriteGame) return null;
 
   /*
-    Settle any week that has finished, in the background, so nobody waits for
-    it. This is what makes correctness independent of a scheduler: a finished
-    week is settled by the first person to look, not by a timer that may fire
-    at the wrong hour or not at all.
-  */
-  if (await hasDueCycle()) {
-    after(async () => {
-      try {
-        await settleDueCycles();
-      } catch {
-        // The next request tries again. A failed settle must never turn into
-        // a failed page.
-      }
-    });
-  }
+    Housekeeping, entirely after the response.
 
-  /*
-    Today's closing value, on the same terms. A mark cannot be caught up
-    later, because prices move on, so it must not depend on a schedule any
-    more than settling does. The cron writes it promptly; this makes sure a
-    day is never lost when the cron does not run.
+    Settling a finished week and recording the day's close are both done by
+    the first person to look rather than by a timer, which is what makes
+    correctness independent of a scheduler. Neither changes a single pixel of
+    the page that triggers them, so neither is allowed to delay it: the
+    questions "is a week due?" and "is a mark missing?" are database round
+    trips in their own right, and asking them before rendering charged every
+    reader for work done on somebody else's behalf.
+
+    Deciding inside after() keeps the same guarantee -- the checks still run
+    on the same visits they always did -- and moves the whole cost off the
+    critical path.
   */
-  if (await needsMarkToday()) {
-    after(async () => {
-      try {
-        await recordDailyMarks();
-      } catch {
-        // A missing mark costs a bar on a share card and nothing else.
-      }
-    });
-  }
+  after(async () => {
+    try {
+      if (await hasDueCycle()) await settleDueCycles();
+    } catch {
+      // The next request tries again. A failed settle must never turn into
+      // a failed page.
+    }
+  });
+
+  after(async () => {
+    try {
+      if (await needsMarkToday()) await recordDailyMarks();
+    } catch {
+      // A missing mark costs a bar on a share card and nothing else.
+    }
+  });
 
   const monday = cycleMonday();
   const admin = createAdminClient();
@@ -185,8 +184,28 @@ export async function getPortfolioView(
   const cycle = await getCurrentCycle();
   if (!cycle) return null;
 
+  /*
+    The market's own price, asked for now rather than at the end.
+
+    What every player is measured against is the same one symbol for all of
+    them, and it does not depend on anything below: not this player, not their
+    portfolio, not what they hold. Asked for after the holdings came back, its
+    round trip to the quote provider sat on the end of three database round
+    trips it could perfectly well have run alongside.
+
+    Not awaited here. The quote layer already collapses two asks for one
+    symbol into one fetch, so the request below finds this either finished or
+    in flight, and either way it does not queue behind it.
+  */
+  const benchmark = getQuotes([BENCHMARK_SYMBOL]);
+
   const portfolio = await ensurePortfolio(userId, cycle.id);
-  if (!portfolio) return null;
+  if (!portfolio) {
+    // Nothing will read it now, and an unobserved promise must not be left to
+    // reject into the void.
+    await benchmark.catch(() => undefined);
+    return null;
+  }
 
   /*
     And a pod, if pods are running this week. Section 2.2 is firm that nobody
@@ -212,10 +231,15 @@ export async function getPortfolioView(
   const holdings = (holdingRows ?? []) as HoldingRow[];
   const symbols = holdings.map((h) => h.symbol);
 
-  const [quotes, benchmarkOpenPrice] = await Promise.all([
-    symbols.length ? getQuotes([...symbols, BENCHMARK_SYMBOL]) : getQuotes([BENCHMARK_SYMBOL]),
-    Promise.resolve(cycle.benchmark_open),
+  const [held, benchmarkQuotes] = await Promise.all([
+    symbols.length
+      ? getQuotes(symbols)
+      : Promise.resolve({} as Record<string, Quote>),
+    benchmark,
   ]);
+
+  const quotes = { ...benchmarkQuotes, ...held };
+  const benchmarkOpenPrice = cycle.benchmark_open;
 
   let anyStale = false;
 
