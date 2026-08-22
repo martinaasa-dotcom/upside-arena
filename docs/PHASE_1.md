@@ -94,6 +94,25 @@ by `npm run gallery` and nowhere a deployment can read it. Without it the
 proxy sends a signed-out visitor to sign in and the page answers 404 to
 anybody with a session, so it cannot be reached on a real site.
 
+### The accessibility sweep
+
+`tests/e2e/accessibility.spec.ts` runs axe over the same pages against WCAG
+2.1 A and AA. The hand-written checks in `signed-out.spec.ts` cover the things
+worth naming out loud — a skip link, one `h1`, a labelled email field; this is
+the rest, over every component in the gallery, so a contrast that drifts or a
+control that loses its name is caught the week it happens.
+
+It passes clean, which is the reason to have added it: what it is for is the
+change that has not been written yet. Like the clipping probe it carries a
+planted failure, so a rules engine that quietly stopped running cannot go on
+passing every page.
+
+One detail worth keeping. The page is settled before it is measured —
+animations and transitions off, opacity forced to 1 — because the first run
+flagged a submit button at 1.51:1, which was the aqua primary a third of the
+way through fading in. Nobody sees that state to read it, and a check that
+reports it is a check somebody switches off.
+
 `npm run test:db` needs a local Postgres and nothing else. It rebuilds a
 scratch database, applies `supabase/tests/shim.sql` (which recreates only the
 parts of a Supabase project the migration leans on: the auth schema, the three
