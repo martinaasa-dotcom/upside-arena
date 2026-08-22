@@ -2,6 +2,7 @@ import "server-only";
 
 import { BENCHMARK_SYMBOL } from "@/lib/game";
 import { getQuote } from "@/lib/market/quotes";
+import { getYahoo } from "@/lib/market/yahoo";
 
 /*
   The market's own result for the week, which every player is measured
@@ -24,16 +25,19 @@ export type BenchmarkWeek = {
 
 type ChartBar = { date: Date; open: number | null; close: number | null };
 
-let client: unknown = null;
-
-async function getYahoo() {
-  if (client) return client as never;
-  const { default: YahooFinance } = await import("yahoo-finance2");
-  client = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
-  return client as never;
-}
-
 const openCache = new Map<string, number>();
+
+/*
+  Opens being fetched right now, so a cold process asks once.
+
+  Every page load goes through getCurrentCycle, which asks for this week's
+  benchmark open before it can do anything else. With only the finished-value
+  cache below, a process that has just started and is handed a dozen requests
+  at once sent a dozen identical chart requests upstream, because none of them
+  had finished in time to populate it for the others. This is the same
+  in-flight sharing the quote layer already does, and for the same reason.
+*/
+const openInFlight = new Map<string, Promise<number | null>>();
 
 /**
  * The opening price on a given New York date.
@@ -48,6 +52,22 @@ export async function getSessionOpen(
   const key = `${symbol}:${isoDate}`;
   const cached = openCache.get(key);
   if (cached != null) return cached;
+
+  const pending = openInFlight.get(key);
+  if (pending) return pending;
+
+  const fetching = fetchSessionOpen(symbol, isoDate).finally(() =>
+    openInFlight.delete(key)
+  );
+  openInFlight.set(key, fetching);
+  return fetching;
+}
+
+async function fetchSessionOpen(
+  symbol: string,
+  isoDate: string
+): Promise<number | null> {
+  const key = `${symbol}:${isoDate}`;
 
   try {
     const yahoo = await getYahoo();
@@ -161,5 +181,6 @@ export async function getClosingPrices(
 /** Clears the cache. Tests only. */
 export function __resetBenchmarkCache() {
   openCache.clear();
+  openInFlight.clear();
   closeCache.clear();
 }
