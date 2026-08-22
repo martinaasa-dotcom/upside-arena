@@ -207,3 +207,83 @@ begin
     raise notice 'ok: a player cannot claim a week for scoring';
   end;
 end $$;
+
+-- ---------------------------------------------------------------------------
+-- A week is not scored on a price we do not have
+-- ---------------------------------------------------------------------------
+--
+-- score_cycle used to value a holding at zero when its symbol was missing from
+-- the closing prices. That is not a missing value, it is the worst possible
+-- one: a player who held two companies through a flat week and finished level
+-- was scored at minus ten per cent, permanently, because scoring is idempotent
+-- and the wrong number is therefore the final one.
+
+insert into auth.users (id, email) values
+  ('99990000-0000-0000-0000-000000000001', 'unpriced@example.com');
+
+insert into public.weekly_cycles (id, monday, status, starting_balance, benchmark_open)
+values ('99990000-0000-0000-0000-00000000cccc', current_date - 7, 'open', 100000, 100);
+
+select public.ensure_portfolio(
+  '99990000-0000-0000-0000-000000000001', '99990000-0000-0000-0000-00000000cccc');
+
+select public.execute_trade(
+  '99990000-0000-0000-0000-000000000001', '99990000-0000-0000-0000-00000000cccc',
+  'AAPL', 'buy', 100, 100);
+select public.execute_trade(
+  '99990000-0000-0000-0000-000000000001', '99990000-0000-0000-0000-00000000cccc',
+  'MSFT', 'buy', 100, 100);
+
+do $$
+begin
+  perform public.score_cycle(
+    '99990000-0000-0000-0000-00000000cccc', '{"AAPL": 100}'::jsonb, 100);
+  perform public.assert(false, 'a week with an unpriced holding is refused');
+exception when others then
+  perform public.assert(
+    sqlerrm like '%no closing price for MSFT%',
+    'a week with an unpriced holding is refused, and says which company'
+  );
+end;
+$$;
+
+select public.assert(
+  (select return_percent from public.portfolios
+   where cycle_id = '99990000-0000-0000-0000-00000000cccc') is null,
+  'and nothing is written, so the next attempt can still get it right'
+);
+
+-- A price of zero is the same thing wearing a number.
+do $$
+begin
+  perform public.score_cycle(
+    '99990000-0000-0000-0000-00000000cccc',
+    '{"AAPL": 100, "MSFT": 0}'::jsonb, 100);
+  perform public.assert(false, 'a price of zero is refused too');
+exception when others then
+  perform public.assert(
+    sqlerrm like '%no closing price for MSFT%', 'a price of zero is refused too');
+end;
+$$;
+
+do $$
+begin
+  perform public.score_cycle(
+    '99990000-0000-0000-0000-00000000cccc',
+    '{"AAPL": 100, "MSFT": 100}'::jsonb, null);
+  perform public.assert(false, 'and so is a week with no benchmark close');
+exception when others then
+  perform public.assert(
+    sqlerrm like '%benchmark close%', 'and so is a week with no benchmark close');
+end;
+$$;
+
+select public.score_cycle(
+  '99990000-0000-0000-0000-00000000cccc',
+  '{"AAPL": 100, "MSFT": 100}'::jsonb, 100);
+
+select public.assert(
+  (select return_percent from public.portfolios
+   where cycle_id = '99990000-0000-0000-0000-00000000cccc') = 0,
+  'and with every price present the flat week scores as the flat week it was'
+);
