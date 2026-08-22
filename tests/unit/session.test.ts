@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addDays,
   beforeContestEnd,
   cycleMonday,
   isTradingDay,
@@ -398,5 +399,31 @@ describe("beforeContestEnd", () => {
     expect(beforeContestEnd(at("2026-08-21T20:00:00Z"), ENDS, true)).toBe(true);
     expect(beforeContestEnd(at("2026-08-22T01:00:00Z"), ENDS, true)).toBe(true);
     expect(beforeContestEnd(at("2026-08-22T05:00:00Z"), ENDS, true)).toBe(false);
+  });
+});
+
+describe("addDays", () => {
+  it("walks forwards and backwards through a week", () => {
+    expect(addDays("2026-08-17", 0)).toBe("2026-08-17");
+    expect(addDays("2026-08-17", 4)).toBe("2026-08-21");
+    expect(addDays("2026-08-17", -3)).toBe("2026-08-14");
+  });
+
+  it("crosses a month and a year", () => {
+    expect(addDays("2026-08-31", 1)).toBe("2026-09-01");
+    expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
+    expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
+  });
+
+  /*
+    The reason it works at noon. Adding a day across a clock change at
+    midnight lands on the same date or two days on, depending on which way it
+    went, and a week drawn from that has two Tuesdays in it.
+  */
+  it("is not moved by a daylight saving change", () => {
+    expect(addDays("2026-03-07", 1)).toBe("2026-03-08");
+    expect(addDays("2026-03-08", 1)).toBe("2026-03-09");
+    expect(addDays("2026-10-31", 1)).toBe("2026-11-01");
+    expect(addDays("2026-11-01", 1)).toBe("2026-11-02");
   });
 });

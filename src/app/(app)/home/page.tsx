@@ -23,14 +23,17 @@ import { getLiveBattles, hasEverPlayedBattle } from "@/lib/game/battles";
 import { hasDeclaredGoalThisWeek } from "@/lib/game/goals";
 import { getLatestLineupReport } from "@/lib/game/lineup";
 import { getMovers } from "@/lib/market/movers";
+import { getDailyMarks } from "@/lib/game/marks";
+import { weekSoFar, worthDrawing } from "@/lib/game/shape";
 import { Movers } from "@/components/Movers";
+import { WeekShape } from "@/components/WeekShape";
 import { BattleCard } from "@/components/BattleCard";
 import { LineupReport } from "@/components/Lineup";
 import { considerHandoff, labUrl } from "@/lib/billing/handoff";
 import { plural } from "@/lib/format";
 import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
 import { formatGap, formatMoney, formatPercent } from "@/lib/format";
-import { sessionLabel } from "@/lib/market/session";
+import { nyDate, sessionLabel } from "@/lib/market/session";
 
 export const metadata = { title: "Home" };
 
@@ -270,7 +273,31 @@ async function Rest() {
     all but the first person to look in any given minute -- which is the cost
     model the plan asks for: per symbol, not per player.
   */
-  const movers = await getMovers(view.positions.map((position) => position.symbol));
+  const [movers, marks] = await Promise.all([
+    getMovers(view.positions.map((position) => position.symbol)),
+
+    /*
+      Every close this portfolio has been marked at, which is what turns the
+      one figure at the top of the screen into a week with a shape. Alongside
+      the movers rather than after them: neither wants anything the other has.
+    */
+    getDailyMarks(view.portfolioId),
+  ]);
+
+  /*
+    The week so far, today included as a bar that can still move.
+
+    Reading the clock is safe here and nowhere above: this whole region is
+    behind a Suspense boundary, so it runs on the request rather than at
+    build time, and "today" is the player's today rather than the day the
+    site was compiled.
+  */
+  const days = weekSoFar({
+    monday: view.cycle.monday,
+    marks,
+    today: nyDate(),
+    liveReturnPercent: view.returnPercent,
+  });
 
   /*
     Somebody who has never traded is still being told what this is. It goes
@@ -338,6 +365,27 @@ async function Rest() {
                   Beating a falling market still counts as a good week.
                 </span>
               </p>
+            </Panel>
+          ) : null}
+
+          {/*
+            How the week went, not just where it ended up.
+
+            The scoreboard says one number, and one number cannot tell a week
+            that has climbed all week from one that fell on Monday and has
+            been clawing back since. Both of those are the same figure on a
+            Thursday and completely different weeks to be having.
+
+            Nothing here is invented: every filled bar is a close that was
+            recorded on the day it happened, and the outlined one is today,
+            drawn from the same live prices as the figure above it.
+          */}
+          {worthDrawing(days) ? (
+            <Panel
+              title="Your week so far"
+              description="Each bar is where the week stood at that day's close. The outlined one is today, and it can still move."
+            >
+              <WeekShape days={days} />
             </Panel>
           ) : null}
 

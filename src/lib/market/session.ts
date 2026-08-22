@@ -267,6 +267,19 @@ function utcToIso(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
+/**
+ * A calendar date a number of days on from another one.
+ *
+ * Noon rather than midnight, so a date is never nudged across a boundary by
+ * an hour of daylight saving. Everything here is a New York calendar date
+ * already, so this is plain calendar arithmetic and not a clock at all.
+ */
+export function addDays(isoDate: string, days: number): string {
+  const date = isoToUtcNoon(isoDate);
+  date.setUTCDate(date.getUTCDate() + days);
+  return utcToIso(date);
+}
+
 /** Whether a New York calendar date fell on a weekday. */
 export function isTradingDay(isoDate: string): boolean {
   const day = isoToUtcNoon(isoDate).getUTCDay();

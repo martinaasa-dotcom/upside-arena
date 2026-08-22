@@ -1,5 +1,6 @@
 import { Panel, Well } from "@/components/Panel";
 import { WeekShape } from "@/components/WeekShape";
+import { settledWeek } from "@/lib/game/shape";
 import { ShareWeek } from "@/components/ShareWeek";
 import { headline, ordinal, versusMarketLine, weekLabel } from "@/lib/share/card";
 import type { Recap } from "@/lib/share/card";
@@ -38,7 +39,7 @@ export function WeekRecap({ recap }: { recap: Recap }) {
 
           {recap.marks.length > 0 ? (
             <div className="w-full max-w-56 sm:w-56">
-              <WeekShape marks={recap.marks} />
+              <WeekShape days={settledWeek(recap.marks)} />
             </div>
           ) : null}
         </div>

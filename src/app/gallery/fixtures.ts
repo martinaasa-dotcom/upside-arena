@@ -273,6 +273,20 @@ export const weekMarks = [1.2, -0.4, 3.9, 0.1, -2.6];
 export const flatMarks = [0.01, 0.0, 0.01, 0.0, 0.01];
 
 /*
+  A week in the middle of itself: two closes in the book, today still moving,
+  and the rest of the week not there yet. The dates are a real Monday and the
+  two days after it, because weekSoFar places a mark by its date and not by
+  its position.
+*/
+export const partWeekMonday = "2026-08-17";
+export const partWeekToday = "2026-08-19";
+export const partWeekMarks = [
+  { date: "2026-08-17", returnPercent: 1.2 },
+  { date: "2026-08-18", returnPercent: -0.9 },
+];
+export const partWeekLive = 2.4;
+
+/*
   A battle, in the shape that is hardest to lay out: the longest format name
   against the longest league name, with the "runs through the weekend" line
   that only one format shows.

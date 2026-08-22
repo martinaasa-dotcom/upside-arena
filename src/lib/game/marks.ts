@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BENCHMARK_SYMBOL, MARKET_TIMEZONE } from "@/lib/game";
@@ -25,6 +26,12 @@ const RECORD_FROM_HOUR = 16;
 
 /** And past this hour it is tomorrow's problem. */
 const RECORD_UNTIL_HOUR = 23;
+
+/** One recorded close: the New York date, and what the week stood at. */
+export type DailyMark = {
+  date: string;
+  returnPercent: number;
+};
 
 export type MarkResult = {
   date: string;
@@ -194,8 +201,16 @@ export async function needsMarkToday(now = new Date()): Promise<boolean> {
   return (count ?? 0) === 0;
 }
 
-/** The daily returns for one portfolio, oldest first. */
-export async function getMarks(portfolioId: string): Promise<number[]> {
+/**
+ * Every close recorded for one portfolio, oldest first, with its date.
+ *
+ * The date matters for a week still running. A player who joined on the
+ * Wednesday has two marks, and placing them under Monday and Tuesday would
+ * draw them a week they were not in.
+ */
+export const getDailyMarks = cache(async function getDailyMarks(
+  portfolioId: string
+): Promise<DailyMark[]> {
   if (!canWriteGame) return [];
 
   const admin = createAdminClient();
@@ -205,7 +220,14 @@ export async function getMarks(portfolioId: string): Promise<number[]> {
     .eq("portfolio_id", portfolioId)
     .order("on_date", { ascending: true });
 
-  return ((data ?? []) as { return_percent: string }[]).map((row) =>
-    Number(row.return_percent)
-  );
+  return ((data ?? []) as { return_percent: string; on_date: string }[]).map((row) => ({
+    date: row.on_date,
+    returnPercent: Number(row.return_percent),
+  }));
+});
+
+/** The daily returns for one portfolio, oldest first. */
+export async function getMarks(portfolioId: string): Promise<number[]> {
+  const marks = await getDailyMarks(portfolioId);
+  return marks.map((mark) => mark.returnPercent);
 }

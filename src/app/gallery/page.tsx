@@ -30,6 +30,7 @@ import { PlusControls } from "@/components/PlusControls";
 import { AccountControls } from "@/components/AccountControls";
 import { SharedCards } from "@/components/SharedCards";
 import { WeekShape } from "@/components/WeekShape";
+import { settledWeek, weekSoFar } from "@/lib/game/shape";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomDock } from "@/components/BottomDock";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -200,13 +201,45 @@ export default function GalleryPage() {
 
       <Case name="week-shape">
         <Panel title="The week">
-          <WeekShape marks={fixture.weekMarks} />
+          <WeekShape days={settledWeek(fixture.weekMarks)} />
         </Panel>
       </Case>
 
       <Case name="week-shape-flat">
         <Panel title="A week that barely moved">
-          <WeekShape marks={fixture.flatMarks} />
+          <WeekShape days={settledWeek(fixture.flatMarks)} />
+        </Panel>
+      </Case>
+
+      <Case name="week-so-far">
+        <Panel
+          title="Your week so far"
+          description="Each bar is where the week stood at that day's close. The outlined one is today, and it can still move."
+        >
+          <WeekShape
+            days={weekSoFar({
+              monday: fixture.partWeekMonday,
+              marks: fixture.partWeekMarks,
+              today: fixture.partWeekToday,
+              liveReturnPercent: fixture.partWeekLive,
+            })}
+          />
+        </Panel>
+      </Case>
+
+      <Case name="week-so-far-behind">
+        <Panel
+          title="Your week so far"
+          description="Each bar is where the week stood at that day's close. The outlined one is today, and it can still move."
+        >
+          <WeekShape
+            days={weekSoFar({
+              monday: fixture.partWeekMonday,
+              marks: fixture.partWeekMarks,
+              today: fixture.partWeekToday,
+              liveReturnPercent: -3.1,
+            })}
+          />
         </Panel>
       </Case>
 
