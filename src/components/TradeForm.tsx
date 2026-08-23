@@ -167,6 +167,21 @@ export function TradeForm({
         </Well>
       ) : null}
 
+      {/*
+        Before the fields rather than above the button, which is where it was.
+
+        A player opening this on a weekday evening searched a company, typed a
+        number of shares and only then read that the market was shut -- the
+        one fact that makes everything above it pointless, at the bottom of
+        the thing it invalidates. It is a precondition, so it goes where
+        preconditions go.
+      */}
+      {!tradingOpen ? (
+        <Well className="py-3">
+          <p className="text-sm text-warning">{closedReason}</p>
+        </Well>
+      ) : null}
+
       <div className="flex flex-col gap-2">
         <Label>What do you want to do?</Label>
         <Segmented
@@ -344,10 +359,6 @@ export function TradeForm({
         <p role="alert" className="text-sm text-loss">
           {state.error}
         </p>
-      ) : null}
-
-      {!tradingOpen ? (
-        <p className="text-sm text-warning">{closedReason}</p>
       ) : null}
 
       <div>

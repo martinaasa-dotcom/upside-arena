@@ -32,6 +32,8 @@ import { SharedCards } from "@/components/SharedCards";
 import { WeekShape } from "@/components/WeekShape";
 import { Trail } from "@/components/Trail";
 import { Reveal, revealTitle } from "@/components/Reveal";
+import { TradeForm } from "@/components/TradeForm";
+import { allowedSymbols, formatById } from "@/lib/game/formats";
 import { settledWeek, weekSoFar } from "@/lib/game/shape";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomDock } from "@/components/BottomDock";
@@ -346,6 +348,46 @@ export default function GalleryPage() {
           href="#"
           result={{ rank: 3, players: 12, returnPercent: -2.4 }}
         />
+      </Case>
+
+      {/*
+        The form every trade in the game goes through, which had never been
+        drawn here.
+
+        Three shapes, and the middle one is the reason: a format that names
+        its companies gets a grid of them instead of a search box, and
+        twenty-four tiles is the sort of thing that is fine at 1440 and a
+        column of rubble at 390.
+      */}
+      <Case name="trade-form">
+        <Panel title="Trade">
+          <TradeForm cash={41_284.5} ownedSymbols={["AAPL", "NVDA"]} tradingOpen closedReason="" />
+        </Panel>
+      </Case>
+
+      <Case name="trade-form-named-universe">
+        <Panel title="Trade">
+          <TradeForm
+            cash={100_000}
+            ownedSymbols={[]}
+            tradingOpen
+            closedReason=""
+            battleId="b1"
+            universe={allowedSymbols(formatById("silicon"))}
+            rule={formatById("silicon").rule}
+          />
+        </Panel>
+      </Case>
+
+      <Case name="trade-form-closed">
+        <Panel title="Trade">
+          <TradeForm
+            cash={100_000}
+            ownedSymbols={[]}
+            tradingOpen={false}
+            closedReason="The market is shut. It opens at 09:30 in New York, which is half past two here."
+          />
+        </Panel>
       </Case>
 
       <Case name="start-battle">
