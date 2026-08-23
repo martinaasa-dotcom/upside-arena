@@ -13,7 +13,7 @@ import {
   battleStartedMessage,
   weekResultMessage,
 } from "@/lib/notify/events";
-import { formatById } from "@/lib/game/formats";
+import { FORMATS, formatById } from "@/lib/game/formats";
 import { lengthById } from "@/lib/game/lengths";
 import type { BattleResult } from "@/lib/game/battles";
 
@@ -362,7 +362,23 @@ describe("being told your league has started something", () => {
     expect(battleStartedMessage(battle).body).toContain("You are in it");
   });
 
-  it("says when it ends, because a fortnight is not obvious", () => {
-    expect(battleStartedMessage(battle).body).toContain("2026-08-28");
+  /*
+    Ordered for a lock screen. Every one of these bodies is longer than a
+    phone will show, and the first version put the rule first, which pushed
+    "you are in it" past a hundred and eighty characters -- so the one
+    sentence that says why the message matters was the one being cut.
+  */
+  it("says the part that matters inside what a phone will show", () => {
+    for (const format of FORMATS) {
+      const body = battleStartedMessage({ ...battle, format }).body;
+      expect(body.indexOf("You are in it"), format.id).toBeLessThan(80);
+    }
+  });
+
+  it("says when it ends, in words rather than in an ISO date", () => {
+    // A push is somebody's lock screen, not a log line.
+    const { body } = battleStartedMessage(battle);
+    expect(body).not.toContain("2026-08-28");
+    expect(body).toMatch(/ending \d+ \w+/);
   });
 });

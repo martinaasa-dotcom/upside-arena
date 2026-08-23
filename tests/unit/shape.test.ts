@@ -3,6 +3,7 @@ import {
   dayMove,
   lastCloseBefore,
   positionedWeek,
+  runTrail,
   settledWeek,
   trailShape,
   weekSoFar,
@@ -388,5 +389,36 @@ describe("a long contest as a line", () => {
     expect(shape?.endX).toBeCloseTo(100, 9);
     // Ten is the top, zero the bottom of a ten-point span: four is 60% down.
     expect(shape?.endY).toBeCloseTo(36, 9);
+  });
+});
+
+describe("what a contest's line is drawn from", () => {
+  const closes = [1, 2, 3];
+
+  it("reaches now while the contest is running", () => {
+    expect(runTrail(closes, 2.4, false)).toEqual([1, 2, 3, 2.4]);
+  });
+
+  /*
+    The bug this is named for. Settling does not clear holdings and the rooms
+    price them live, so a battle that finished last week still produces a
+    figure that moves every day. On the end of the line, under a label naming
+    the day it ended, that is a point which is neither where it ended nor a
+    day anybody was playing in.
+  */
+  it("stops at the last close once the contest is over", () => {
+    expect(runTrail(closes, 99, true)).toEqual([1, 2, 3]);
+  });
+
+  it("stops at the last close when there is no live figure", () => {
+    expect(runTrail(closes, null, false)).toEqual([1, 2, 3]);
+  });
+
+  it("does not hand back the array it was given", () => {
+    // The caller's closes come from a cached read, and a line that pushed
+    // onto them would grow by one point every time the page was rendered.
+    const original = [1, 2];
+    expect(runTrail(original, 3, false)).not.toBe(original);
+    expect(original).toEqual([1, 2]);
   });
 });

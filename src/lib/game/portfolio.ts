@@ -136,7 +136,12 @@ export const getCurrentCycle = cache(async (): Promise<Cycle | null> => {
     try {
       if (await needsMarkToday()) await recordDailyMarks();
     } catch {
-      // A missing mark costs a bar on a share card and nothing else.
+      /*
+        A missing mark used to cost a bar on a share card. Since 0022 it also
+        costs a day of every running battle's trajectory, and a day not
+        recorded on the day cannot be worked out afterwards -- so this is
+        worth more than it was, though still not worth failing a page over.
+      */
     }
   });
 

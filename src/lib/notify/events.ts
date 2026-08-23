@@ -16,7 +16,7 @@ import {
   type PodOutcome,
 } from "@/lib/game/pods";
 import { isTradingDay, isTradingOpen, nyDate } from "@/lib/market/session";
-import { formatGap, ordinal } from "@/lib/format";
+import { formatDate, formatGap, ordinal } from "@/lib/format";
 import { emailConfigured, pushConfigured, sendEmail, sendPush } from "@/lib/notify/send";
 import { isAwakeHour, isStreakReminderHour } from "@/lib/notify/timing";
 
@@ -658,10 +658,16 @@ export async function notifyBattlesStarted(now = new Date()): Promise<NotifyResu
 /**
  * What a started battle says.
  *
- * Names the rule, because the rule is the whole appeal and it is the thing
- * somebody needs to know before they can play: turning up to a short-only
- * fortnight and buying what you think will rise is losing on a
- * misunderstanding rather than on a call.
+ * Ordered for a lock screen rather than for a page. Every one of these bodies
+ * is longer than a phone will show, so the order is the message: how long it
+ * runs, when it ends, and that they are in it whether they do anything or
+ * not. All of that inside the first eighty characters.
+ *
+ * The rule goes last and is the part allowed to be cut. It matters -- turning
+ * up to a short-only fortnight and buying what you think will rise is losing
+ * on a misunderstanding rather than on a call -- but it is also the one part
+ * that is waiting for them in the room when they tap through, and the longest
+ * rule in the catalogue is a hundred and thirteen characters on its own.
  */
 export function battleStartedMessage(battle: StartedBattle): {
   title: string;
@@ -670,7 +676,9 @@ export function battleStartedMessage(battle: StartedBattle): {
 } {
   return {
     title: `${battle.leagueName} started ${battle.format.name}`,
-    body: `${battle.format.rule} ${battle.length.name}, ending ${battle.endsOn}. You are in it, so it counts either way.`,
+    // The date said the way a person says it. This is a push notification, not
+    // a log line, and "ending 2026-08-28" is the app talking to itself.
+    body: `${battle.length.name}, ending ${formatDate(battle.endsOn)}. You are in it, so it counts either way. ${battle.format.rule}`,
     href: `/leagues/${battle.leagueId}/battle`,
   };
 }

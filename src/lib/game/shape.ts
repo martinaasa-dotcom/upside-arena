@@ -354,3 +354,25 @@ export function trailShape(
     endY: y(values[values.length - 1]),
   };
 }
+
+/**
+ * The points a contest's line is drawn from.
+ *
+ * Closes, plus where it stands right now -- unless it is over, in which case
+ * the closes are the whole of it.
+ *
+ * That exception is the entire reason this is a named function rather than
+ * one expression at the call site. Settling a contest does not clear anybody's
+ * holdings, and the rooms price holdings live, so a battle that finished last
+ * week still produces a figure that moves every day. Putting that figure on
+ * the end of the line, under a label naming the day the contest ended, draws
+ * a point that is neither where it ended nor a day anybody was playing in.
+ */
+export function runTrail(
+  closes: readonly number[],
+  live: number | null,
+  finished: boolean
+): number[] {
+  if (finished || live == null) return [...closes];
+  return [...closes, live];
+}

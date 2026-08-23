@@ -35,7 +35,7 @@ import {
   type RunLength,
 } from "@/lib/game/lengths";
 import { getMarksFor } from "@/lib/game/marks";
-import { dayMove, lastCloseBefore } from "@/lib/game/shape";
+import { dayMove, lastCloseBefore, runTrail } from "@/lib/game/shape";
 import type { LeagueRow, WeeklyCycleRow } from "@/lib/supabase/database.types";
 
 /*
@@ -730,8 +730,17 @@ export const getBattleView = cache(async function getBattleView(
           : 0,
       isYou: memberId === userId,
       hasTraded: portfolio ? tradedPortfolios.has(portfolio.id) : false,
+      /*
+        Never for a contest that is over.
+
+        Settling does not clear anybody's holdings, and this table is priced
+        live, so a battle that ended last week still has a figure that moves
+        every day. Calling that difference "today" would put a number on a
+        contest nobody can trade in any more -- a day of movement in a race
+        that finished.
+      */
       todayPercent:
-        dayIsOn && portfolio
+        dayIsOn && portfolio && !battle.finished
           ? (dayMove(
               totalValue,
               lastCloseBefore(marksByPortfolio.get(portfolio.id) ?? [], today)
@@ -780,15 +789,17 @@ export const getBattleView = cache(async function getBattleView(
 
   /*
     The closes behind the viewer's own figure, with the figure itself on the
-    end. The live point goes last so the line reaches now rather than
-    stopping at last night, and the component draws it as a ring rather than
-    joining it in, because it is the one point that can still move.
+    end so the line reaches now rather than stopping at last night.
+
+    Only while the contest is running. Settling does not clear holdings and
+    this view is priced live, so a finished battle still produces a figure
+    that moves every day -- and putting it on the end of the line, under a
+    label saying the day the battle ended, would draw a point that is neither
+    where it ended nor a day anybody was playing. A finished battle is its
+    closes and nothing else.
   */
-  const myMarks = mine ? (marksByPortfolio.get(mine.id) ?? []) : [];
-  const trail =
-    you == null
-      ? []
-      : [...myMarks.map((mark) => mark.returnPercent), you.returnPercent];
+  const myMarks = mine ? (marksByPortfolio.get(mine.id) ?? []).map((m) => m.returnPercent) : [];
+  const trail = you == null ? [] : runTrail(myMarks, you.returnPercent, battle.finished);
 
   return {
     battle,

@@ -263,8 +263,14 @@ export const getDailyMarks = cache(async function getDailyMarks(
  * The league table wants each member's last close so it can say who has had
  * the best day, and asking per member would be a query per row of a table
  * that is meant to be read at a glance.
+ *
+ * Not memoised, deliberately. React's cache compares arguments by identity,
+ * and the argument here is a list built fresh on each call, so a cache on it
+ * could never once hit -- it would read as protection that was not there.
+ * The rooms that call this are themselves cached, which is where the repeat
+ * is actually prevented.
  */
-export const getMarksFor = cache(async function getMarksFor(
+export async function getMarksFor(
   portfolioIds: readonly string[]
 ): Promise<Map<string, DailyMark[]>> {
   const byPortfolio = new Map<string, DailyMark[]>();
@@ -284,7 +290,7 @@ export const getMarksFor = cache(async function getMarksFor(
   }
 
   return byPortfolio;
-});
+}
 
 type MarkRow = {
   on_date: string;
