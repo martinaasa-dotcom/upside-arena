@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Trophy, Users } from "lucide-react";
+import { Shuffle, Trophy, Users } from "lucide-react";
 import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
 import { SignInCard } from "@/components/SignInCard";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,20 @@ const POINTS = [
   {
     icon: Trophy,
     text: "Everyone starts Monday with the same play money, so it is a fair race.",
+  },
+  /*
+    The third one is the part that is actually unusual, and it was missing
+    while the app grew it.
+
+    Named rules rather than "different game modes", because "only companies
+    that make chips" is a thing somebody can picture and want, and the
+    category word it belongs to is not. It is last because it is the second
+    thing to know: the week is the game, and this is what the game turns into
+    once there are people to play it with.
+  */
+  {
+    icon: Shuffle,
+    text: "Then change the rules: only shorts, only chip makers, only coins. For a day, or for a year.",
   },
 ];
 
