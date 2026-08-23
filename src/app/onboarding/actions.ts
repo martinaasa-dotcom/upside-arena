@@ -3,9 +3,10 @@
 import { redirect } from "next/navigation";
 import { createLeague } from "@/lib/game/leagues";
 import { starterLeagueName } from "@/lib/game/starter-league";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { sessionTag } from "@/lib/profile";
 import { recordAcceptance } from "@/app/auth/actions";
 
 export type OnboardingState = { error?: string };
@@ -80,6 +81,17 @@ export async function completeOnboarding(
     }
     return { error: "We could not save that. Try once more." };
   }
+
+  /*
+    Onboarding is finished, and every room asks a cached session whether it
+    is. Without this the answer stays "no" for as long as the entry lives,
+    and the layout's gate sends the player straight back to the screen they
+    have just completed -- a loop out of a cache, on the one screen where
+    being sent backwards means giving up on the game entirely.
+
+    So this is not a freshness nicety. It is the correctness of the gate.
+  */
+  updateTag(sessionTag(user.id));
 
   /*
     A league of their own, made for them.

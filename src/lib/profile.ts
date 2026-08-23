@@ -1,11 +1,35 @@
 import { cache } from "react";
-import { connection } from "next/server";
+import { cacheLife, cacheTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { Profile } from "@/lib/types";
 
 /** Who the caller is. Only what a page ever asks for, and both verified. */
 export type SessionUser = { id: string; email: string | null };
+
+/**
+ * The cache entry holding one player's own session, so the two places that
+ * write a profile can throw it away the moment they do.
+ */
+export function sessionTag(userId: string) {
+  return `session:${userId}`;
+}
+
+/*
+  Long enough to be worth having, and it is a specific number rather than a
+  taste.
+
+  A private cache entry is only carried in a route's App Shell -- the thing a
+  link prefetches, and therefore the thing a tap paints -- if its stale time
+  is at least five minutes. Below that the entry is still a cache and still
+  saves the round trip, but the session lands after the tap instead of before
+  it, which is the whole difference this is here to make.
+
+  Nothing waits five minutes to be right, because nothing here waits for time
+  at all: both writers drop the tag, so a player who changes their name sees
+  the new one on the next screen.
+*/
+const SESSION_STALE_SECONDS = 300;
 
 /*
   Establishing who is asking, in as few round trips as it can be done in.
@@ -57,24 +81,78 @@ async function identify(
   return { id: user.id, email: user.email ?? null };
 }
 
+/*
+  The profile row, cached in the browser that asked, under the account it
+  belongs to.
+
+  Every room opens by asking who is here, so this row was fetched again on
+  every tab, and the room could not begin to paint until it came back. It is
+  the same row every time and it changes when the player changes it, which is
+  a cache with an obvious invalidation rather than a guess about freshness.
+
+  Two things about the shape, both of which took a second look to get right.
+
+  It is keyed by the user id, and that is not decoration. A cache key is built
+  from a function's arguments; cookies read inside the body are not part of
+  it. Cached with no arguments, this would have had one key for everybody, and
+  two accounts used from the same browser within the stale window would have
+  been the same entry -- one player wearing another's name, and on the metrics
+  page one player seeing what only an owner may. The id comes from a verified
+  token and putting it in the signature is what makes the entry belong to
+  somebody.
+
+  And it is "private", the variant that may read cookies, which is what lets
+  the row still be read as the player rather than around them: the request
+  goes through their own session and row level security answers it, exactly as
+  it did when this was uncached. Private also means the entry is held in the
+  browser that asked and nowhere else -- never written to a server, never
+  shared between people, gone when the tab is.
+
+  This also replaces what connection() used to do here. Both say "not at build
+  time" -- connection() by refusing to resolve without a request, this by
+  being excluded from static shell generation -- and only one of them also
+  stops the row being read again on every screen. connection() is not merely
+  unnecessary now; it is forbidden inside a cached scope, which is the
+  framework saying the same thing.
+*/
+async function readProfile(userId: string): Promise<Profile | null> {
+  "use cache: private";
+  cacheLife({ stale: SESSION_STALE_SECONDS });
+
+  /*
+    Tagged with the account rather than with a path. The two places that write
+    a profile know the id and nothing else about where it will be read, and a
+    tag is the only handle that survives being read somewhere neither of them
+    has heard of.
+  */
+  cacheTag(sessionTag(userId));
+
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle<Profile>();
+
+  return data ?? null;
+}
+
 /**
- * The signed-in account and its profile row. Cached per request so a layout
- * and its pages share one round trip.
+ * The signed-in account and its profile row.
  *
- * Never prerendered. Who is signed in is not knowable when the app is built,
- * and `connection()` is what says so: without it a component that only reads
- * the session resolves happily at build time to nobody, and that answer is
- * baked into the static shell. The greeting on Home did exactly that -- the
- * shell said "Hi there", and a signed-in player watched it turn into their own
- * name a moment later.
+ * Who is asking is settled on every single request and is deliberately not
+ * cached: it is a signature check against a token that is already in hand,
+ * it costs nothing, and it is the one answer here that must never be a
+ * moment old. What is cached is the round trip that follows it.
  *
- * Everything that needs a session goes through here, so saying it once here
- * is what makes every caller right rather than every caller remembering.
+ * Wrapped in React's cache as well, so several components streaming at once
+ * within one render share a single call rather than one cache lookup each.
+ * Everything that needs a session comes through here, which is what makes
+ * every caller right rather than every caller remembering.
  */
 export const getSession = cache(
   async (): Promise<{ user: SessionUser | null; profile: Profile | null }> => {
-    await connection();
-
     // Without a project wired up there is no session to have. Callers redirect.
     if (!isSupabaseConfigured) return { user: null, profile: null };
 
@@ -83,13 +161,7 @@ export const getSession = cache(
     const user = await identify(supabase);
     if (!user) return { user: null, profile: null };
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle<Profile>();
-
-    return { user, profile: profile ?? null };
+    return { user, profile: await readProfile(user.id) };
   }
 );
 

@@ -1,9 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { sessionTag } from "@/lib/profile";
 
 export type ProfileState = { error?: string; saved?: boolean };
 
@@ -56,6 +57,16 @@ export async function updateProfile(
     return { error: "We could not save that. Try once more." };
   }
 
+  /*
+    The name is read from a cached session, so saving it has to say so or the
+    player watches their old name follow them around for five minutes.
+
+    updateTag rather than revalidateTag: this is the player looking at the
+    result of their own edit, and they should see it on the very next screen
+    rather than one screen later. The paths still go, because what is drawn
+    from this row is not only the session.
+  */
+  updateTag(sessionTag(user.id));
   revalidatePath("/profile");
   revalidatePath("/home");
   return { saved: true };

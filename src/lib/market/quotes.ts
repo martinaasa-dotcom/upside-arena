@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cacheLife } from "next/cache";
 import { QUOTE_TTL_SECONDS } from "@/lib/game";
 import { sessionMark } from "@/lib/market/session";
 import { getYahoo } from "@/lib/market/yahoo";
@@ -195,6 +196,63 @@ async function fetchMany(symbols: string[]): Promise<Map<string, Quote | null>> 
   }
 }
 
+/*
+  One batch, cached where every instance can see it.
+
+  The map at the top of this file is the same idea and does not survive: it is
+  process memory, and a serverless instance that has just started has none of
+  it. Prices are asked for on the way to drawing Home, Trade and Season, so a
+  cold instance meant a live round trip to Yahoo standing between a tap and any
+  number at all -- and cold instances are the common case on an app with quiet
+  stretches.
+
+  Keyed on the symbols rather than split into one entry per symbol, which is
+  the difference between keeping the batch below and losing it. A cached
+  function per symbol would have turned one request for eight holdings into
+  eight, because each cached miss is its own call and knows nothing about its
+  neighbours; the way to fix that is to collect misses on a timer, and a
+  collector that is ever prevented from firing wedges every later request
+  behind a promise that will not resolve. That is a bad trade for a price.
+
+  Sorted, so two players holding the same names in a different order are one
+  entry. The benchmark is the case that matters most and is perfect for this:
+  it is one symbol, asked for on every single screen by everybody, so it is one
+  cache entry for the whole game.
+
+  Stale-while-revalidate at the same minute the in-memory copy used, so a
+  minute-old price is served immediately and refreshed behind the reader. It
+  was never a live price -- Yahoo is delayed and the game is built on that --
+  and a number that arrives is worth more here than a number that is fifteen
+  seconds newer and late.
+*/
+async function sharedQuotes(symbols: string[]): Promise<[string, Quote][]> {
+  "use cache";
+  cacheLife({
+    stale: QUOTE_TTL_SECONDS,
+    revalidate: QUOTE_TTL_SECONDS,
+    expire: QUOTE_TTL_SECONDS * 10,
+  });
+
+  const results = await fetchMany(symbols);
+  const found = [...results].filter(([, quote]) => quote != null) as [
+    string,
+    Quote,
+  ][];
+
+  /*
+    A refresh that produced nothing at all is a failure, and a failure must
+    not be cached: doing so would hold every reader on last known prices for a
+    full minute because of one bad moment upstream. Thrown rather than
+    returned, because a rejection is the one answer a cache does not keep. The
+    caller treats it as the refresh failing, which is what it is.
+  */
+  if (symbols.length > 0 && found.length === 0) {
+    throw new Error("no quotes");
+  }
+
+  return found;
+}
+
 /**
  * Quotes for the given symbols, from cache where fresh.
  *
@@ -224,10 +282,14 @@ export async function getQuotes(
   const fresh = toFetch.filter((symbol) => !inFlight.has(symbol));
 
   if (fresh.length > 0) {
-    const batch = fetchMany(fresh);
+    // Sorted so the key does not depend on the order holdings came back in.
+    const batch = sharedQuotes([...fresh].sort()).catch(
+      () => [] as [string, Quote][]
+    );
+
     for (const symbol of fresh) {
       const pending = batch
-        .then((results) => results.get(symbol) ?? null)
+        .then((entries) => new Map(entries).get(symbol) ?? null)
         .finally(() => inFlight.delete(symbol));
       inFlight.set(symbol, pending);
     }

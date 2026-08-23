@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { cacheLife } from "next/cache";
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { RewardRow } from "@/lib/supabase/database.types";
@@ -14,13 +15,40 @@ import type { RewardRow } from "@/lib/supabase/database.types";
   conflating them is how a rename becomes a visual bug.
 */
 
-const catalogue = cache(async (): Promise<Map<string, RewardRow>> => {
-  if (!canWriteGame) return new Map();
+/*
+  Fixed content, so read like fixed content.
+
+  "Once per request" was the shape of this for as long as a request was the
+  longest anything lived. It is a table of rewards that changes when the game
+  gains a new one and not otherwise, and it is the same table for every player
+  in it, so a per-request read meant fetching identical rows again on every
+  single screen for anybody wearing anything.
+
+  An hour, and refreshed behind the reader, because the cost of being an hour
+  behind on a new reward is that it appears an hour late and the cost of
+  asking every time is a database round trip between a tap and the header.
+
+  A Map does not survive being cached -- what comes back is what can be
+  serialised -- so the entries are cached and the Map is built from them.
+  Returning a Map from here and finding an empty one at the other end is the
+  quiet version of this being wrong, and it would have looked like every
+  player owning nothing.
+*/
+async function catalogueEntries(): Promise<[string, RewardRow][]> {
+  "use cache";
+  cacheLife({ stale: 3600, revalidate: 3600, expire: 86_400 });
+
+  if (!canWriteGame) return [];
 
   const admin = createAdminClient();
   const { data } = await admin.from("rewards").select("*");
 
-  return new Map(((data ?? []) as RewardRow[]).map((row) => [row.id, row]));
+  return ((data ?? []) as RewardRow[]).map((row) => [row.id, row]);
+}
+
+/** Shared within a render as well, so one screen builds the Map once. */
+const catalogue = cache(async (): Promise<Map<string, RewardRow>> => {
+  return new Map(await catalogueEntries());
 });
 
 async function styleKeyFor(rewardId: string | null, kind: string) {

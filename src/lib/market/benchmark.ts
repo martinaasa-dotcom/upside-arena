@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cacheLife } from "next/cache";
 import { BENCHMARK_SYMBOL } from "@/lib/game";
 import { getQuote } from "@/lib/market/quotes";
 import { getYahoo } from "@/lib/market/yahoo";
@@ -63,10 +64,35 @@ export async function getSessionOpen(
   return fetching;
 }
 
+/*
+  The one upstream call that every room waits on.
+
+  getCurrentCycle asks for this before it can do anything else, and every
+  room asks getCurrentCycle, so this chart request sat at the head of the
+  queue for Home, Trade, Leagues and Season alike -- before the cycle row,
+  before the portfolio, before a single price. The caches above it are real
+  but they are process memory, and a serverless instance that has just been
+  started has none of them. In practice a good share of taps paid a live
+  round trip to Yahoo before anything else could begin.
+
+  Cached across instances instead, which is what this value deserves more
+  than most: it is the same number for every player in the game, and once the
+  market has opened on a Monday it never changes again.
+
+  Five minutes, and stale-while-revalidate, so nothing waits. The reason it is
+  not longer is the other half of the day: before the market opens there is no
+  bar yet and the honest answer is null, and null must not be cached for
+  hours. A short life is what lets the same function be right in both halves
+  -- it refreshes behind the reader either way, and the reader never blocks on
+  either answer.
+*/
 async function fetchSessionOpen(
   symbol: string,
   isoDate: string
 ): Promise<number | null> {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
+
   const key = `${symbol}:${isoDate}`;
 
   try {
