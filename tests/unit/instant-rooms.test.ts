@@ -96,7 +96,7 @@ function bodyOf(source: string, name: string): string | null {
   found by removing one and watching nothing happen, which is the only way
   this kind of check ever gets found out.
 */
-const DIRECTIVE = /^[ \t]*"use cache(?:: private)?";$/m;
+const DIRECTIVE = /^[ \t]*"use cache(?:: (?:private|remote))?";$/m;
 
 function isCached(body: string) {
   return DIRECTIVE.test(body);

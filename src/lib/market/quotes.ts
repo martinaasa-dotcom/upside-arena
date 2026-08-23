@@ -199,6 +199,16 @@ async function fetchMany(symbols: string[]): Promise<Map<string, Quote | null>> 
 /*
   One batch, cached where every instance can see it.
 
+  Remote, not the plain in-memory kind, and that distinction is the whole of
+  why Home and Trade stayed slow after everything else had been fixed. `use
+  cache` keeps entries in the instance's own memory, which on a serverless
+  platform is not shared between instances and is thrown away after serving a
+  request -- so on a quiet app very nearly every read is a miss. A miss here
+  is a live round trip to Yahoo, which is long enough that the prefetch behind
+  a dock tab does not finish before the tap lands, and the room falls back to
+  arriving in pieces. The rooms that never ask for a price were unaffected,
+  which is exactly the split that was reported.
+
   The map at the top of this file is the same idea and does not survive: it is
   process memory, and a serverless instance that has just started has none of
   it. Prices are asked for on the way to drawing Home, Trade and Season, so a
@@ -226,7 +236,7 @@ async function fetchMany(symbols: string[]): Promise<Map<string, Quote | null>> 
   seconds newer and late.
 */
 async function sharedQuotes(symbols: string[]): Promise<[string, Quote][]> {
-  "use cache";
+  "use cache: remote";
   cacheLife({
     stale: QUOTE_TTL_SECONDS,
     revalidate: QUOTE_TTL_SECONDS,

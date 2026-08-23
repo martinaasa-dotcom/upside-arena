@@ -78,7 +78,13 @@ const SHOWN = 4;
  * A movers panel with one name in it is worse than no movers panel.
  */
 export async function getMovers(owned: readonly string[] = []): Promise<MoversView | null> {
-  "use cache";
+  /*
+    Remote for the same reason as the quote layer it sits on: this is a whole
+    watchlist from Yahoo, it is the same list for every player in the game,
+    and an in-memory entry on a serverless instance is gone before the next
+    player asks for it.
+  */
+  "use cache: remote";
   cycleCache();
 
   const held = new Set(owned.map((symbol) => symbol.toUpperCase()));
