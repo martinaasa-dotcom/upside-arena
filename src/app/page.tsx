@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { Shuffle, Trophy, Users } from "lucide-react";
 import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
+import { ScrollCue } from "@/components/ScrollCue";
 import { SignInCard } from "@/components/SignInCard";
 import { Badge } from "@/components/ui/badge";
 import { googleConfigured } from "@/lib/auth/google";
@@ -199,6 +200,14 @@ export default function LandingPage({
           <SampleLeague />
         </div>
       </main>
+
+      {/*
+        On a phone this page stacks, and the sample league lands under the
+        fold with the sign-in card sitting above it looking like the end of
+        the page. `ScrollCue` says otherwise, and draws nothing at all on a
+        window the whole page already fits inside.
+      */}
+      <ScrollCue />
     </div>
   );
 }

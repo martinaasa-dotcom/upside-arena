@@ -642,6 +642,21 @@
     }
   }
 
+  /* The scroll cue at the fold. A hint that the page continues. */
+  .scroll-cue-nudge {
+    animation: scroll-cue-nudge 2.4s ease-in-out infinite;
+  }
+
+  @keyframes scroll-cue-nudge {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(4px);
+    }
+  }
+
   /* Money, percents, tickers, counts. */
   .figure {
     font-family: var(--font-mono);
