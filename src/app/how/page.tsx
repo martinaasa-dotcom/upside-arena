@@ -100,7 +100,7 @@ export default function HowPage() {
               here, and the app says so.
             </p>
             <p>
-              Home also shows <strong>what moved today</strong> — the largest
+              Home also shows <strong>what moved today</strong>: the largest
               real moves among companies you would recognise, and anything you
               hold. It is there because a screen that only shows two slowly
               moving numbers gives you no reason to open it on a Tuesday. It is
@@ -112,8 +112,8 @@ export default function HowPage() {
           <Section title="4. A league is where the game actually happens">
             <p>
               Playing alone is a spreadsheet. Two people is a game. When you
-              sign up we make you a league of your own and give you a code —
-              send it to somebody and you have a race.
+              sign up we make you a league of your own and give you a code. Send
+              it to somebody and you have a race.
             </p>
             <p>
               A league is private. Nobody can find it, and nobody can join it
@@ -124,15 +124,15 @@ export default function HowPage() {
             <p>
               Once a week is over, <strong>everybody&rsquo;s book is opened</strong>:
               what each of you was holding at the close and what it cost. Only
-              once it is settled — while a week is running, seeing what the
+              once it is settled. While a week is running, seeing what the
               person in front of you owns would be a copying machine, and a
               league would converge on one portfolio by Wednesday. Afterwards
               it is the conversation the whole thing was for, and it is in your
               league&rsquo;s record room.
             </p>
             <p>
-              You can also say, once a week, what you are trying to do — beat
-              the market, finish up, finish top three, show up every day. It
+              You can also say, once a week, what you are trying to do: beat the
+              market, finish up, finish top three, show up every day. It
               earns nothing and costs nothing. Saying a thing out loud to four
               people who will see whether you did it is the entire mechanic.
             </p>
@@ -148,8 +148,8 @@ export default function HowPage() {
             <p>
               Any member can start one, everybody in the league is in it,
               everybody starts level, and one runs at a time. Nothing about a
-              battle touches your record, your streak or the season — it is
-              between the people in it and nobody else.
+              battle touches your record, your streak or the season. It is between
+              the people in it and nobody else.
             </p>
 
             <div className="grid gap-2 sm:grid-cols-2">
@@ -180,7 +180,7 @@ export default function HowPage() {
             <ul>
               {LENGTHS.map((length) => (
                 <li key={length.id}>
-                  <span className="text-foreground">{length.name}</span> —{" "}
+                  <span className="text-foreground">{length.name}</span>:{" "}
                   {length.tagline}
                 </li>
               ))}
@@ -193,12 +193,12 @@ export default function HowPage() {
               borrowing and no leverage, and a name can never cost you more than
               you put into it, which is the one way it is kinder than the real
               thing. <strong>All hours</strong> is coins, and its market never
-              shuts — it is the only contest here that runs on a Saturday.
+              shuts, so it is the only contest here that runs on a Saturday.
             </p>
 
             <p>
               When a battle ends, everybody who was in it is told where they
-              finished, and <strong>everybody&rsquo;s book is opened</strong> —
+              finished, and <strong>everybody&rsquo;s book is opened</strong>:
               what each of you was holding at the end and what it cost. Only
               then. While a contest is running, seeing the leader&rsquo;s
               positions would be a copying machine and a league would converge
@@ -223,9 +223,9 @@ export default function HowPage() {
             <p>
               It locks when the market opens, because from that moment the price
               is known and an order you could still change would be a trade
-              placed with hindsight. Anything that could not be bought — no
-              price, or no cash left by the time it came round — is left alone
-              and says why.
+              placed with hindsight. Anything that could not be bought, either
+              because there was no price or because the cash ran out by the time
+              it came round, is left alone and says why.
             </p>
           </Section>
 
@@ -244,12 +244,12 @@ export default function HowPage() {
             <p>
               A <strong>season</strong> is a quarter of weeks, ranked on how far
               ahead of the market you finished per week rather than on how much
-              you made in total — otherwise it would rank whoever showed up
+              you made in total, because otherwise it would rank whoever showed up
               most. Play {MIN_WEEKS_TO_RANK} weeks of a quarter and you are
               placed in it.
             </p>
             <p>
-              Everything you can earn — titles, flair, themes — is worn next to
+              Everything you can earn, titles and flair and themes, is worn next to
               your name and affects no score. Nothing in Arena can be bought
               that changes a result, and nothing ever will be.
             </p>

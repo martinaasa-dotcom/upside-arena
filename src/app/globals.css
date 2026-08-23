@@ -52,6 +52,56 @@
   --glow-secondary: oklch(0.74 0.17 328);
 
   /*
+    The glass material, in one place.
+
+    THE RIM IS NOT ONE COLOUR, and that is the whole idea. The room has two
+    lights: a cyan lobe off the top-left and a magenta counter-lobe off the
+    bottom-right (see `.page-frame::before`). A pane standing in that room
+    and drawing a neutral grey edge on all four sides is a pane ignoring the
+    light it is in, and that is what reads as flat however bright the
+    hairline gets. So the top edge takes the near lobe's cyan, the bottom
+    edge takes the far lobe's magenta as light wraps under it, and the sides
+    are quieter than either and unequal, because the key light is off the
+    LEFT.
+
+    Both rim colours are high-lightness and low-chroma. A rim is not a fill:
+    it stays at the top of the lightness range and carries barely any
+    chroma, or it stops reading as light and starts reading as paint.
+
+    No new hue enters the palette. 207 is `--primary`'s and 328 is
+    `--glow-secondary`'s, so the panes pick up the two lights Arena already
+    has rather than introducing a third.
+  */
+  --glass-rim-top: oklch(0.97 0.035 207 / 56%);
+  --glass-rim-bottom: oklch(0.95 0.04 328 / 30%);
+  --glass-rim-left: oklch(1 0 0 / 19%);
+  --glass-rim-right: oklch(1 0 0 / 10%);
+  /*
+    Thickness. Light entering the top of a pane and dying out downward is
+    the gradient real glass has, and a bright line on top with nothing under
+    it is why a card still read as an evenly tinted rectangle. The reach
+    matters as much as the strength: it has to carry past the padding and
+    into the body, or a probe measures no difference between the top third
+    of a pane and the bottom third.
+  */
+  --glass-depth: oklch(1 0 0 / 20%);
+  --glass-depth-reach: 64px;
+  /* A little of it wrapping back up off the bottom edge. */
+  --glass-underglow: oklch(1 0 0 / 10%);
+  --glass-underglow-reach: 34px;
+  /*
+    Two shadows, not one. The soft one is the cast; the tight one is
+    contact, and without it a pane hovers rather than sits.
+  */
+  --glass-contact: oklch(0 0 0 / 55%);
+  --glass-cast: oklch(0.05 0 0 / 88%);
+  /* The nested well is the same material, quieter on every term. */
+  --well-rim-top: oklch(0.97 0.03 207 / 28%);
+  --well-rim-bottom: oklch(0.95 0.035 328 / 15%);
+  --well-depth: oklch(1 0 0 / 10%);
+  --well-depth-reach: 40px;
+
+  /*
     Semantic, never decorative.
 
     Every accent in the app, brand and semantic alike, sits at L 0.74. They
@@ -378,13 +428,32 @@
     it. On a near-black field the edge is what sells glass, more than the blur
     does, so these are brighter than they look like they should be.
   */
+  /*
+    The rim is four separate edges and they disagree on purpose: an edge is
+    what tells you where the light is, and a hairline that is the same all
+    the way round is the one thing a real pane never is. The neutral
+    `inset 0 0 0 1px var(--border)` still sits under all four and fills the
+    corners, where a one-sided shadow tapers out.
+
+    Order is load-bearing. In a box-shadow list the first entry paints on
+    top, so the hairlines have to come before the falloff or the falloff
+    washes straight over them.
+  */
   .card-sheen {
     position: relative;
     box-shadow:
-      inset 0 1px 0 0 oklch(1 0 0 / 30%),
-      inset 0 -1px 0 0 oklch(1 0 0 / 12%),
+      inset 0 1px 0 0 var(--glass-rim-top),
+      inset 1px 0 0 0 var(--glass-rim-left),
+      inset -1px 0 0 0 var(--glass-rim-right),
+      inset 0 -1px 0 0 var(--glass-rim-bottom),
+      inset 0 var(--glass-depth-reach) var(--glass-depth-reach)
+        calc(var(--glass-depth-reach) * -1) var(--glass-depth),
+      inset 0 calc(var(--glass-underglow-reach) * -1)
+        var(--glass-underglow-reach) calc(var(--glass-underglow-reach) * -1)
+        var(--glass-underglow),
       inset 0 0 0 1px var(--border),
-      0 14px 36px -18px oklch(0.05 0 0 / 88%);
+      0 2px 5px -3px var(--glass-contact),
+      0 18px 44px -20px var(--glass-cast);
   }
 
   /*
@@ -422,11 +491,22 @@
   }
 
   /* Nested well. No second card-in-card. */
+  /*
+    The nested well: the same material and the same two lights, quieter on
+    every term because it sits inside a pane already doing the refraction. It
+    still gets the cyan top and the magenta underside. A well that goes
+    neutral inside a cyan-topped panel reads as a hole cut in it.
+  */
   .glass-well {
     background-color: color-mix(in oklch, var(--muted), transparent 62%);
     -webkit-backdrop-filter: blur(24px) saturate(1.7);
     backdrop-filter: blur(24px) saturate(1.7);
-    box-shadow: inset 0 0 0 1px var(--border);
+    box-shadow:
+      inset 0 1px 0 0 var(--well-rim-top),
+      inset 0 -1px 0 0 var(--well-rim-bottom),
+      inset 0 var(--well-depth-reach) var(--well-depth-reach)
+        calc(var(--well-depth-reach) * -1) var(--well-depth),
+      inset 0 0 0 1px var(--border);
   }
 
   /*

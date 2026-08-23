@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { formatPercent, initials, plural } from "@/lib/format";
 import type { SeasonStanding } from "@/lib/game/seasons";
+import { NO_VALUE } from "@/lib/format";
 
 /*
   The season table.
@@ -37,7 +38,7 @@ export function SeasonTable({ standings }: { standings: SeasonStanding[] }) {
             )}
           >
             <span className="figure w-6 shrink-0 text-sm text-muted-foreground">
-              {row.ranked ? (row.rank ?? row.position) : "–"}
+              {row.ranked ? (row.rank ?? row.position) : NO_VALUE}
             </span>
 
             <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-medium text-muted-foreground">

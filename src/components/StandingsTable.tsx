@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { formatMoney, formatPercent, initials } from "@/lib/format";
+import { NO_VALUE, formatMoney, formatPercent, initials } from "@/lib/format";
 import { GoalMark } from "@/components/WeeklyGoal";
 import type { Standing } from "@/lib/game/leagues";
 
@@ -113,7 +113,7 @@ export function StandingsTable({
               <span
                 className={cn("figure hidden w-16 shrink-0 text-right text-sm sm:block", tone)}
               >
-                {today == null ? "—" : formatPercent(today)}
+                {today == null ? NO_VALUE : formatPercent(today)}
               </span>
             ) : null}
 

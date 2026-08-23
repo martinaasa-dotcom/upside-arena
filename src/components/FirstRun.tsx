@@ -68,7 +68,7 @@ export function FirstRun({
       done: hasCompany,
       title: "Get somebody else in",
       detail: leagueName
-        ? `${leagueName} is yours and it has an invite code. One other person is enough — until then the table is a list with you on it.`
+        ? `${leagueName} is yours and it has an invite code. One other person is enough, and until then the table is a list with you on it.`
         : "Start a league and send the code to one person. Two people is a game; one is a spreadsheet.",
       href: leagueHref,
       action: inviteCode ? "Send the code" : "Start a league",

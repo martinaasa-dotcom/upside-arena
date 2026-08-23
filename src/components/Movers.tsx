@@ -23,7 +23,7 @@ export function Movers({ movers }: { movers: MoversView }) {
   return (
     <Panel
       title="What moved today"
-      description="The largest real moves among companies you would recognise, and anything you own. A big move is not a reason to buy something — it is just what happened."
+      description="The largest real moves among companies you would recognise, and anything you own. A big move is not a reason to buy something. It is just what happened."
       action={
         movers.anyStale ? (
           <Badge variant="warning">Prices are catching up</Badge>

@@ -15,7 +15,7 @@ import { getLeagueRecord } from "@/lib/game/record";
 import { getLastWeekBooks } from "@/lib/game/books";
 import { Reveal } from "@/components/Reveal";
 import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
-import { formatDate, formatPercent, plural } from "@/lib/format";
+import { NO_VALUE, formatDate, formatPercent, plural } from "@/lib/format";
 
 /*
   The record room.
@@ -64,20 +64,20 @@ export default function RecordPage({
       </div>
 
       <Scoreboard>
-        <Suspense fallback={<Score label="Weeks played here" value="—" as="text" />}>
+        <Suspense fallback={<Score label="Weeks played here" value={NO_VALUE} as="text" />}>
           <WeeksScore params={params} />
         </Suspense>
-        <Suspense fallback={<Score label="Weeks you won" value="—" as="text" />}>
+        <Suspense fallback={<Score label="Weeks you won" value={NO_VALUE} as="text" />}>
           <WinsScore params={params} />
         </Suspense>
         <Suspense
           fallback={
-            <Score label="Ahead of the market" value="—" as="text" hint="per week" />
+            <Score label="Ahead of the market" value={NO_VALUE} as="text" hint="per week" />
           }
         >
           <AlphaScore params={params} />
         </Suspense>
-        <Suspense fallback={<Score label="Your best week" value="—" as="text" />}>
+        <Suspense fallback={<Score label="Your best week" value={NO_VALUE} as="text" />}>
           <BestScore params={params} />
         </Suspense>
       </Scoreboard>

@@ -15,6 +15,25 @@ const DATE = new Intl.DateTimeFormat("en-GB", {
   year: "numeric",
 });
 
+/**
+ * What a cell says when there is no number to put in it.
+ *
+ * This used to be an em dash, which is the convention every annual report
+ * uses for nil and is also the single loudest tell that a sentence was
+ * generated rather than written. A reader never sees one of those in
+ * Arena, and a reader sees these: they are the fallback in every Score
+ * card on Home, in a battle, and in a record.
+ *
+ * A bare hyphen was the obvious swap and is wrong. These sit beside signed
+ * percentages in `tabular-nums` columns, where a loss already renders with
+ * a leading `-`, so a lone `-` two rows down reads as a number whose
+ * digits failed to load rather than as "we do not have this". `n/a` cannot
+ * be misread as arithmetic, and it is what a person would actually write.
+ *
+ * One constant, so it is one edit if that call ever changes.
+ */
+export const NO_VALUE = "n/a";
+
 export function formatTime(value: Date | string) {
   return TIME.format(typeof value === "string" ? new Date(value) : value);
 }

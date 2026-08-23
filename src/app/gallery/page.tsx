@@ -608,7 +608,7 @@ export default function GalleryPage() {
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="truncate text-sm font-medium">Sunday Roasters</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  Nobody else yet — send them the code
+                  Nobody else yet, send them the code
                 </span>
               </span>
             </span>
