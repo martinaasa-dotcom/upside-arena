@@ -2,6 +2,7 @@ import type { SeasonStanding } from "@/lib/game/seasons";
 import type { Standing } from "@/lib/game/leagues";
 import type { Streak } from "@/lib/game/streaks";
 import type { Position } from "@/lib/game/portfolio";
+import type { Quote } from "@/lib/market/quotes";
 import type { PodView } from "@/lib/game/pods";
 import type { Recap } from "@/lib/share/card";
 import type { Battle } from "@/lib/game/battles";
@@ -134,7 +135,47 @@ export const streakDone: Streak = {
   freezesAvailable: 0,
 };
 
+/*
+  A quote as the app actually holds one. Fixed, because a fixture whose
+  numbers move is a photograph that cannot be compared with yesterday's.
+*/
+function quoteFor(symbol: string, name: string, price: number): Quote {
+  return {
+    symbol,
+    price,
+    previousClose: price,
+    change: 0,
+    changePercent: 0,
+    currency: "USD",
+    marketState: "REGULAR",
+    name,
+    type: "EQUITY",
+    fetchedAt: 0,
+    stale: false,
+  };
+}
+
 export const positions: Position[] = [
+  /*
+    A position with a price and a name, which is what almost every row in
+    this panel is and which none of them was here.
+
+    Both fixtures below carry no quote, deliberately, to check the row that
+    has no price. The consequence was that the name column -- the one the
+    comment in Holdings describes tuning the whole layout around, because it
+    is the thing allowed to truncate -- was empty in every photograph ever
+    taken of this component.
+  */
+  {
+    symbol: "NVDA",
+    quantity: 210,
+    costBasis: 62_000,
+    averageCost: 295.24,
+    quote: quoteFor("NVDA", "NVIDIA Corporation", 341.2),
+    value: 71_652,
+    gain: 9_652,
+    gainPercent: 15.57,
+  },
   {
     symbol: "GOOGL",
     quantity: 1234.5678,
