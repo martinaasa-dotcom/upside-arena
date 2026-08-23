@@ -22,9 +22,18 @@ import { useEffect, useRef, type ReactNode } from "react";
   visible, which is the safe direction to fail in: nothing can leave a section
   of the page permanently blank because an observer never fired.
 
-  The observer disconnects on the first intersection. This is an arrival, not
-  a scrubbed animation, and a section that faded out again on the way back up
-  would be a toy.
+  NOTHING ALREADY ON SCREEN IS EVER HIDDEN. The rect is measured first, and a
+  section at or above the fold is marked arrived without passing through the
+  hidden state at all. Without that check, hydrating hides whatever the reader
+  is looking at and then fades it back in a frame later, which is a flash on
+  the first screen; and anybody who arrived at a scroll position that is not
+  the top, by following a link with a hash, by reloading part way down, or by
+  having the browser restore where they were, watches the page they were
+  reading disappear. The observer is only for what is still below.
+
+  It disconnects on the first intersection. This is an arrival, not a scrubbed
+  animation, and a section that faded out again on the way back up would be a
+  toy.
 */
 export function Arrive({
   children,
@@ -41,6 +50,12 @@ export function Arrive({
     const element = ref.current;
     if (!element) return;
     if (typeof IntersectionObserver === "undefined") return;
+
+    // Already in view, or scrolled past. Arrived, and never hidden.
+    if (element.getBoundingClientRect().top < window.innerHeight) {
+      element.dataset.reveal = "in";
+      return;
+    }
 
     element.dataset.reveal = "out";
 

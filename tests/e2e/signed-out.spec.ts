@@ -12,13 +12,45 @@ test.describe("landing", () => {
     */
     await expect(
       page.getByRole("heading", {
-        name: "Every group chat has a stock genius. Nobody ever finds out who was right.",
+        name: "Everyone has a stock pick. Nobody keeps score.",
         level: 1,
       })
     ).toBeVisible();
-    await expect(page.getByText("Not financial advice.")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Terms" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Privacy policy" })).toBeVisible();
+    /*
+      The consent sentence sits with the button that constitutes consenting,
+      and there are two such buttons, so there are two of it. `.first()` rather
+      than a count, because where it appears is a layout decision and this
+      test is about it being on the page at all.
+    */
+    await expect(
+      page.getByRole("link", { name: "Terms", exact: true }).first()
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Privacy policy" }).first()
+    ).toBeVisible();
+  });
+
+  test("puts the consent sentence beside every button that signs you in", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    /*
+      Somebody who signs up from the closing ask has to have been told the same
+      thing as somebody who signed up from the hero.
+
+      The buttons stream in behind a Suspense boundary, so counting them
+      straight after `goto` counted zero on a phone and passed vacuously on a
+      desktop. Wait for one to exist before asking how many there are.
+    */
+    const google = page.getByRole("button", { name: "Continue with Google" });
+    await expect(google.first()).toBeVisible();
+
+    const buttons = await google.count();
+    expect(buttons).toBeGreaterThan(0);
+    await expect(
+      page.getByText(/By continuing you confirm you are 16 or older/)
+    ).toHaveCount(buttons);
   });
 
   /*
@@ -33,41 +65,48 @@ test.describe("landing", () => {
     await page.goto("/");
 
     await expect(
-      page.getByText("Free to play, and the free game is the whole game.")
+      page.getByText("Nothing. The free game is the whole game.")
     ).toBeVisible();
     await expect(
-      page.getByText(/it cannot change a score, a ranking or what anybody is allowed to trade/)
+      page.getByText(/It cannot move a score, a ranking or what anybody is allowed to trade/)
     ).toBeVisible();
     await expect(page.getByText(/The money is pretend/)).toBeVisible();
     await expect(page.getByText(/Arena is not a broker/)).toBeVisible();
   });
 
-  test("repeats the ask at the bottom, and it lands on the sign-in card", async ({
+  /*
+    Google is the only way in, and it is the whole of the way in.
+
+    The magic link went on 2026-08-23. Everything it needed existed to get an
+    address right that Google already has right, and every one of those steps
+    was a way for somebody to fail to reach their own account.
+  */
+  test("offers Google and nothing else", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(
+      page.getByRole("button", { name: "Continue with Google" }).first()
+    ).toBeEnabled();
+
+    // No address field, no "email me a link", nowhere to mistype anything.
+    await expect(page.getByLabel("Email")).toHaveCount(0);
+    await expect(page.locator('input[type="email"]')).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /link/i })).toHaveCount(0);
+  });
+
+  test("repeats the ask at the bottom, and it is the real button", async ({
     page,
   }) => {
     await page.goto("/");
 
-    // Nobody should have to scroll back up hunting for the one thing the page
-    // is asking them to do.
-    const ask = page.getByRole("link", { name: "Start a league" });
-    await expect(ask).toBeVisible();
-    await expect(ask).toHaveAttribute("href", "#start");
-
-    // And the thing it points at has to be the real card, not a dead anchor.
-    await expect(page.locator("#start").getByLabel("Email")).toBeVisible();
-  });
-
-  /*
-    One sign-in card on the page, not two.
-
-    Lab's landing repeats its button at the bottom because signing in there is
-    a single button. Arena's is a card with an email field in it, and a second
-    copy would be a second form, a second control labelled "Email", and one
-    visitor counted twice.
-  */
-  test("has exactly one sign-in card", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByLabel("Email")).toHaveCount(1);
+    /*
+      Two, and both of them sign you in. Nobody who has read to the end of the
+      page should have to scroll back up to act on it, and with one button
+      there is nothing to duplicate: no second form, no second field.
+    */
+    await expect(
+      page.getByRole("button", { name: "Continue with Google" })
+    ).toHaveCount(2);
   });
 
   test("states the 16 age rule where it is read, not behind a tick box", async ({
@@ -77,15 +116,19 @@ test.describe("landing", () => {
 
     // Asserted in the same sentence as the terms, the way Upside Lab does it.
     // A separate checkbox only puts a dead button in front of a new visitor.
+    // One per sign-in button, so this names the first; the test below is the
+    // one that cares how many there are.
     await expect(
-      page.getByText(/By continuing you confirm you are 16 or older/)
+      page.getByText(/By continuing you confirm you are 16 or older/).first()
     ).toBeVisible();
     await expect(page.getByRole("checkbox")).toHaveCount(0);
   });
 
   test("sign-in is usable the moment the page loads", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("button", { name: /Email me a link/ })).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: "Continue with Google" }).first()
+    ).toBeEnabled();
   });
 
   test("the sign-in button is not covered by the cookie notice", async ({ page }) => {
@@ -95,7 +138,7 @@ test.describe("landing", () => {
     // do is worse than no notice at all. This caught exactly that on a phone.
     const clear = await page.evaluate(() => {
       const button = [...document.querySelectorAll("button")].find((b) =>
-        /Email me a link/.test(b.textContent ?? "")
+        /Continue with Google/.test(b.textContent ?? "")
       );
       const notice = document.querySelector('[role="dialog"]');
       if (!button || !notice) return true;
@@ -105,6 +148,22 @@ test.describe("landing", () => {
     });
 
     expect(clear).toBe(true);
+  });
+
+  /*
+    The page has an end to it. A landing page that simply stops is a page with
+    nothing behind it, and this is also where the advice disclaimer moved to
+    when it came out of the hero.
+  */
+  test("ends in a footer that says what Arena is not", async ({ page }) => {
+    await page.goto("/");
+    const footer = page.getByRole("contentinfo");
+
+    await expect(footer.getByText(/Play money only/)).toBeVisible();
+    await expect(footer.getByText(/Not financial advice/)).toBeVisible();
+    await expect(footer.getByRole("link", { name: "How Arena works" })).toBeVisible();
+    await expect(footer.getByRole("link", { name: "Terms of use" })).toBeVisible();
+    await expect(footer.getByRole("link", { name: "Privacy" })).toBeVisible();
   });
 });
 
@@ -230,7 +289,7 @@ test.describe("protected routes", () => {
       await page.goto(path);
       await expect(page).toHaveURL(/\/(\?|$)/);
       await expect(
-        page.getByRole("heading", { name: /Every group chat has a stock genius/ })
+        page.getByRole("heading", { name: /Everyone has a stock pick/ })
       ).toBeVisible();
     });
   }
@@ -376,7 +435,9 @@ test.describe("the numbers page", () => {
     // Sent to sign in, carrying where they were headed, like any other
     // signed-in page. Nothing on the way says whether that page exists.
     await expect(page).toHaveURL(/\?next=%2Fmetrics$/);
-    await expect(page.getByLabel("Email")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Continue with Google" }).first()
+    ).toBeVisible();
   });
 });
 
@@ -588,11 +649,12 @@ test.describe("accessibility basics", () => {
     await expect(page.locator("h1")).toHaveCount(1);
   });
 
-  test("the email field is labelled and typed", async ({ page }) => {
+  test("the sign-in button is a real button with a real name", async ({ page }) => {
     await page.goto("/");
-    const email = page.getByLabel("Email");
-    await expect(email).toHaveAttribute("type", "email");
-    await expect(email).toHaveAttribute("autocomplete", "email");
+    const button = page.getByRole("button", { name: "Continue with Google" }).first();
+    await expect(button).toHaveAttribute("type", "submit");
+    // The mark beside the label is decoration, so the name is the words alone.
+    await expect(button).toHaveAccessibleName("Continue with Google");
   });
 });
 
@@ -619,7 +681,9 @@ test.describe("a shared week", () => {
 
     // A card that has gone is a card that has gone. It must not become a
     // sign-in wall, which is what a missing public path rule would produce.
-    await expect(page.getByLabel("Email")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Continue with Google" })
+    ).toHaveCount(0);
   });
 
   test("says plainly when a link no longer works, and blames nobody", async ({

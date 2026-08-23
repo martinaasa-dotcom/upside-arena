@@ -1,7 +1,6 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured, siteUrl } from "@/lib/env";
@@ -13,100 +12,22 @@ import {
 } from "@/lib/auth/google-state";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 import { safeNext } from "@/lib/redirects";
-import { readEmail } from "@/lib/auth/email-address";
-import { domainAcceptsMail } from "@/lib/auth/email-mx";
 
-export type AuthState = {
-  error?: string;
-  sent?: boolean;
-  /*
-    A spelling worth asking about before anything is sent, and the address as
-    it was typed, so the form can offer both and correct nobody by surprise.
-  */
-  suggestion?: string;
-  typed?: string;
-};
+/*
+  Google is the only way in.
 
-const signInSchema = z.object({
-  email: z.string(),
-  next: z.string().optional(),
-  /** Set once the person has answered a "did you mean" question about their own address. */
-  confirmed: z.string().optional(),
-});
+  `signInWithEmail` lived here and sent a magic link. Everything it did was in
+  service of getting an address right that Google already has right: a syntax
+  read, a "did you mean gmail.com" question, an MX lookup against the domain,
+  and a rate limit to sit behind. Every one of those is a way for somebody to
+  fail to get into their own account, and none of them exist on an ID token.
 
-export async function signInWithEmail(
-  _prev: AuthState,
-  formData: FormData
-): Promise<AuthState> {
-  if (!isSupabaseConfigured) {
-    return { error: "Sign-in is not connected yet. Add your Supabase keys to .env.local." };
-  }
-
-  const parsed = signInSchema.safeParse({
-    email: formData.get("email"),
-    next: formData.get("next") ?? undefined,
-    confirmed: formData.get("confirmed") ?? undefined,
-  });
-
-  if (!parsed.success) {
-    return { error: "Check the form and try again." };
-  }
-
-  /*
-    Everything about the address is settled before a single message is asked
-    for. A magic link is the only mail Arena sends to a stranger, so an address
-    that cannot receive is not a smaller success: it is a bounce against the
-    project's sending reputation and a person sitting in front of an empty
-    inbox believing the app is broken.
-  */
-  const verdict = readEmail(parsed.data.email);
-
-  if (verdict.kind === "unreachable") {
-    return { error: verdict.message, typed: verdict.email };
-  }
-
-  /*
-    One edit from a domain half the world uses. Asked rather than assumed, and
-    the typed spelling stays on offer, because plenty of real domains sit one
-    letter from a famous one and being told your own address is wrong is worse
-    than a bounce.
-  */
-  if (verdict.kind === "check" && parsed.data.confirmed !== "1") {
-    return { suggestion: verdict.suggestion, typed: verdict.email };
-  }
-
-  const email = verdict.email;
-  const domain = email.slice(email.lastIndexOf("@") + 1);
-
-  if (!(await domainAcceptsMail(domain))) {
-    return {
-      error: `We could not find a mail server for ${domain}, so a link sent there would not arrive. Check the spelling.`,
-      typed: email,
-    };
-  }
-
-  const supabase = await createClient();
-  const next = safeNext(parsed.data.next);
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: `${siteUrl()}/auth/confirm?next=${encodeURIComponent(next)}`,
-      data: {
-        age_confirmed: true,
-        terms_version: TERMS_VERSION,
-        privacy_version: PRIVACY_VERSION,
-      },
-    },
-  });
-
-  if (error) {
-    // Supabase rate-limits link requests per address. Say so plainly.
-    return { error: error.message };
-  }
-
-  return { sent: true };
-}
+  What it recorded that this does not is `age_confirmed` and the two document
+  versions in Supabase user metadata. That is not a loss: the durable record
+  of who agreed to what is the `terms_acceptances` table, written by
+  `recordAcceptance` at the end of onboarding for everybody however they
+  signed in, and it is what an account export returns.
+*/
 
 /**
  * Starts Google sign-in, on Arena's own domain.

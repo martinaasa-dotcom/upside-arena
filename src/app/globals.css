@@ -781,13 +781,20 @@
   */
   [data-reveal] {
     transition:
-      opacity 0.7s ease-out,
-      transform 0.7s ease-out;
+      opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  /*
+    12px and just over half a second. An arrival, not a performance: far
+    enough to be felt as movement and near enough that nothing is still
+    travelling by the time the eye lands on it. The same easing curve as
+    `.rise`, so the hero's one shot and the sections below it are visibly
+    the same gesture.
+  */
   [data-reveal="out"] {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(12px);
   }
 
   [data-reveal="in"] {
