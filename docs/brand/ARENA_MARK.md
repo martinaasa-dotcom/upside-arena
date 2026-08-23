@@ -117,17 +117,37 @@ bare mark is transparent and the plate is a gradient, so there is no one
 colour to fill with. A mask cuts the same seam on black, on white, and on
 nothing at all.
 
-### The mark: one aqua ramp, split across the pair
+### Two colourways
 
-| Step | From | To | oklch |
+The mark has two, and which one is right depends entirely on what it is
+sitting on. `COLOURWAYS` in `src/lib/brand/mark.ts`.
+
+**`MARK`** is the app's: aqua on the app's own true black, transparent. The
+header lockup, the share card, `public/arena-mark.svg`.
+
+| Ramp | From | To | oklch |
 |---|---|---|---|
-| `arena-near` | `#d0fbff` | `#1ec8d0` | L 0.96 → 0.76 |
-| `arena-far` | `#00a6b4` | `#00616f` | L 0.66 → 0.45 |
+| near | `#d0fbff` | `#1ec8d0` | L 0.96 → 0.76 |
+| far | `#00a6b4` | `#00616f` | L 0.66 → 0.45 |
 
 The near peak's lower stop sits at the accent's own lightness, so the mark and
-`--primary` read as the same colour rather than as two neighbours. The far
-peak runs two steps below it — far enough to sit back on the true-black field
-without disappearing into it.
+`--primary` read as the same colour rather than as two neighbours.
+
+**`ICON`** is the home screen's, and it is the reverse: the accent aqua as the
+*field*, with the peaks in an ink drawn from the same hue.
+
+| | From | To |
+|---|---|---|
+| plate | `#86eef7` | `#0a7f96` |
+| near | `#032128` | `#021216` |
+| far | `#083a45` | `#04222a` |
+
+**Depth reverses with it.** On black the near peak is the brightest thing and
+the far one recedes into the field. On aqua the near peak is the *darkest* and
+the far one is closer to the plate. Contrast is what says "in front", and it
+points the other way round on a light ground.
+
+Why the icon is not simply the app: see the plate below.
 
 ### The product accent: the mark's own aqua
 
@@ -181,18 +201,20 @@ where the Apple rules live.
 
 ### The plate
 
-Full-bleed, opaque, and lit from the same two directions the app itself is:
-the near lobe in the accent aqua at the top left, the far one in the magenta
-counter-accent at the bottom right, over a field that runs `#10353d` to
-`#010a0c`. An icon lit like the product is what makes the home screen and the
-app feel like one thing rather than two.
+One linear gradient, top to bottom, full-bleed and opaque. Nothing else.
 
-The field is a deep teal rather than the app's true black, and that followed
-from the mark getting heavier. Once the peaks fill most of the tile the ground
-is a setting rather than a stage: near-black behind them read as a hole with a
-logo in it, where a deep teal reads as air. Arena is a game, and it is allowed
-to have some colour in it — this is the one place the product's chrome rule
-(true black, everywhere) deliberately does not reach.
+It used to be the app's own ambient lighting — a radial field with an aqua
+lobe behind the mark and a magenta counter-lobe in the far corner — moved onto
+a 64px tile, where all it did was read as a smudge. An icon plate is a flat
+colour with a gentle fall, the way every icon it will sit beside is.
+
+**And the field is the accent, not the app's black.** This is the correction
+that mattered most, and it only showed up when the icons were put in a grid
+next to the ones people actually have. A near-black tile among them does not
+read as premium and restrained; it reads as a hole where an app should be.
+Arena's chrome is true black and stays true black — the icon is the one place
+that rule deliberately does not reach, because an icon is not chrome, it is a
+thing on somebody's home screen competing with forty others.
 
 What it deliberately does **not** carry:
 
@@ -211,17 +233,23 @@ What it deliberately does **not** carry:
 
 | Preset | Corner | Mark scale | Where it goes |
 |---|---|---|---|
-| `app` | square | 0.80 | Apple touch icon, App Store master |
-| `tile` | 22.5% | 0.88 | favicons, bookmark tiles, PWA `any` |
-| `maskable` | square | 0.56 | Android adaptive icons |
-| `consent` | 22.5% | 0.60 | Google's OAuth dialogue |
+| `app` | square | 0.66 | Apple touch icon, App Store master |
+| `tile` | 22.5% | 0.70 | favicons, bookmark tiles, PWA `any` |
+| `maskable` | square | 0.52 | Android adaptive icons |
+| `consent` | 22.5% | 0.54 | Google's OAuth dialogue |
+
+The number is the fraction of the tile the mark's **width** takes, not a raw
+scale factor — a scale says nothing about how close a foot lands to an edge.
 
 Each of them crops differently, which is why one safe area would be wrong for
 all of them.
 
-`app` is square and full-bleed because the system masks it, and `0.80` puts
-the mark inside the concentric safe area Apple's icon grid reserves — room for
-the mask to take the corners without touching a foot.
+**0.66 is the register, not a compromise.** A centred symbol on an Apple icon
+runs between about half and two thirds of the tile — Music's note is near
+0.48, Messages' bubble near 0.64, Mail's envelope near 0.66 — and the margin
+around it is doing as much work as the symbol. This was 0.80 for one round
+because bigger sounded better; in a grid beside real icons it read as crowded
+rather than as confident.
 
 `tile` carries its own rounded shape because nothing masks a favicon, and the
 mark sits larger for the same reason.
@@ -315,15 +343,24 @@ introduced, then replaced, the first mark.
 7. Rally shipped thin and was sent back the same day. The direction was right
    and the drawing did not carry its tile — two small strokes with most of the
    icon empty around them. The legs roughly doubled, the far peak lost its
-   counter, the field came up to a deep teal, and the whole thing got an
-   optical lift. Same mark, finally the right weight.
+   counter, and the whole thing got an optical lift.
+8. Then the weight overshot, to 0.80 of the tile, and the plate was still
+   near-black. Both were fixed by the same test: render the icons in a grid
+   beside the ones people actually have. At 0.80 the mark read as crowded; on
+   near-black the tile read as a hole. Coverage came back to the Apple
+   register and the accent moved from the mark to the field. The drawing has
+   not changed since round seven — only what it sits on and how much room it
+   is given.
 
-Two lessons worth keeping. From round five: a mark that reviews well as a
+Three lessons worth keeping. From round five: a mark that reviews well as a
 specimen can still fail in the lockup, so judge the next one in the header at
 20px and on the landing page at hero size before deciding — and, since round
 six, at 16px on a plate as well. From round seven: judge it as an app icon at
-full size too, on a home screen among other icons, because "does this drawing
-own its tile" is a question a contact sheet of marks never asks.
+full size too, because "does this drawing own its tile" is a question a
+contact sheet of marks never asks. From round eight, the one that actually
+found the errors: **judge it in a grid beside icons you did not make.** A
+contact sheet of your own variants tells you which of them is best. Only a
+home screen tells you whether any of them belongs there.
 
 The earlier exploration is kept in `docs/brand/concepts/`. It is a record, not
 a dependency: nothing in the app imports from it.

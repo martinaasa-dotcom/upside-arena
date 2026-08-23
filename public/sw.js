@@ -6,7 +6,7 @@
   quote shown as live would be worse than no quote at all.
 */
 
-const VERSION = "arena-v4";
+const VERSION = "arena-v5";
 const SHELL_CACHE = `${VERSION}-shell`;
 
 const SHELL_ASSETS = ["/offline", "/icons/icon-192.png", "/manifest.webmanifest"];
