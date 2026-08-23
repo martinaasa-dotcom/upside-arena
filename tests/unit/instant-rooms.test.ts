@@ -115,10 +115,12 @@ function isCached(body: string) {
   a line here and a moment's thought about whether the wrapper should exist.
 */
 const DELEGATES_TO: Record<string, string> = {
-  // Settles who is asking first, uncached and on every request, because a
-  // cached identity is a revoked token still opening rooms. The row it then
-  // reads is cached under that identity.
-  getSession: "readProfile",
+  // A React cache() wrapper so several components streaming at once share one
+  // call. The directive is on the function it wraps, which is where the
+  // cookie is read -- and reading the cookie inside the cache rather than
+  // outside it is the difference between a room that arrives whole and one
+  // that arrives in pieces. tests/instant watches that happen.
+  getSession: "readSession",
 
   // A Map does not survive a cache -- what comes back is what could be
   // serialised -- so these cache the entries and build the Map on the way

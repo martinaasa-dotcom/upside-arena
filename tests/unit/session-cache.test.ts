@@ -24,27 +24,61 @@ const SOURCE = readFileSync(
 );
 
 describe("the cached session", () => {
-  it("is keyed on the account it belongs to", () => {
-    // The cached function has to take the id, or its key is the same for all.
-    expect(SOURCE).toMatch(/async function readProfile\(\s*userId: string/);
+  it("caches the cookie read, not only the row that follows it", () => {
+    /*
+      The whole point, and the thing four attempts got wrong.
 
-    const body = SOURCE.slice(SOURCE.indexOf("async function readProfile("));
-    expect(body).toContain('"use cache: private"');
-    expect(body).toMatch(/cacheTag\(sessionTag\(userId\)\)/);
+      Reading a cookie is a runtime API, so a function that reads one cannot be
+      prerendered -- and every room begins by awaiting this one. Caching the
+      profile row while leaving the cookie read outside it left the root of
+      every room dynamic, and every cached read behind that root still arrived
+      after the tap. Adding a single cookies() call to this function is enough
+      to move /home from static to partially prerendered, which is how it was
+      finally found.
+
+      So the directive has to be on the function that reads the cookie, not on
+      something it calls afterwards.
+    */
+    const body = SOURCE.slice(SOURCE.indexOf("async function readSession("));
+
+    expect(body).toMatch(/^ {2}"use cache: private";$/m);
+    expect(body).toMatch(/cacheTag\(sessionTag\(user\.id\)\)/);
   });
 
-  it("does not cache the answer to who is asking", () => {
+  it("still verifies the token rather than trusting the cookie", () => {
     /*
-      identify() is a signature check against a token already in hand. It is
-      the one answer here that must be settled on every request, and caching
-      it would mean a token that has been revoked still opening rooms.
+      Identity is settled by checking a signature, not by reading what a cookie
+      claims. That is true whether or not the answer is then cached, and it is
+      the line that must never move: reading the cookie and believing it would
+      be the insecure version of all of this.
     */
     const identify = SOURCE.slice(
       SOURCE.indexOf("async function identify("),
-      SOURCE.indexOf("async function readProfile(")
+      SOURCE.indexOf("const STUB_SESSION")
     );
 
-    expect(identify).not.toContain("use cache");
+    expect(identify).toContain("getClaims()");
+    expect(identify).toContain("getUser()");
+  });
+
+  it("is not what keeps anybody out", () => {
+    /*
+      The reason caching identity is safe to do at all, written down where
+      somebody about to worry about it will find it.
+
+      A private cache entry lives in the browser that asked, is never stored on
+      a server, is never shared between people, and does not survive a page
+      load -- and every way into this app as somebody else is a page load. The
+      lock is proxy.ts, which reads the cookie itself on every request and is
+      not cached. This check holds that division in place.
+    */
+    const proxy = readFileSync(
+      path.join(__dirname, "..", "..", "src", "lib", "supabase", "session.ts"),
+      "utf8"
+    );
+
+    expect(proxy).not.toContain("use cache");
+    expect(proxy).toContain("getClaims()");
   });
 
   it("gives the writers a handle to drop it with", () => {
