@@ -27,6 +27,13 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   reporter: process.env.CI ? "github" : "list",
+  /*
+    Longer than the default, because the first render of a populated room
+    fills every cache from cold and the upstreams here are placeholders that
+    have to time out before the page can finish. What is measured is the
+    navigation after that, which takes milliseconds.
+  */
+  timeout: 120_000,
   use: { baseURL, trace: "on-first-retry" },
   projects: [{ name: "desktop", use: { ...devices["Desktop Chrome"], launchOptions } }],
   webServer: {

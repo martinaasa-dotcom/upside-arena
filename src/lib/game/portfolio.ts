@@ -19,6 +19,7 @@ import { needsMarkToday, recordDailyMarks } from "@/lib/game/marks";
 import { fillLineup, hasLineupToFill } from "@/lib/game/lineup";
 import { checkTrade, formatById } from "@/lib/game/formats";
 import { cycleCache, playerCache } from "@/lib/game/cache";
+import { STUB, pretendSlow } from "@/lib/stub";
 
 /*
   Reading and valuing a player's week.
@@ -202,11 +203,88 @@ async function ensurePortfolio(userId: string, cycleId: string) {
  * ask for the same view within one render and must not each go and price a
  * portfolio to answer.
  */
+/*
+  The invented player's week, for the probe. See lib/stub.
+*/
+function stubQuote(symbol: string, price: number, name: string): Quote {
+  return {
+    symbol,
+    price,
+    previousClose: price * 0.98,
+    change: price * 0.02,
+    changePercent: 2,
+    currency: "USD",
+    marketState: "REGULAR",
+    name,
+    type: "EQUITY",
+    fetchedAt: 0,
+    stale: false,
+  };
+}
+
+function stubView(): PortfolioView {
+  const held = [
+    { symbol: "AAPL", quantity: 12, price: 214.5, name: "Apple Inc." },
+    { symbol: "MSFT", quantity: 5, price: 431.2, name: "Microsoft Corporation" },
+    { symbol: "NVDA", quantity: 8, price: 128.9, name: "NVIDIA Corporation" },
+  ];
+
+  const positions: Position[] = held.map((h) => {
+    const quote = stubQuote(h.symbol, h.price, h.name);
+    const costBasis = h.quantity * h.price * 0.95;
+    const value = h.quantity * h.price;
+    return {
+      symbol: h.symbol,
+      quantity: h.quantity,
+      costBasis,
+      averageCost: costBasis / h.quantity,
+      quote,
+      value,
+      gain: value - costBasis,
+      gainPercent: ((value - costBasis) / costBasis) * 100,
+    };
+  });
+
+  const cash = 1240.5;
+  const totalValue = cash + positions.reduce((sum, p) => sum + p.value, 0);
+
+  return {
+    cycle: {
+      id: "00000000-0000-4000-8000-0000000000c1",
+      monday: "2026-08-17",
+      ends_on: "2026-08-21",
+      status: "open",
+      format: "open",
+      direction: "long",
+      benchmark_symbol: BENCHMARK_SYMBOL,
+      benchmark_open: 765.72,
+      benchmark_close: null,
+      starting_balance: STARTING_BALANCE,
+    },
+    portfolioId: "00000000-0000-4000-8000-0000000000p1".replace("p", "b"),
+    startingBalance: STARTING_BALANCE,
+    cash,
+    positions,
+    totalValue,
+    returnPercent: ((totalValue - STARTING_BALANCE) / STARTING_BALANCE) * 100,
+    benchmarkReturnPercent: 1.4,
+    versusMarket: 0.9,
+    tradingOpen: true,
+    marketState: "REGULAR",
+    anyStale: false,
+  };
+}
+
 export const getPortfolioView = cache(async function getPortfolioView(
   userId: string
 ): Promise<PortfolioView | null> {
   "use cache";
   playerCache(userId);
+
+  if (STUB) {
+    await pretendSlow();
+    return stubView();
+  }
 
   const cycle = await getCurrentCycle();
   if (!cycle) return null;

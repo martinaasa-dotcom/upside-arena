@@ -7,12 +7,13 @@ import { Lineup } from "@/components/Lineup";
 import { BattleCard } from "@/components/BattleCard";
 import { getSession } from "@/lib/profile";
 import { getPortfolioView } from "@/lib/game/portfolio";
+import { lineupWeekMonday } from "@/lib/market/clock";
 import { getLineup } from "@/lib/game/lineup";
 import { getLiveBattles } from "@/lib/game/battles";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { TrackView } from "@/components/TrackView";
 import { formatMoney } from "@/lib/format";
-import { isLineupWindow, isWeekend, lineupMonday } from "@/lib/market/session";
+import {isLineupWindow, isWeekend} from "@/lib/market/session";
 
 export const metadata = { title: "Trade" };
 
@@ -145,7 +146,7 @@ async function Body({ searchParams }: { searchParams: Search }) {
     see the thing that was about to spend their money.
   */
   if (isLineupWindow()) {
-    const lineup = await getLineup(user.id, lineupMonday(), view.startingBalance);
+    const lineup = await getLineup(user.id, await lineupWeekMonday(), view.startingBalance);
 
     return (
       <>
