@@ -89,22 +89,50 @@ test.describe("a room arrives whole", () => {
     ).toBe(firstFrame);
   });
 
-  test("and so does trade, which reads the same session and portfolio", async ({
-    page,
-  }) => {
-    await page.goto("/home");
-    await page.waitForLoadState("networkidle");
+  /*
+    And the rest of the dock, each arriving from somewhere else.
 
-    let firstFrame = "";
+    Every room reads the session, so a hole at that root shows up in all of
+    them -- but each also reads things no other room does, and a hole in one
+    of those would only ever show up here. Two rooms were watched when this
+    was written, which is the coverage that let a loading.tsx sit above all
+    five while a test checked one directory at a time.
 
-    await instant(page, async () => {
-      await page.click('a[href="/trade"]');
-      await page.waitForURL((url) => url.pathname === "/trade");
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-      firstFrame = room(await page.locator("body").innerText());
+    Driven from Home rather than from a fixed page, because a client
+    navigation only re-renders below the layout two routes share, and the dock
+    is how a player actually moves.
+  */
+  const ROOMS = [
+    ["/trade", "the portfolio and the lineup"],
+    ["/leagues", "standings, pods and battles"],
+    ["/season", "the season table"],
+    ["/profile", "the wardrobe, the record and the cards"],
+  ] as const;
+
+  for (const [href, reads] of ROOMS) {
+    test(`${href} arrives whole too, and it reads ${reads}`, async ({ page }) => {
+      await page.goto("/home");
+      await page.waitForLoadState("networkidle");
+
+      let firstFrame = "";
+
+      await instant(page, async () => {
+        await page.click(`a[href="${href}"]`);
+        await page.waitForURL((url) => url.pathname === href);
+
+        // A room that painted nothing has no heading, which is the failure
+        // this would otherwise pass straight through.
+        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+        firstFrame = room(await page.locator("body").innerText());
+      });
+
+      await page.waitForLoadState("networkidle");
+
+      expect(
+        room(await page.locator("body").innerText()),
+        `${href} changed after the first frame, which is a region streaming in`
+      ).toBe(firstFrame);
     });
-
-    await page.waitForLoadState("networkidle");
-    expect(room(await page.locator("body").innerText())).toBe(firstFrame);
-  });
+  }
 });
