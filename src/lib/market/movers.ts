@@ -79,10 +79,12 @@ const SHOWN = 4;
  */
 export async function getMovers(owned: readonly string[] = []): Promise<MoversView | null> {
   /*
-    Remote for the same reason as the quote layer it sits on: this is a whole
-    watchlist from Yahoo, it is the same list for every player in the game,
-    and an in-memory entry on a serverless instance is gone before the next
-    player asks for it.
+    Remote for the same reason as the quote layer it sits on, and with the same
+    caveat: this is a whole watchlist from Yahoo, the same list for every
+    player in the game, and an in-memory entry on a serverless instance is gone
+    before the next player asks for it. Whether the directive does anything
+    depends on the platform supplying a remote handler, and without one Next
+    quietly uses the ordinary in-memory cache instead. See quotes.ts.
   */
   "use cache: remote";
   cycleCache();

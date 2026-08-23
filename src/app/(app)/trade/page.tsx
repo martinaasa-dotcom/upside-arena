@@ -7,13 +7,17 @@ import { Lineup } from "@/components/Lineup";
 import { BattleCard } from "@/components/BattleCard";
 import { getSession } from "@/lib/profile";
 import { getPortfolioView } from "@/lib/game/portfolio";
-import { lineupWeekMonday } from "@/lib/market/clock";
+import {
+  inLineupWindow,
+  isWeekendNow,
+  lineupWeekMonday,
+} from "@/lib/market/clock";
 import { getLineup } from "@/lib/game/lineup";
 import { getLiveBattles } from "@/lib/game/battles";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { TrackView } from "@/components/TrackView";
 import { formatMoney } from "@/lib/format";
-import {isLineupWindow, isWeekend} from "@/lib/market/session";
+
 
 export const metadata = { title: "Trade" };
 
@@ -99,9 +103,9 @@ async function CashLine() {
     itself -- which is inside this window, and the whole reason the window is
     wider than the weekend -- it names the day it is being read on.
   */
-  if (!isLineupWindow()) return <>{formatMoney(view.cash)} cash</>;
+  if (!(await inLineupWindow())) return <>{formatMoney(view.cash)} cash</>;
 
-  return isWeekend() ? (
+  return (await isWeekendNow()) ? (
     <>{formatMoney(view.startingBalance)} on Monday</>
   ) : (
     <>{formatMoney(view.startingBalance)} at the open</>
@@ -145,14 +149,14 @@ async function Body({ searchParams }: { searchParams: Search }) {
     somebody opening Arena at eight on a Monday morning could neither trade nor
     see the thing that was about to spend their money.
   */
-  if (isLineupWindow()) {
+  if (await inLineupWindow()) {
     const lineup = await getLineup(user.id, await lineupWeekMonday(), view.startingBalance);
 
     return (
       <>
         <Well className="py-3">
           <p className="text-sm text-muted-foreground">
-            {isWeekend()
+            {(await isWeekendNow())
               ? "The market is shut until Monday at 09:30 New York time, so there is nothing to trade and nothing to miss. What you can do is decide now."
               : "The market opens at 09:30 New York time this morning. Nothing can be traded until it does, and this is the last chance to change what is bought at the open."}
           </p>

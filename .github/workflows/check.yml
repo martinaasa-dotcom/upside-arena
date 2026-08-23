@@ -176,3 +176,13 @@ jobs:
           name: instant-report
           path: playwright-report/
           retention-days: 7
+
+      # Whether each room can be prerendered at all, which the browser probe
+      # above cannot see: a route with no shell simply makes the browser wait
+      # and then paints everything at once, which looks like arriving whole.
+      # This asks the framework instead, and it names the offending line.
+      # Bounded, because the placeholder upstreams this renders against can
+      # hang on a runner rather than refuse quickly, and a step with no ceiling
+      # is one that fails by running until somebody notices.
+      - run: npm run check:prerender
+        timeout-minutes: 10

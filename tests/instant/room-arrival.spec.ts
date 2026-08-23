@@ -118,13 +118,15 @@ test.describe("a room arrives whole", () => {
     is how a player actually moves.
   */
   const ROOMS = [
-    ["/trade", "the portfolio and the lineup"],
-    ["/leagues", "standings, pods and battles"],
-    ["/season", "the season table"],
-    ["/profile", "the wardrobe, the record and the cards"],
+    // Each with a string that can only be on screen if the room's own data
+    // arrived with it, rather than after it.
+    ["/trade", "the portfolio and the lineup", "$"],
+    ["/leagues", "standings, pods and battles", "not in a league yet"],
+    ["/season", "the season table", "Season"],
+    ["/profile", "the wardrobe, the record and the cards", NAME],
   ] as const;
 
-  for (const [href, reads] of ROOMS) {
+  for (const [href, reads, FIGURE] of ROOMS) {
     test(`${href} arrives whole too, and it reads ${reads}`, async ({ page }) => {
       await page.goto("/home");
       await page.waitForLoadState("networkidle");
@@ -135,9 +137,15 @@ test.describe("a room arrives whole", () => {
         await page.click(`a[href="${href}"]`);
         await page.waitForURL((url) => url.pathname === href);
 
-        // A room that painted nothing has no heading, which is the failure
-        // this would otherwise pass straight through.
+        /*
+          A heading, and then something that only exists once the room has its
+          data. A heading alone is too weak a claim: Trade passed this check
+          for a while with a clock read that cost it its entire shell, because
+          the heading is static and arrives either way. What catches that is
+          asking for a figure that had to come from somewhere.
+        */
         await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        await expect(page.locator("body")).toContainText(FIGURE);
 
         firstFrame = room(await page.locator("body").innerText());
       });

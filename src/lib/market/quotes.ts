@@ -199,15 +199,24 @@ async function fetchMany(symbols: string[]): Promise<Map<string, Quote | null>> 
 /*
   One batch, cached where every instance can see it.
 
-  Remote, not the plain in-memory kind, and that distinction is the whole of
-  why Home and Trade stayed slow after everything else had been fixed. `use
-  cache` keeps entries in the instance's own memory, which on a serverless
-  platform is not shared between instances and is thrown away after serving a
-  request -- so on a quiet app very nearly every read is a miss. A miss here
-  is a live round trip to Yahoo, which is long enough that the prefetch behind
-  a dock tab does not finish before the tap lands, and the room falls back to
-  arriving in pieces. The rooms that never ask for a price were unaffected,
-  which is exactly the split that was reported.
+  Remote, not the plain in-memory kind, because `use cache` keeps entries in
+  the instance's own memory, which on a serverless platform is not shared
+  between instances and is thrown away after serving a request. On a quiet app
+  that means very nearly every read is a miss, and a miss here is a live round
+  trip to a rate-limited service that answers with the same number for every
+  player in the game. That is what remote caching is for.
+
+  Written honestly, because this arrived as a wrong answer to something else.
+  Two rooms were slow and three were not, and this was offered as the reason
+  on the grounds that the two slow ones were the two that ask for a price. It
+  was not the reason -- the reason was a clock read in Home that cost the
+  route its shell -- and shipping this changed nothing a player could feel.
+  It is kept because it is right on its own terms, not because it fixed that.
+
+  Worth knowing before relying on it: without a remote handler supplied by the
+  platform, Next falls back to the ordinary in-memory one and this directive
+  does nothing at all. No warning, no error. Whether it is doing anything here
+  has not been confirmed.
 
   The map at the top of this file is the same idea and does not survive: it is
   process memory, and a serverless instance that has just started has none of
