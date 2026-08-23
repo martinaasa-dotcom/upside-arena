@@ -1,7 +1,8 @@
 # The Arena mark
 
-Arena's mark is a single eight-sided stone, parted along its diagonal, cut
-from aqua. It is called Cleave. It ships in `src/components/brand/ArenaMark.tsx`.
+Arena's mark is two heavy peaks in aqua, a near one and a far one, parted by a
+hairline. It is called **Rally**. It ships in
+`src/components/brand/ArenaMark.tsx`, drawn from `src/lib/brand/mark.ts`.
 
 This document records what was decided and why, so the next person does not
 have to reconstruct it from the branch history.
@@ -10,80 +11,143 @@ have to reconstruct it from the branch history.
 
 ## What it is
 
-One six-sided stone with an upward chevron channel cut clean through it. It is
-called Rift.
+Two heavy peaks sharing one baseline. The near one is taller, sits left, takes
+the light, and has a single counter cut through it. The far one is shorter,
+sits right, is two steps darker, and is **solid**. A hairline parts them.
 
-The channel is the mark. The stone is only there to hold it, which is why the
-two masses are shaded as one object rather than as a matched pair: the upper
-band is lit from the left and notched from beneath, the lower mass peaks into
-the gap and carries the brightest facet on its left flank.
+The pair is the whole idea. Arena is a game you play against people you know,
+one week at a time, and a week in it looks exactly like this: somebody ahead,
+somebody just behind, both climbing. A single object could say *upside*; only
+a pair can say *upside against somebody*.
 
-It says upside without drawing an arrow, a chart line or a mountain, and the
-thing a reader actually remembers is the empty shape between two solids.
+It is also what separates Arena from Lab without a colour swatch doing all the
+work. **Lab draws one peak. Arena draws two.** One product is your own
+portfolio, where there is nobody else. The other is the game.
+
+### Two things it had to learn
+
+**It has to occupy its icon.** The first version drew the same two peaks with
+legs half this width, and it was correct as a drawing and wrong as a mark: on
+a home screen it read as two thin strokes floating in the middle of a tile,
+like a logo somebody had forgotten to finish. The legs are 16 units either
+side of a 46-unit span now, so the mass is most of the drawing and the counter
+is a slot through it rather than the shape itself.
+
+**One aperture is enough.** The far peak had a counter too, and the middle of
+the mark was four edges deep — the near peak's slot, the far peak's slot, and
+the hairline between them. At any size below a poster that reads as clutter
+rather than as depth. Solid is what makes the far peak unmistakably the one
+behind, and it is the only difference between the two shapes that does not
+need a second glance.
 
 ### Construction, shared with Lab
 
-This part is deliberately identical to Lab's mark and must stay that way:
+What the two marks share, and must go on sharing:
 
-- flat facets, no strokes, transparent ground
-- the 64 grid
-- each facet drawn full-size then scaled `0.93` toward its own centroid, which
-  is what produces the even hairline cuts
+- flat fills, no strokes, no bevel, no baked shadow
+- a light ramp that runs across the whole drawing rather than per shape
+- hairline cuts between the masses, resolved optically as the drawing shrinks
+- the same icon plate, the same four-preset safe-area system, and the same
+  refusal to bake a corner radius into anything the system will mask
 
-Only the silhouette and the metal differ. Lab is a solid standing "A" in warm
-gold; Arena is a channelled stone in aqua. Siblings, not twins.
+Everything else differs, and deliberately. Lab is one standing "A" in warm
+gold, cut into **ten** facets, and the hairlines there *close* as it shrinks
+(`facetScale`). Arena is **two** peaks in aqua and its one hairline *widens*
+(`cutForSize`). Both rules exist for the same reason — a cut has to survive as
+roughly a pixel on screen — and they point in opposite directions because one
+drawing has nine cuts to lose and the other has one to keep. Siblings, not
+twins.
 
 ### Geometry
 
-A pointy-top hexagon of radius 28 about (32, 32). The channel's centre line
-runs (7.8, 35) to (32, 17) to (56.2, 35), opened to a **half-width of 7**:
-upper edge (7.8, 28) to (32, 10), lower edge (7.8, 42) to (32, 24). Each of the
-two resulting masses is split at the centre line so the shading has something
-to work with. Four facets in total.
+Both peaks are the same construction, in `peakPath()`: an apex and two feet on
+a shared baseline at `y = 60`. A peak with a `leg` gets a counter cut through
+it, sized by that leg width measured horizontally at the foot; a peak without
+one is a plain triangle.
 
-### The cut follows the size
+| | Apex | Half-span | Leg | Fill |
+|---|---|---|---|---|
+| Near | `(24, 4)` | 23 | 16 | `arena-near` |
+| Far | `(44, 16)` | 19 | — solid | `arena-far` |
 
-`cutForSize()` in `src/lib/brand/mark.ts` decides how hard to cut, and every
-drawing of the mark uses it: the React component from its `size` prop, the
-share-image SVG from its requested size, and each raster from the size it is
-about to be written at.
+The drawing spans x 1–63 and y 4–60: 62 by 56 in a 64 grid, centred exactly on
+(32, 32). It fills its own box, which is why `MARK_ZOOM` is 1 — it was 1.1
+back when the peaks were thin enough to look lost in a browser tab. Making the
+mark heavier is what removed the need for the lift.
 
-| Drawn at | Cut |
-|---|---|
-| 96px and up | `0.93` |
-| 40 to 95px | `0.96` |
-| under 40px | `0.99` |
+`INNER_APEX` is `0.62`. At `1` the notch between a peak's legs falls exactly
+where two lines parallel to the outer edges would meet, the legs are a
+constant horizontal width, and the peak reads blunt — a tent. Below `1` the
+inner apex rides up, the legs thin toward the top, and it reads as a peak.
+`0.62` is as far as it goes before the two legs stop looking like one object.
 
-The cut is an optical-size decision, not a constant. At `0.93` the gaps are the
-hairlines the cut-stone treatment depends on when the mark is large. At 16 or
-20px those same gaps are a pixel of mud: the lower mass splits down its centre
-line and reads as a crack rather than as two facets, which is exactly how the
-favicon failed. Small sizes get a nearly closed cut, leaving only the channel,
-which is meant to be there.
+### The cut follows the size, and it runs backwards
 
-The channel's half-width went from 5 to 7 for the same reason. At 5 it was
-thinner than a pixel at 16px once anti-aliasing had its way with it, and the
-band fused into the mass. 7 survives the range and reads bolder large.
+`cutForSize()` in `src/lib/brand/mark.ts` decides how wide to cut the hairline
+between the peaks, and every drawing of the mark uses it: the React component
+from its `size` prop, the standalone SVG from its requested size, and each
+raster from the size it is about to be written at.
 
-`MARK_ZOOM` lifts the whole drawing to 1.08. The mark is 56 units tall in a 64
-grid, and a browser tab or bookmark tile adds padding of its own on top of
-that, which left it looking lost in the tile.
+```
+cut = clamp(70 / size, 1.6, 4)
+```
 
-### The mark: one aqua ramp
-
-Four steps at hue 207, from a near-white rim down to a near-black shadow.
-
-| Step | From | To |
+| Drawn at | Cut, in grid units | On screen |
 |---|---|---|
-| `arena-rim` | `#cdf8fe` | `#60ebfc` |
-| `arena-lit` | `#2cd1e4` | `#25b5c6` |
-| `arena-body` | `#198d9a` | `#106d77` |
-| `arena-shadow` | `#07545d` | `#00383e` |
+| 512px | 1.6 (floor) | ~13px |
+| 180px | 1.6 (floor) | ~4.5px |
+| 44px | 1.6 | ~1.1px |
+| 32px | 2.2 | ~1.1px |
+| 16px | 4.0 (ceiling) | ~1px |
 
-The lit step sits at the accent's own lightness, so the mark and `--primary`
-read as the same colour rather than as two neighbours. The rim is deliberately
-desaturated: a stone reads as cut only if something on it catches light like
-metal.
+It gets **wider** in grid units as the drawing gets smaller, which is the
+opposite of the instinct. What has to survive is roughly a pixel on screen,
+not a number in the grid. At 16px a poster-sized 1.6-unit hairline is a fifth
+of a pixel, anti-aliasing eats it, and the two peaks fuse into one blob with a
+smudge down the middle — which is precisely how a mark stops reading as two
+things, and the failure the previous mark hit at favicon size.
+
+The floor keeps the seam a deliberate hairline at poster sizes rather than
+letting it vanish; the ceiling stops it opening into a canyon on a favicon.
+
+The cut is a **mask**, not a painted gap. The far peak is drawn through a mask
+that knocks out the near peak plus a `cut`-wide halo. Filling the gap with the
+plate colour instead would work on the icons and fail everywhere else: the
+bare mark is transparent and the plate is a gradient, so there is no one
+colour to fill with. A mask cuts the same seam on black, on white, and on
+nothing at all.
+
+### Two colourways
+
+The mark has two, and which one is right depends entirely on what it is
+sitting on. `COLOURWAYS` in `src/lib/brand/mark.ts`.
+
+**`MARK`** is the app's: aqua on the app's own true black, transparent. The
+header lockup, the share card, `public/arena-mark.svg`.
+
+| Ramp | From | To | oklch |
+|---|---|---|---|
+| near | `#d0fbff` | `#1ec8d0` | L 0.96 → 0.76 |
+| far | `#00a6b4` | `#00616f` | L 0.66 → 0.45 |
+
+The near peak's lower stop sits at the accent's own lightness, so the mark and
+`--primary` read as the same colour rather than as two neighbours.
+
+**`ICON`** is the home screen's, and it is the reverse: the accent aqua as the
+*field*, with the peaks in an ink drawn from the same hue.
+
+| | From | To |
+|---|---|---|
+| plate | `#86eef7` | `#0a7f96` |
+| near | `#032128` | `#021216` |
+| far | `#083a45` | `#04222a` |
+
+**Depth reverses with it.** On black the near peak is the brightest thing and
+the far one recedes into the field. On aqua the near peak is the *darkest* and
+the far one is closer to the plate. Contrast is what says "in front", and it
+points the other way round on a light ground.
+
+Why the icon is not simply the app: see the plate below.
 
 ### The product accent: the mark's own aqua
 
@@ -113,8 +177,7 @@ at least 18 degrees.
 `--glow-secondary` is **`oklch(0.74 0.17 328)`** (`#e380e0`), a magenta. It
 lights the far lobe of the ambient field so the page is lit from two directions
 in two hues rather than one colour twice. Like every other accent it sits at
-L 0.74; it was 0.68 when first chosen, and came up with the rest of the
-palette when the lightnesses were levelled.
+L 0.74.
 
 It was chosen rather than picked. The true complement of the accent is hue 27,
 a coral, which would give the most chromatic contrast and is unusable here: it
@@ -127,26 +190,110 @@ read as an opposite, while clearing every semantic hue by at least 44 degrees.
 It is deliberately quiet: 18 percent on desktop, 13 percent on a phone. It
 should be felt rather than noticed.
 
-### What did not change
+---
 
-`--gain`, `--loss`, `--warning` and `--destructive` are untouched. They are
-semantic and never decorative. The categorical `--cat-*` family is untouched.
-The field is still true black and the theme colour is still `#000000`.
+## The app icon
+
+The mark is not the icon. The icon is the mark on a plate, and the plate is
+where the Apple rules live.
+
+`PLATE` and `ICON_PRESETS` in `src/lib/brand/mark.ts` hold both.
+
+### The plate
+
+One linear gradient, top to bottom, full-bleed and opaque. Nothing else.
+
+It used to be the app's own ambient lighting — a radial field with an aqua
+lobe behind the mark and a magenta counter-lobe in the far corner — moved onto
+a 64px tile, where all it did was read as a smudge. An icon plate is a flat
+colour with a gentle fall, the way every icon it will sit beside is.
+
+**And the field is the accent, not the app's black.** This is the correction
+that mattered most, and it only showed up when the icons were put in a grid
+next to the ones people actually have. A near-black tile among them does not
+read as premium and restrained; it reads as a hole where an app should be.
+Arena's chrome is true black and stays true black — the icon is the one place
+that rule deliberately does not reach, because an icon is not chrome, it is a
+thing on somebody's home screen competing with forty others.
+
+What it deliberately does **not** carry:
+
+- **no baked corner radius** on the square shapes. iOS, iPadOS and macOS draw
+  their own squircle over whatever they are given. An icon that arrives
+  already rounded gets rounded twice, and the visible tell is a thin dark
+  crescent inside each corner. The previous Lab icon had exactly this.
+- **no baked drop shadow and no baked specular highlight.** The system adds
+  its own lighting, and a second one underneath it reads as dirt.
+- **no alpha channel** on the square shapes. Apple rejects an App Store icon
+  with transparency, and iOS composites a transparent touch icon onto black
+  anyway — which is not a decision anybody made, it is just what happens.
+- **no text.** Nothing survives 16px.
+
+### The presets
+
+| Preset | Corner | Mark scale | Where it goes |
+|---|---|---|---|
+| `app` | square | 0.66 | Apple touch icon, App Store master |
+| `tile` | 22.5% | 0.70 | bookmark tiles, PWA `any` |
+| `favicon` | 22.5% | 0.80 | the 16, 32 and 48 favicons |
+| `maskable` | square | 0.52 | Android adaptive icons |
+| `consent` | 22.5% | 0.54 | Google's OAuth dialogue |
+
+The number is the fraction of the tile the mark's **width** takes, not a raw
+scale factor — a scale says nothing about how close a foot lands to an edge.
+
+Each of them crops differently, which is why one safe area would be wrong for
+all of them.
+
+**0.66 is the register, not a compromise.** A centred symbol on an Apple icon
+runs between about half and two thirds of the tile — Music's note is near
+0.48, Messages' bubble near 0.64, Mail's envelope near 0.66 — and the margin
+around it is doing as much work as the symbol. This was 0.80 for one round
+because bigger sounded better; in a grid beside real icons it read as crowded
+rather than as confident.
+
+`tile` carries its own rounded shape because nothing masks it, and the mark
+sits larger for the same reason.
+
+`favicon` is `tile` with more of the plate given to the mark, and it exists
+because a favicon is the one place the icon is smaller than the thing it has
+to say. At 16px the plate is sixteen pixels and the mark inside it is eleven;
+every one of them has to carry meaning, and the margin that makes a
+home-screen icon look composed is just wasted room.
+
+`maskable` is pulled well inside Android's 80-percent circle rather than to
+its edge, because some launchers crop closer to a squircle than to a circle.
+
+`consent` is its own shape of problem: 120px, on a surface whose colour we do
+not control, cropped to a circle in some of Google's dialogues and left square
+in others. So it keeps a plate and a rounded shape, and sits inside the circle
+— which is what pulled it from 0.66 to 0.60 when the mark grew: the drawing's
+diagonal, not its width, is what has to fit a circular crop.
+
+### The optical lift
+
+The plated icons sit the mark 2.5 percent above the geometric centre of the
+plate. A pair of peaks is a triangular mass: nearly all of its area is along
+the baseline and the apexes are points, so its perceived centre is well below
+the middle of its bounding box, and centred by the numbers it reads as having
+sagged.
+
+It applies to the plated icons only. The bare mark is placed by whatever is
+around it — a flex row in the lockup, a host's own tile padding — and a
+drawing that is secretly off-centre would fight all of them.
 
 ---
 
 ## Regenerating the assets
 
-Geometry lives in two places that must stay in step: `src/lib/brand/mark.ts`
-for everything the app renders, and `scripts/generate-icons.mjs` for the
-rasters.
+Geometry lives in **one** place, `src/lib/brand/mark.ts`.
+`scripts/generate-icons.mjs` imports it directly — Node strips the types on
+import — rather than holding the second copy it used to hold. The old copy
+came with a comment asking the next person to keep the two in step, which is
+another way of saying the app and its own favicon were one edit away from
+being different logos at all times.
 
-`ArenaMark.tsx` draws from `mark.ts` rather than holding its own copy, because
-the weekly share card has to draw the same stone into a PNG through a
-different renderer. Two copies of the geometry would drift, and a logo that
-differs between the app and the thing people post is worse than either.
-
-After changing either place:
+After changing it:
 
 ```
 npm run icons
@@ -156,38 +303,73 @@ That writes:
 
 | File | Use |
 |---|---|
-| `public/arena-mark.svg` | Source mark, transparent |
+| `public/arena-mark.svg` | The bare mark, transparent |
+| `public/favicon.svg` | Scalable favicon |
 | `public/favicon.png` | 32px favicon |
-| `public/icons/icon-{16,32,48,180,192,512}.png` | Favicons, apple-touch, PWA `any` |
-| `public/icons/maskable-{192,512}.png` | PWA `maskable`, black plate, mark at 0.62 so Android's circular crop never clips a facet |
+| `public/favicon.ico` | 16 + 32, for browsers that ask by habit |
+| `public/icons/icon-{16,32,48}.png` | Favicons |
+| `public/icons/icon-{192,512}.png` | Bookmark tiles, PWA `any` |
+| `public/icons/icon-180.png`, `public/apple-touch-icon.png` | Apple touch icon: square, opaque, full-bleed |
+| `public/icons/icon-1024.png` | App Store master |
+| `public/icons/maskable-{192,512}.png` | PWA `maskable` |
+| `public/icons/consent-120.png` | Google's OAuth dialogue |
 | `public/og.png` | Social card, 1200x630 |
 
-The social card is product chrome, so its ambient glow follows `--primary` and
-is amber while the mark stays aqua. Its headline is set on two lines: the card
-is rasterised with whatever sans the build host has rather than Geist, and one
-long line overflowed 1200px under the fallback metrics.
+Every raster is supersampled — four times over below 256px, twice above — and
+scaled back down, which is what keeps the long diagonals of the peaks from
+stairstepping at favicon sizes.
+
+The social card is product chrome rather than the mark, so it is composed in
+the script. Its headline is set on two lines: the card is rasterised with
+whatever sans the build host has rather than with Geist, and one long line
+overflowed 1200px under the fallback metrics.
+
+Bump the `?v=` on the icon entries in `src/app/layout.tsx` whenever the
+drawing changes. A favicon is one of the few things a browser holds past a
+deploy, and a stale one outlives the rebrand that replaced it.
 
 ---
 
 ## How it was chosen
 
-Five rounds, all in the branch history of the pull requests that introduced and
-then replaced the first mark.
+Six rounds. The first five are in the branch history of the pull requests that
+introduced, then replaced, the first mark.
 
-1. Ten silhouettes in Lab's gold. All rejected. Every motif was a stock victory
-   symbol, and one shared palette made ten ideas look like one.
+1. Ten silhouettes in Lab's gold. All rejected. Every motif was a stock
+   victory symbol, and one shared palette made ten ideas look like one.
 2. Ten in a jewel palette, each about a relationship between two parts. Field
    and Split survived, both systematic rather than symbolic.
 3. Ten developed from those. Quorum and Cleave survived.
 4. Ten in teal working that family as one. Cleave in aqua shipped.
-5. Cleave was then rejected in use: correct in isolation, unremarkable in the
-   header. Rift replaced it, keeping the construction and the aqua and throwing
-   out the silhouette.
+5. Cleave was rejected in use: correct in isolation, unremarkable in the
+   header. **Rift** replaced it — one six-sided stone with a chevron channel
+   cut through — keeping the construction and the aqua.
+6. Rift was rejected in turn, on two counts. It read as one object broken
+   rather than as anything anybody wanted; and its bevelled cut-stone
+   treatment was a decade-old idiom. Rally replaced it: no bevel, two solid
+   masses, and a plate built to Apple's current icon rules rather than to a
+   favicon exporter's defaults.
+7. Rally shipped thin and was sent back the same day. The direction was right
+   and the drawing did not carry its tile — two small strokes with most of the
+   icon empty around them. The legs roughly doubled, the far peak lost its
+   counter, and the whole thing got an optical lift.
+8. Then the weight overshot, to 0.80 of the tile, and the plate was still
+   near-black. Both were fixed by the same test: render the icons in a grid
+   beside the ones people actually have. At 0.80 the mark read as crowded; on
+   near-black the tile read as a hole. Coverage came back to the Apple
+   register and the accent moved from the mark to the field. The drawing has
+   not changed since round seven — only what it sits on and how much room it
+   is given.
 
-The lesson worth keeping is from round five rather than round one. A mark that
-reviews well as a specimen can still fail in the lockup, so judge the next one
-in the header at 20px and on the landing page at hero size before deciding.
+Three lessons worth keeping. From round five: a mark that reviews well as a
+specimen can still fail in the lockup, so judge the next one in the header at
+20px and on the landing page at hero size before deciding — and, since round
+six, at 16px on a plate as well. From round seven: judge it as an app icon at
+full size too, because "does this drawing own its tile" is a question a
+contact sheet of marks never asks. From round eight, the one that actually
+found the errors: **judge it in a grid beside icons you did not make.** A
+contact sheet of your own variants tells you which of them is best. Only a
+home screen tells you whether any of them belongs there.
 
-The exploration is kept in `docs/brand/concepts/`, generated by
-`scripts/logo-concepts.mjs`. It is a record, not a dependency: nothing in the
-app imports from it.
+The earlier exploration is kept in `docs/brand/concepts/`. It is a record, not
+a dependency: nothing in the app imports from it.

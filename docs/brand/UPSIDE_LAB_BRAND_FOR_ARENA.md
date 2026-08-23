@@ -4,7 +4,8 @@
 > the constraint Arena started from. Arena has since diverged by explicit
 > decision, and `docs/brand/ARENA_MARK.md` wins wherever the two disagree:
 >
-> - The mark is a parted aqua stone, not a gold "A".
+> - The mark is two aqua peaks, not a gold "A". (It was a parted aqua stone
+>   until 2026-08-23; see `ARENA_MARK.md` for why that went.)
 > - `--primary` is that same aqua, `oklch(0.74 0.125 207)` (`#11c0d3`). Arena's
 >   accent is not a warm yellow, and the "do not guess" note below applies to
 >   Lab only.

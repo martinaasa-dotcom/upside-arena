@@ -22,12 +22,26 @@ export const metadata: Metadata = {
     title: "Upside Arena",
     statusBarStyle: "black-translucent",
   },
+  /*
+    Cache-busted on every icon change, because a favicon is one of the few
+    things a browser will hold on to past a deploy and a stale one outlives
+    the rebrand that replaced it.
+
+    The Apple entry is deliberately the 180 square: iOS draws its own
+    squircle over whatever it is given, so the file it is given must be
+    full-bleed and must not be rounded already. See docs/brand/ARENA_MARK.md.
+  */
   icons: {
     icon: [
-      { url: "/icons/icon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/favicon.svg?v=3", type: "image/svg+xml" },
+      { url: "/icons/icon-16.png?v=3", sizes: "16x16", type: "image/png" },
+      { url: "/icons/icon-32.png?v=3", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-48.png?v=3", sizes: "48x48", type: "image/png" },
+      { url: "/icons/icon-192.png?v=3", sizes: "192x192", type: "image/png" },
+      { url: "/favicon.ico?v=3", sizes: "16x16 32x32" },
     ],
-    apple: [{ url: "/icons/icon-180.png", sizes: "180x180" }],
+    shortcut: "/favicon.ico?v=3",
+    apple: [{ url: "/icons/icon-180.png?v=3", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
     type: "website",
