@@ -4,6 +4,7 @@ import path from "node:path";
 import { getSharedCard } from "@/lib/game/share";
 import { headline, ordinal, versusMarketLine, weekLabel } from "@/lib/share/card";
 import { HEX, PRIMARY_RGB, SECONDARY_RGB, arenaMarkDataUri } from "@/lib/brand/mark";
+import { WeekBars } from "@/lib/share/week-bars";
 import { formatPercent, plural } from "@/lib/format";
 
 /*
@@ -57,72 +58,6 @@ function loadFaces() {
   }) as Promise<[Buffer, Buffer, Buffer]>;
 
   return faces;
-}
-
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-
-/**
- * The week as bars, drawn rather than typed.
- *
- * Zero is always in the scale, so a week that only ever went up is measured
- * from level rather than from its own worst day. Without that, five good days
- * would draw the same picture as five bad ones.
- */
-function Shape({ marks }: { marks: (number | null)[] }) {
-  const played = marks.filter((mark): mark is number => mark != null);
-  if (played.length === 0) return null;
-
-  const low = Math.min(...played, 0);
-  const high = Math.max(...played, 0);
-  const range = high - low || 1;
-
-  return (
-    <div style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
-      {marks.map((mark, index) => {
-        /*
-          A day the player was not here for keeps its place and stays empty.
-          Leaving it out would slide Friday under Wednesday, which is the
-          whole thing this card was getting wrong.
-        */
-        // A floor of a few pixels, so a flat day is still a mark on the card
-        // rather than a gap where a day should be.
-        const height = mark == null ? 0 : Math.max(6, ((mark - low) / range) * 96);
-        return (
-          <div
-            key={index}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "flex-end", height: 96, width: 34 }}>
-              {mark == null ? null : (
-                <div
-                  style={{
-                    width: 34,
-                    height,
-                    borderRadius: 4,
-                    backgroundColor: mark >= 0 ? HEX.primary : HEX.loss,
-                  }}
-                />
-              )}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                marginTop: 8,
-                color: HEX.muted,
-                fontSize: 18,
-              }}
-            >
-              {DAYS[index] ?? String(index + 1)}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 export default async function Image({
@@ -278,7 +213,7 @@ export default async function Image({
               height: "100%",
             }}
           >
-            <Shape marks={recap.marks} />
+            <WeekBars marks={recap.marks} />
             <div
               style={{
                 display: "flex",
