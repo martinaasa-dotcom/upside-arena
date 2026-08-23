@@ -42,7 +42,7 @@
 
     Chosen rather than picked. The true complement of the accent is hue 27,
     a coral, which would give the most chromatic contrast; it is unusable
-    here because it lands 5 degrees from --destructive and 11 from --loss,
+    here because it lands 2 degrees from --loss and --destructive both,
     and in a money game an ambient coral wash reads as "you are down" before
     it reads as decoration. Yellow is Lab's, and Arena should not borrow it.
     That leaves the violet to magenta band, where 328 sits 121 degrees from
@@ -137,20 +137,44 @@
   /*
     Semantic, never decorative.
 
-    Every accent in the app, brand and semantic alike, sits at L 0.74. They
-    used to run from 0.63 to 0.79, which is a visible sixth of the lightness
-    range: the accent shouted over the semantics and the loss red sank into
-    the field. One lightness means a green, a red and the brand aqua carry the
-    same weight on the page and differ only in hue, which is the job hue is
-    supposed to do. Chroma is set per hue to just inside the sRGB gamut, since
-    the reds and the cyan reach their limits at different points.
+    The green, the amber and the brand aqua sit at one lightness, L 0.74, so
+    they carry the same weight on the page and differ only in hue, which is
+    the job hue is supposed to do. They used to run from 0.63 to 0.79, which
+    is a visible sixth of the lightness range, and the accent shouted over
+    the semantics.
 
-    It is an accessibility gain too: loss went from 5.74:1 on black to 8.8:1.
+    THE REDS ARE THE EXCEPTION, AND SRGB IS THE REASON. Red is the one hue
+    where the lightness a palette picks decides whether the colour exists at
+    all. At L 0.74 the most chromatic red in gamut is oklch(0.74 0.16 25),
+    which is #ff716b: a salmon. Not a red held quietly, an actually different
+    colour, and the one thing a losing number must not read as. Every step
+    down buys chroma back, so the reds drop to where a red is available and
+    hold their hue at 25, a degree off pure red's 29 and clear of the amber
+    at 45 by 20.
+
+    Two lightnesses, because the two reds do different jobs.
+
+    --loss is text on the field, so it is set at the lightest point that is
+    still unmistakably red, L 0.66 at chroma 0.22 (#fc4447, 6.1:1 on black).
+    That is short of the 8.5:1 the salmon measured and well past the 4.5:1
+    AA asks for body text: a number nobody reads as a loss is the worse
+    failure of the two.
+
+    --destructive is a fill under white text and is measured the other way
+    round. At L 0.74 white on it was 2.46:1, which is a real failure that was
+    shipping; at L 0.58 it is 4.83:1 and passes. It doubles as the invalid
+    input's border, where 4.3:1 clears the 3:1 non-text bar.
+
+    Chroma on both is just inside the sRGB gamut for their lightness.
+
+    Do not raise either back to 0.74 for the sake of the row. A palette rule
+    that turns the loss colour into a salmon is a rule that has stopped
+    describing the product.
   */
   --gain: oklch(0.74 0.155 162.5);
-  --loss: oklch(0.74 0.155 16.4);
+  --loss: oklch(0.66 0.22 25);
   --warning: oklch(0.74 0.16 45);
-  --destructive: oklch(0.74 0.15 22.2);
+  --destructive: oklch(0.58 0.232 25);
   --destructive-foreground: oklch(0.985 0 0);
 
   /*

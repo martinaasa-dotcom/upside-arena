@@ -11,9 +11,12 @@
 >   Lab only.
 > - A second brand colour exists: `--glow-secondary`, a magenta, lighting the
 >   far lobe of the ambient field. The "one accent only" rule below is Lab's.
-> - **The colour tables below are Lab's, not Arena's.** Arena levelled every
->   accent to one lightness, `L 0.74`, so `--gain`, `--loss`, `--warning` and
->   `--destructive` all differ from the values in section 3. `--cat-1` and
+> - **The colour tables below are Lab's, not Arena's.** Arena levelled the
+>   aqua, `--gain` and `--warning` to one lightness, `L 0.74`, and holds the
+>   two reds lower, `--loss` at `oklch(0.66 0.22 25)` and `--destructive` at
+>   `oklch(0.58 0.232 25)`, because at 0.74 sRGB has no red left to give and
+>   a losing number came out salmon. All four differ from section 3, and
+>   `ARENA_MARK.md` has the measurements. `--cat-1` and
 >   `--cat-6` moved from hue 195 to 182, because `--chart-1` is `--primary` and
 >   at 195 they sat 12 degrees off Arena's aqua. Read `src/app/globals.css` for
 >   what Arena actually ships.
