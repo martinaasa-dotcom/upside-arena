@@ -7,6 +7,7 @@ import { hasPlus } from "@/lib/billing/entitlements";
 import { MAX_LEAGUES_JOINED, MAX_LEAGUES_OWNED } from "@/lib/game";
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { byResult, compareResults } from "@/lib/game/ranking";
 import { getQuotes } from "@/lib/market/quotes";
 import { BENCHMARK_SYMBOL } from "@/lib/game";
 import { getCurrentCycle, type Cycle } from "@/lib/game/portfolio";
@@ -317,9 +318,9 @@ export const getLeagueStandings = cache(async function getLeagueStandings(
     };
   });
 
-  rows.sort((a, b) => b.returnPercent - a.returnPercent);
+  const ordered = byResult(rows);
 
-  const standings: Standing[] = rows.map((row, index) => ({
+  const standings: Standing[] = ordered.map((row, index) => ({
     ...row,
     rank: index + 1,
     versusMarket:
@@ -577,11 +578,13 @@ export async function getLeaguePositions(
   }
 
   for (const [leagueId, ids] of byLeague) {
+    // userId rather than id, so this row is the shape compareResults ranks
+    // and this league's ordering is the same one the league's own room shows.
     const ranked = ids
-      .map((id) => ({ id, returnPercent: returnByUser.get(id) ?? 0 }))
-      .sort((a, b) => b.returnPercent - a.returnPercent);
+      .map((id) => ({ userId: id, returnPercent: returnByUser.get(id) ?? 0 }))
+      .sort(compareResults);
 
-    const index = ranked.findIndex((row) => row.id === userId);
+    const index = ranked.findIndex((row) => row.userId === userId);
     if (index < 0) continue;
 
     const top = ranked[0];
@@ -592,9 +595,12 @@ export async function getLeaguePositions(
       players: ranked.length,
       returnPercent: ranked[index].returnPercent,
       leader:
-        top.id === userId
+        top.userId === userId
           ? null
-          : { displayName: nameById.get(top.id) ?? "Player", returnPercent: top.returnPercent },
+          : {
+              displayName: nameById.get(top.userId) ?? "Player",
+              returnPercent: top.returnPercent,
+            },
     });
   }
 

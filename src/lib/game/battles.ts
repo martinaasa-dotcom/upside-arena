@@ -35,6 +35,7 @@ import {
   type RunLength,
 } from "@/lib/game/lengths";
 import { getMarksFor } from "@/lib/game/marks";
+import { byResult, compareResults } from "@/lib/game/ranking";
 import type { RevealedBook } from "@/lib/game/books";
 import { dayMove, lastCloseBefore, runTrail } from "@/lib/game/shape";
 import type { LeagueRow, WeeklyCycleRow } from "@/lib/supabase/database.types";
@@ -755,9 +756,9 @@ export const getBattleView = cache(async function getBattleView(
     };
   });
 
-  rows.sort((a, b) => b.returnPercent - a.returnPercent);
+  const ordered = byResult(rows);
 
-  const standings: BattleStanding[] = rows.map((row, index) => ({
+  const standings: BattleStanding[] = ordered.map((row, index) => ({
     ...row,
     rank: index + 1,
     versusMarket:
@@ -1156,7 +1157,7 @@ export async function settledBattles(): Promise<BattleResult[]> {
         displayName: nameById.get(userId) ?? "Player",
         returnPercent: scored.get(userId) ?? 0,
       }))
-      .sort((a, b) => b.returnPercent - a.returnPercent);
+      .sort(compareResults);
 
     return [
       {

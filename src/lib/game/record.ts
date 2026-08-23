@@ -5,6 +5,7 @@ import { cache } from "react";
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { whoWasHere } from "@/lib/game/roster";
+import { compareResults } from "@/lib/game/ranking";
 import type { LeagueRow, WeeklyCycleRow } from "@/lib/supabase/database.types";
 
 /*
@@ -225,7 +226,7 @@ export const getLeagueRecord = cache(async function getLeagueRecord(
 
     if (played.length === 0) continue;
 
-    played.sort((a, b) => b.returnPercent - a.returnPercent);
+    played.sort(compareResults);
 
     for (const [index, row] of played.entries()) {
       const entry = tally.get(row.userId) ?? {

@@ -3,6 +3,7 @@ import "server-only";
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { whoWasHere } from "@/lib/game/roster";
+import { compareResults } from "@/lib/game/ranking";
 
 /*
   What everybody turned out to be holding, once a contest is over.
@@ -201,7 +202,7 @@ export async function getLastWeekBooks(
         (a, b) => b.costBasis - a.costBasis
       ),
     }))
-    .sort((a, b) => b.returnPercent - a.returnPercent)
+    .sort(compareResults)
     .map((book, index) => ({ ...book, rank: index + 1 }));
 
   return { monday: cycle.monday, books };
