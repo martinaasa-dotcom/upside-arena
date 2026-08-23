@@ -162,6 +162,15 @@ export type BattleView = {
   anyStale: boolean;
 };
 
+/*
+  How long a started battle stays worth announcing.
+
+  Long enough that a job which does not run for a while still catches it, and
+  short enough that nothing announces a contest somebody has been playing for
+  a week. Two days covers a battle started on a Saturday for the Monday.
+*/
+const ANNOUNCE_WINDOW_HOURS = 48;
+
 function num(value: string | number | null | undefined): number {
   if (value == null) return 0;
   return typeof value === "number" ? value : Number(value);
@@ -887,6 +896,96 @@ type HeldPositionRow = { symbol: string; quantity: number; costBasis: number };
  * second, weaker version of the same guard, and the two would disagree the
  * first time a schedule was missed.
  */
+/** A battle that has just been started, for telling the league about it. */
+export type StartedBattle = {
+  cycleId: string;
+  leagueId: string;
+  leagueName: string;
+  format: Format;
+  length: RunLength;
+  startsOn: string;
+  endsOn: string;
+  /** Who started it. They are not told about their own battle. */
+  createdBy: string | null;
+  /** Everybody in the league, which is everybody in the battle. */
+  players: string[];
+};
+
+/**
+ * Battles started recently enough to still be worth announcing.
+ *
+ * A battle is the one thing in Arena somebody else does to you: a league
+ * member picks a format and a length, and from that moment everybody in the
+ * league has a portfolio in a contest and a result coming whether they trade
+ * or not. Saying nothing meant a player could open the app a week later to
+ * find they had finished last of five in something they never knew about.
+ *
+ * Bounded by when it was created rather than by whether it is running. A year
+ * long battle is running for a year, and a notification saying a contest has
+ * begun is worth nothing in month seven -- worse than nothing, because the
+ * only reason it would be sent then is that a job had never got round to it.
+ * The claim in record_notification is keyed on the cycle, so the bound is a
+ * belt to that brace rather than the thing preventing repeats.
+ */
+export async function startedBattles(now = new Date()): Promise<StartedBattle[]> {
+  if (!canWriteGame) return [];
+
+  const admin = createAdminClient();
+
+  const since = new Date(now.getTime() - ANNOUNCE_WINDOW_HOURS * 60 * 60 * 1000);
+
+  const { data: rows } = await admin
+    .from("weekly_cycles")
+    .select("id, league_id, format, length, monday, ends_on, created_by, created_at")
+    .not("league_id", "is", null)
+    .eq("status", "open")
+    .gte("created_at", since.toISOString())
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  const cycles = (rows ?? []) as {
+    id: string;
+    league_id: string;
+    format: string;
+    length: string;
+    monday: string;
+    ends_on: string;
+    created_by: string | null;
+  }[];
+
+  if (cycles.length === 0) return [];
+
+  const leagueIds = [...new Set(cycles.map((cycle) => cycle.league_id))];
+
+  const [{ data: leagues }, { data: members }] = await Promise.all([
+    admin.from("leagues").select("id, name").in("id", leagueIds),
+    admin.from("league_members").select("league_id, user_id").in("league_id", leagueIds),
+  ]);
+
+  const leagueName = new Map(
+    ((leagues ?? []) as { id: string; name: string }[]).map((row) => [row.id, row.name])
+  );
+
+  const rosterByLeague = new Map<string, string[]>();
+  for (const row of (members ?? []) as { league_id: string; user_id: string }[]) {
+    const list = rosterByLeague.get(row.league_id) ?? [];
+    list.push(row.user_id);
+    rosterByLeague.set(row.league_id, list);
+  }
+
+  return cycles.map((cycle) => ({
+    cycleId: cycle.id,
+    leagueId: cycle.league_id,
+    leagueName: leagueName.get(cycle.league_id) ?? "your league",
+    format: formatById(cycle.format),
+    length: lengthById(cycle.length),
+    startsOn: cycle.monday,
+    endsOn: cycle.ends_on,
+    createdBy: cycle.created_by,
+    players: rosterByLeague.get(cycle.league_id) ?? [],
+  }));
+}
+
 export async function settledBattles(): Promise<BattleResult[]> {
   if (!canWriteGame) return [];
 

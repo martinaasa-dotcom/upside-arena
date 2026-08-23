@@ -13,7 +13,7 @@ insert into auth.users (id, email) values
 -- ---------------------------------------------------------------------------
 
 select public.save_notification_settings(
-  'aaaa1111-0000-0000-0000-000000000001', true, true, true, true, true, 'Europe/Tallinn');
+  'aaaa1111-0000-0000-0000-000000000001', true, true, true, true, true, true, 'Europe/Tallinn');
 
 select public.assert(
   (select timezone from public.notification_settings
@@ -22,10 +22,11 @@ select public.assert(
 );
 
 select public.save_notification_settings(
-  'aaaa1111-0000-0000-0000-000000000001', false, true, false, true, true, null);
+  'aaaa1111-0000-0000-0000-000000000001', false, true, false, true, true, false, null);
 
 select public.assert(
   (select push_enabled = false and email_enabled = true and rival_alerts = false
+     and league_activity = false and week_result = true
    from public.notification_settings
    where user_id = 'aaaa1111-0000-0000-0000-000000000001'),
   'each channel and each kind can be turned off on its own'
@@ -295,6 +296,58 @@ select public.assert(
     'push'
   ),
   'and the same battle is never announced twice'
+);
+
+-- ---------------------------------------------------------------------------
+-- A battle starting is a kind of its own too
+-- ---------------------------------------------------------------------------
+-- And a switch of its own. Being passed happens while the market is open and
+-- can happen often; a league starting a contest is rare, so folding the two
+-- together would mean turning off the noisy one took the rare one with it.
+
+select public.assert(
+  (select league_activity from public.notification_settings
+   where user_id = 'cccc3333-0000-0000-0000-000000000003') is not false,
+  'a player who has never touched the setting is told when a battle starts'
+);
+
+select public.assert(
+  public.record_notification(
+    'cccc3333-0000-0000-0000-000000000003',
+    'battle_started',
+    'battle-started:cccc0000-0000-0000-0000-0000000000ee',
+    'The Pit started Upside down',
+    'Pick what falls. A fortnight, ending 2026-08-28. You are in it.',
+    '/leagues/l1/battle',
+    'push'
+  ),
+  'a started battle can be recorded as the kind of thing it is'
+);
+
+select public.assert(
+  not public.record_notification(
+    'cccc3333-0000-0000-0000-000000000003',
+    'battle_started',
+    'battle-started:cccc0000-0000-0000-0000-0000000000ee',
+    'The Pit started Upside down',
+    'Pick what falls. A fortnight, ending 2026-08-28. You are in it.',
+    '/leagues/l1/battle',
+    'push'
+  ),
+  'and a league cannot announce the same battle twice'
+);
+
+/*
+  The start and the result of one battle are different events. They share a
+  cycle id, so a key that was only the cycle would have made the result
+  silently a duplicate of the announcement and nobody would ever have been
+  told who won.
+*/
+select public.assert(
+  (select count(*) from public.notifications
+   where user_id = 'cccc3333-0000-0000-0000-000000000003'
+     and kind in ('battle_started', 'battle_result')) = 2,
+  'the start and the result of a battle are two events, not one'
 );
 
 do $$

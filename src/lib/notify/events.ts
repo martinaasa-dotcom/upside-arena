@@ -3,7 +3,12 @@ import "server-only";
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLeagueStandings } from "@/lib/game/leagues";
-import { settledBattles, type BattleResult } from "@/lib/game/battles";
+import {
+  settledBattles,
+  startedBattles,
+  type BattleResult,
+  type StartedBattle,
+} from "@/lib/game/battles";
 import {
   TIER_NAMES,
   podOutcomesFor,
@@ -43,6 +48,7 @@ type Settings = {
   rival_alerts: boolean;
   week_result: boolean;
   streak_reminder: boolean;
+  league_activity: boolean;
   timezone: string;
 };
 
@@ -110,7 +116,12 @@ async function emailsFor(userIds: string[]): Promise<Map<string, string>> {
 async function deliver(
   userId: string,
   settings: Settings | undefined,
-  kind: "rival_passed" | "week_result" | "streak_reminder" | "battle_result",
+  kind:
+    | "rival_passed"
+    | "week_result"
+    | "streak_reminder"
+    | "battle_result"
+    | "battle_started",
   dedupeKey: string,
   title: string,
   body: string,
@@ -125,22 +136,32 @@ async function deliver(
     rival_alerts: true,
     week_result: true,
     streak_reminder: true,
+    league_activity: true,
     timezone: "America/New_York",
   };
 
   /*
-    A settled battle is gated by the week_result setting rather than one of
-    its own. Whether somebody wants to be told that a contest they were in has
-    been scored is the question that toggle already asks, and asking it twice
-    would be two switches for one preference. Somebody who turned that off is
-    not asking to hear about this either.
+    Two of these share a switch and one has its own, and the difference is
+    worth stating because it looks arbitrary.
+
+    A settled battle is gated by week_result. "Do you want to be told a
+    contest you were in has been scored" is the question that toggle already
+    asks, and asking it twice would be two switches for one preference.
+
+    A battle starting is not that question. The switch it sits nearest is
+    rival_alerts, which fires while the market is open and can fire often,
+    where a league starting a contest is rare. Folding it in would mean
+    somebody turning off the noisy one lost the rare one with it -- far more
+    than they said with that tap. See 0023.
   */
   const kindEnabled =
     kind === "rival_passed"
       ? prefs.rival_alerts
       : kind === "week_result" || kind === "battle_result"
         ? prefs.week_result
-        : prefs.streak_reminder;
+        : kind === "battle_started"
+          ? prefs.league_activity
+          : prefs.streak_reminder;
 
   if (!kindEnabled) return "off";
   if (!isAwakeHour(prefs.timezone)) return "asleep";
@@ -568,6 +589,90 @@ export async function notifyBattleResults(): Promise<NotifyResult> {
   }
 
   return result;
+}
+
+/**
+ * Tells a league that one of its members has started a contest.
+ *
+ * Everybody in the league is in it from the moment it is made, so this is not
+ * an invitation and does not pretend to be one. It is the difference between
+ * playing a battle and finding out afterwards that you came last in it.
+ *
+ * The person who started it is not told. They know.
+ */
+export async function notifyBattlesStarted(now = new Date()): Promise<NotifyResult> {
+  const result: NotifyResult = { considered: 0, sent: 0, skipped: {} };
+  if (!canWriteGame) return result;
+
+  const battles = await startedBattles(now);
+  if (battles.length === 0) return result;
+
+  const everybody = [
+    ...new Set(
+      battles.flatMap((battle) =>
+        battle.players.filter((userId) => userId !== battle.createdBy)
+      )
+    ),
+  ];
+  if (everybody.length === 0) return result;
+
+  const [prefs, emails, devices] = await Promise.all([
+    settingsFor(everybody),
+    emailConfigured ? emailsFor(everybody) : Promise.resolve(new Map<string, string>()),
+    devicesFor(everybody),
+  ]);
+
+  for (const battle of battles) {
+    const message = battleStartedMessage(battle);
+
+    for (const userId of battle.players) {
+      if (userId === battle.createdBy) continue;
+
+      result.considered++;
+
+      /*
+        Keyed on the cycle. A battle is announced once however often this
+        runs, and a league that starts a second battle after the first
+        finishes gets a second announcement because it is a different cycle.
+      */
+      const outcome = await deliver(
+        userId,
+        prefs.get(userId),
+        "battle_started",
+        `battle-started:${battle.cycleId}`,
+        message.title,
+        message.body,
+        message.href,
+        emails.get(userId),
+        devices.has(userId)
+      );
+
+      if (outcome === "sent") result.sent++;
+      else result.skipped[outcome] = (result.skipped[outcome] ?? 0) + 1;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * What a started battle says.
+ *
+ * Names the rule, because the rule is the whole appeal and it is the thing
+ * somebody needs to know before they can play: turning up to a short-only
+ * fortnight and buying what you think will rise is losing on a
+ * misunderstanding rather than on a call.
+ */
+export function battleStartedMessage(battle: StartedBattle): {
+  title: string;
+  body: string;
+  href: string;
+} {
+  return {
+    title: `${battle.leagueName} started ${battle.format.name}`,
+    body: `${battle.format.rule} ${battle.length.name}, ending ${battle.endsOn}. You are in it, so it counts either way.`,
+    href: `/leagues/${battle.leagueId}/battle`,
+  };
 }
 
 /**

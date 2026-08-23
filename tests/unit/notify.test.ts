@@ -8,7 +8,13 @@ import {
 } from "@/lib/notify/timing";
 import { emailHtml, emailText, escapeHtml } from "@/lib/notify/email-template";
 import { decodeVapidKey } from "@/lib/notify/browser";
-import { battleResultMessage, weekResultMessage } from "@/lib/notify/events";
+import {
+  battleResultMessage,
+  battleStartedMessage,
+  weekResultMessage,
+} from "@/lib/notify/events";
+import { formatById } from "@/lib/game/formats";
+import { lengthById } from "@/lib/game/lengths";
 import type { BattleResult } from "@/lib/game/battles";
 
 /*
@@ -316,5 +322,47 @@ describe("what a settled battle says", () => {
     const { body } = battleResultMessage(alone, 1);
     expect(body).toBe("Silicon in The Pit is settled. You were the only one who played it.");
     expect(body).not.toContain("first of 1");
+  });
+});
+
+describe("being told your league has started something", () => {
+  const battle = {
+    cycleId: "c1",
+    leagueId: "l1",
+    leagueName: "The Pit",
+    format: formatById("inverse"),
+    length: lengthById("fortnight"),
+    startsOn: "2026-08-17",
+    endsOn: "2026-08-28",
+    createdBy: "u9",
+    players: ["u9", "u1", "u2"],
+  };
+
+  it("says which league and which rule book", () => {
+    const { title, body, href } = battleStartedMessage(battle);
+    expect(title).toContain("The Pit");
+    expect(title).toContain(battle.format.name);
+    expect(href).toBe("/leagues/l1/battle");
+    expect(body).toContain(battle.length.name);
+  });
+
+  /*
+    The rule is in the body on purpose. Turning up to a short-only fortnight
+    and buying what you think will rise is losing on a misunderstanding
+    rather than on a call, and the message is the one place somebody who
+    never opens the league page will read it.
+  */
+  it("says what the rule actually is, not just its name", () => {
+    expect(battleStartedMessage(battle).body).toContain(battle.format.rule);
+  });
+
+  it("says it counts whether or not they do anything", () => {
+    // Everybody in the league is in it from the moment it is made, so this
+    // is not an invitation and must not read as one.
+    expect(battleStartedMessage(battle).body).toContain("You are in it");
+  });
+
+  it("says when it ends, because a fortnight is not obvious", () => {
+    expect(battleStartedMessage(battle).body).toContain("2026-08-28");
   });
 });

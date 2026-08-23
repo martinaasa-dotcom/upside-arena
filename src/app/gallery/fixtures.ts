@@ -265,6 +265,7 @@ export const notificationSettings = {
   rivalAlerts: true,
   weekResult: true,
   streakReminder: false,
+  leagueActivity: true,
   timezone: "Europe/Tallinn",
 };
 

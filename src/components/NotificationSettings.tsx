@@ -25,8 +25,8 @@ import type { NotificationSettings as Settings } from "@/lib/notify/settings";
   What Arena is allowed to interrupt you for.
 
   Each kind is separately refusable and every switch takes effect the moment it
-  is moved, with no save button to forget. The three kinds are named for what
-  they are rather than by channel, because "someone passed you" is a thing a
+  is moved, with no save button to forget. The kinds are named for what they
+  are rather than by channel, because "someone passed you" is a thing a
   person has an opinion about and "push notifications" is not.
 */
 
@@ -47,6 +47,20 @@ const KINDS = [
     label: "When a result comes in",
     detail:
       "Your week on Friday evening, and any battle your league finishes. Once each, whatever the result was.",
+  },
+  {
+    key: "leagueActivity" as const,
+    /*
+      Its own switch rather than folded into the one above it. Being passed
+      happens while the market is open and can happen often; a league
+      starting a contest happens when a league decides to do something, which
+      is rare. Somebody who turns the noisy one off is turning off the noisy
+      one, and taking the rare one with it would read far more into that tap
+      than they said.
+    */
+    label: "When your league starts a battle",
+    detail:
+      "You are in it either way, so this is the difference between playing it and finding out afterwards.",
   },
   {
     key: "streakReminder" as const,

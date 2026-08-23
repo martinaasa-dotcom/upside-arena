@@ -254,6 +254,7 @@ export type NotificationSettingsRow = {
   rival_alerts: boolean;
   week_result: boolean;
   streak_reminder: boolean;
+  league_activity: boolean;
   timezone: string;
   updated_at: string;
 };
@@ -267,7 +268,8 @@ export type NotificationKind =
   | "rival_passed"
   | "week_result"
   | "streak_reminder"
-  | "battle_result";
+  | "battle_result"
+  | "battle_started";
 
 export type NotificationRow = {
   id: string;
@@ -681,6 +683,7 @@ export type Database = {
           p_rival_alerts: boolean | null;
           p_week_result: boolean | null;
           p_streak_reminder: boolean | null;
+          p_league_activity: boolean | null;
           p_timezone?: string | null;
         };
         Returns: NotificationSettingsRow;
