@@ -27,6 +27,17 @@ describe("tidying an address before judging it", () => {
     expect(normalizeEmail('"player@gmail.com"')).toBe("player@gmail.com");
   });
 
+  /*
+    Both at once, which is exactly what a mail client puts on the clipboard.
+    Stripping the scheme first left the brackets holding it in place, so the
+    address came back as `mailto:player@gmail.com` and failed the syntax
+    check a line later.
+  */
+  it("drops a bracketed mailto, which is what a mail client copies", () => {
+    expect(normalizeEmail("<mailto:player@gmail.com>")).toBe("player@gmail.com");
+    expect(normalizeEmail("  <MAILTO:Player@Gmail.com>  ")).toBe("player@gmail.com");
+  });
+
   it("removes the invisible characters a copy from a web page carries", () => {
     expect(normalizeEmail("player@gmail.com​")).toBe("player@gmail.com");
     expect(normalizeEmail("﻿player@gmail.com")).toBe("player@gmail.com");
