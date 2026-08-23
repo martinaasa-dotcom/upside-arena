@@ -222,3 +222,32 @@ describe("the text somebody pastes", () => {
     expect(lines[lines.length - 2]).toBe("");
   });
 });
+
+describe("a week somebody joined halfway through", () => {
+  /*
+    The row has to keep its gaps. Dropping the days they were not here for
+    slides Friday under Wednesday, which is the drawn card's old bug written
+    out in characters -- and the row travels further than the card does,
+    because it goes through plain text into places no image reaches.
+  */
+  it("keeps a place for every day, played or not", () => {
+    expect(sparkline([null, null, 1, 2, 3])).toHaveLength(5);
+    expect(sparkline([null, null, 1, 2, 3]).slice(0, 2)).toBe("  ");
+  });
+
+  it("scales against the days that happened, not against a nought", () => {
+    // Three days that all went up. Scaled against an absent day read as
+    // zero, the first of them would be the bottom of the range.
+    const row = sparkline([null, null, 1, 2, 3]);
+    expect(row[2]).not.toBe(row[4]);
+    expect(row.trim().length).toBe(3);
+  });
+
+  it("draws a flat part-week flat rather than empty", () => {
+    expect(sparkline([null, 2, 2, 2, null])).toBe(" \u2584\u2584\u2584 ");
+  });
+
+  it("has nothing to say about a week with no days in it at all", () => {
+    expect(sparkline([null, null, null, null, null])).toBe("");
+  });
+});

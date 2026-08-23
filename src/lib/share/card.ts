@@ -26,8 +26,15 @@ export type Recap = {
   benchmarkDiff: number | null;
   league: { name: string; rank: number; size: number } | null;
   streakDays: number;
-  /** Daily returns in percent, oldest first. Fewer than five is normal. */
-  marks: number[];
+  /**
+   * The week as five days, Monday first, in percent against the starting
+   * balance at each close. A null is a day the player was not here for --
+   * somebody who signed up on the Wednesday has two of them.
+   *
+   * Cards written before this was laid out by date hold a shorter, denser
+   * list, so everything that reads it copes with fewer than five.
+   */
+  marks: (number | null)[];
 };
 
 /*
@@ -45,19 +52,32 @@ const BLOCKS = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
  * to five identical blocks throws away the only interesting thing about it.
  * A genuinely flat week gets a flat row, which is honest.
  */
-export function sparkline(marks: number[]): string {
-  if (marks.length === 0) return "";
+export function sparkline(marks: readonly (number | null)[]): string {
+  const played = marks.filter((mark): mark is number => mark != null);
+  if (played.length === 0) return "";
 
-  const low = Math.min(...marks);
-  const high = Math.max(...marks);
+  /*
+    A day nobody played is a space rather than a block. It has to be
+    something -- dropping it would slide Friday under Wednesday and make the
+    row say the same untrue thing the drawn card used to -- and a space is
+    the one character that reads as "not this day" in a message with no
+    styling and no way to add a caption.
+  */
+  const gap = " ";
+
+  const low = Math.min(...played);
+  const high = Math.max(...played);
   const range = high - low;
 
   // Every day the same. A middle block reads as level; the lowest would read
   // as a bad week that never happened.
-  if (range < 0.0001) return BLOCKS[3].repeat(marks.length);
+  if (range < 0.0001) {
+    return marks.map((mark) => (mark == null ? gap : BLOCKS[3])).join("");
+  }
 
   return marks
     .map((mark) => {
+      if (mark == null) return gap;
       const position = (mark - low) / range;
       const index = Math.min(BLOCKS.length - 1, Math.floor(position * BLOCKS.length));
       return BLOCKS[index];

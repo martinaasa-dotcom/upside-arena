@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   dayMove,
   lastCloseBefore,
+  positionedWeek,
   settledWeek,
   weekSoFar,
   worthDrawing,
@@ -239,5 +240,57 @@ describe("today, as distinct from the week", () => {
 
   it("refuses to divide by a close of nothing", () => {
     expect(dayMove(100, { date: MONDAY, value: 0, returnPercent: -100 })).toBeNull();
+  });
+});
+
+describe("laying a finished week out on its days", () => {
+  /*
+    The bug this exists for. The share card held its closes as a list and
+    drew the first one under Monday, so somebody who signed up on the
+    Wednesday had their Wednesday, Thursday and Friday shown as Monday,
+    Tuesday and Wednesday -- on the one artefact in the whole product that
+    other people see, and to exactly the player most likely to post one.
+  */
+  it("puts a midweek joiner's first day under the day it was", () => {
+    const week = positionedWeek(MONDAY, [
+      { date: WEDNESDAY, value: 101_000, returnPercent: 1 },
+      { date: THURSDAY, value: 102_000, returnPercent: 2 },
+      { date: FRIDAY, value: 103_000, returnPercent: 3 },
+    ]);
+    expect(week).toEqual([null, null, 1, 2, 3]);
+  });
+
+  it("is five days whatever it holds", () => {
+    expect(positionedWeek(MONDAY, [])).toEqual([null, null, null, null, null]);
+    expect(positionedWeek(MONDAY, [{ date: FRIDAY, value: 1, returnPercent: 9 }])).toHaveLength(5);
+  });
+
+  it("lays a full week out in order", () => {
+    const week = positionedWeek(MONDAY, [
+      { date: MONDAY, value: 1, returnPercent: 1 },
+      { date: TUESDAY, value: 2, returnPercent: -2 },
+      { date: WEDNESDAY, value: 3, returnPercent: 3 },
+      { date: THURSDAY, value: 4, returnPercent: -4 },
+      { date: FRIDAY, value: 5, returnPercent: 5 },
+    ]);
+    expect(week).toEqual([1, -2, 3, -4, 5]);
+  });
+
+  it("ignores a close that does not belong to the week", () => {
+    // A mark from the following Monday is not this week's fifth day.
+    const week = positionedWeek(MONDAY, [
+      { date: MONDAY, value: 1, returnPercent: 1 },
+      { date: "2026-08-24", value: 2, returnPercent: 99 },
+    ]);
+    expect(week).toEqual([1, null, null, null, null]);
+  });
+
+  it("hands the drawn week the same holes", () => {
+    const days = settledWeek(positionedWeek(MONDAY, [
+      { date: THURSDAY, value: 1, returnPercent: 4 },
+    ]));
+    expect(days.map((day) => day.label)).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri"]);
+    expect(days[3].returnPercent).toBe(4);
+    expect(days[0].returnPercent).toBeNull();
   });
 });

@@ -68,19 +68,25 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
  * from level rather than from its own worst day. Without that, five good days
  * would draw the same picture as five bad ones.
  */
-function Shape({ marks }: { marks: number[] }) {
-  if (marks.length === 0) return null;
+function Shape({ marks }: { marks: (number | null)[] }) {
+  const played = marks.filter((mark): mark is number => mark != null);
+  if (played.length === 0) return null;
 
-  const low = Math.min(...marks, 0);
-  const high = Math.max(...marks, 0);
+  const low = Math.min(...played, 0);
+  const high = Math.max(...played, 0);
   const range = high - low || 1;
 
   return (
     <div style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
       {marks.map((mark, index) => {
+        /*
+          A day the player was not here for keeps its place and stays empty.
+          Leaving it out would slide Friday under Wednesday, which is the
+          whole thing this card was getting wrong.
+        */
         // A floor of a few pixels, so a flat day is still a mark on the card
         // rather than a gap where a day should be.
-        const height = Math.max(6, ((mark - low) / range) * 96);
+        const height = mark == null ? 0 : Math.max(6, ((mark - low) / range) * 96);
         return (
           <div
             key={index}
@@ -90,15 +96,17 @@ function Shape({ marks }: { marks: number[] }) {
               alignItems: "center",
             }}
           >
-            <div style={{ display: "flex", alignItems: "flex-end", height: 96 }}>
-              <div
-                style={{
-                  width: 34,
-                  height,
-                  borderRadius: 4,
-                  backgroundColor: mark >= 0 ? HEX.primary : HEX.loss,
-                }}
-              />
+            <div style={{ display: "flex", alignItems: "flex-end", height: 96, width: 34 }}>
+              {mark == null ? null : (
+                <div
+                  style={{
+                    width: 34,
+                    height,
+                    borderRadius: 4,
+                    backgroundColor: mark >= 0 ? HEX.primary : HEX.loss,
+                  }}
+                />
+              )}
             </div>
             <div
               style={{

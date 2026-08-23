@@ -4,7 +4,8 @@ import { cacheLife, cacheTag } from "next/cache";
 
 import { canWriteGame, siteUrl } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getMarks } from "@/lib/game/marks";
+import { getDailyMarks } from "@/lib/game/marks";
+import { positionedWeek } from "@/lib/game/shape";
 import type { Recap } from "@/lib/share/card";
 import type { ShareCardRow } from "@/lib/supabase/database.types";
 
@@ -61,7 +62,14 @@ function toCard(row: ShareCardRow): ShareCard {
           ? { name: row.league_name, rank: row.league_rank, size: row.league_size }
           : null,
       streakDays: row.streak_days,
-      marks: Array.isArray(row.marks) ? row.marks.map(Number) : [],
+      /*
+        A null stays a null. Passing it through Number would turn a day the
+        player was not here for into a flat nought, which is a claim that
+        they held something and it went nowhere.
+      */
+      marks: Array.isArray(row.marks)
+        ? row.marks.map((mark) => (mark == null ? null : Number(mark)))
+        : [],
     },
   };
 }
@@ -127,7 +135,7 @@ export async function getLatestRecap(userId: string): Promise<
         .select("current_streak")
         .eq("user_id", userId)
         .maybeSingle(),
-      getMarks(portfolio.id),
+      getDailyMarks(portfolio.id),
     ]);
 
   const cycle = cycles as {
@@ -171,7 +179,13 @@ export async function getLatestRecap(userId: string): Promise<
       benchmarkDiff: num(portfolio.benchmark_diff),
       league,
       streakDays: (streaks as { current_streak: number } | null)?.current_streak ?? 0,
-      marks,
+
+      /*
+        Laid out on the days they happened before the card is frozen, so what
+        is stored is a week rather than a list that needs its Monday fetched
+        back to be read. See positionedWeek for the bug this is fixing.
+      */
+      marks: positionedWeek(cycle.monday, marks),
     },
   };
 }

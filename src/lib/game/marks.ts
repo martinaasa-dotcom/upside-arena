@@ -299,9 +299,3 @@ function toMark(row: MarkRow): DailyMark {
     returnPercent: Number(row.return_percent),
   };
 }
-
-/** The daily returns for one portfolio, oldest first. */
-export async function getMarks(portfolioId: string): Promise<number[]> {
-  const marks = await getDailyMarks(portfolioId);
-  return marks.map((mark) => mark.returnPercent);
-}

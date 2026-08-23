@@ -205,6 +205,12 @@ export default function GalleryPage() {
         </Panel>
       </Case>
 
+      <Case name="week-shape-joined-midweek">
+        <Panel title="A week someone joined on the Wednesday">
+          <WeekShape days={settledWeek(fixture.joinedMidweekMarks)} />
+        </Panel>
+      </Case>
+
       <Case name="week-shape-flat">
         <Panel title="A week that barely moved">
           <WeekShape days={settledWeek(fixture.flatMarks)} />

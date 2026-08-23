@@ -280,6 +280,13 @@ export const flatMarks = [0.01, 0.0, 0.01, 0.0, 0.01];
   two days after it, because weekSoFar places a mark by its date and not by
   its position.
 */
+/*
+  A week somebody joined on the Wednesday of. Two empty days that have to keep
+  their places, because the alternative is a card that says they played the
+  Monday.
+*/
+export const joinedMidweekMarks = [null, null, 1.2, 2.8, 0.4];
+
 export const partWeekMonday = "2026-08-17";
 export const partWeekToday = "2026-08-19";
 export const partWeekMarks = [

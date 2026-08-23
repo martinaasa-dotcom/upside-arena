@@ -739,7 +739,7 @@ export type Database = {
           p_league_rank: number | null;
           p_league_size: number | null;
           p_streak_days: number;
-          p_marks: number[];
+          p_marks: (number | null)[];
         };
         Returns: ShareCardRow;
       };

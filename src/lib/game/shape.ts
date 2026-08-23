@@ -57,19 +57,49 @@ export type ShapeDay = {
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
 /**
- * A finished week from the marks it was settled with.
+ * A finished week from the closes it was settled with.
  *
- * The share card and the public week page both hold an array of daily
- * returns and nothing else, which is all a settled week needs: it has as many
- * days as it has, they start on the Monday, and none of them can change.
+ * The array is the week itself: five slots, Monday first, and a slot that is
+ * null is a day the player was not here for. See positionedWeek for why it
+ * has to be laid out that way before it is stored rather than after.
+ *
+ * Shorter arrays are still accepted, because a card written before any of
+ * this holds however many closes it holds and still has to draw.
  */
-export function settledWeek(marks: number[]): ShapeDay[] {
+export function settledWeek(marks: readonly (number | null)[]): ShapeDay[] {
   return marks.map((returnPercent, index) => ({
     label: WEEKDAYS[index] ?? `Day ${index + 1}`,
     date: null,
     returnPercent,
     live: false,
   }));
+}
+
+/**
+ * A finished week's closes laid out on the days they actually happened.
+ *
+ * This is the fix for something the share card had wrong from the start. It
+ * held its closes as a plain list, oldest first, and the card drew the first
+ * one under Monday. That is right for anybody who was playing on the Monday
+ * and wrong for everybody else: somebody who signed up on the Wednesday has
+ * three closes, and the card showed their Wednesday, Thursday and Friday as
+ * Monday, Tuesday and Wednesday.
+ *
+ * Which is the worst possible place for it, because the card is the one
+ * thing here that other people see, and a new player joining midweek is
+ * exactly who is most likely to post one.
+ *
+ * Laying it out at the moment the card is made, rather than when it is
+ * drawn, is deliberate: a card is frozen on purpose, and it should be frozen
+ * holding a week that is already true rather than a list that needs its
+ * cycle's Monday fetched back to be interpreted.
+ */
+export function positionedWeek(
+  monday: string,
+  marks: readonly DailyMark[]
+): (number | null)[] {
+  const settled = new Map(marks.map((mark) => [mark.date, mark.returnPercent]));
+  return WEEKDAYS.map((_, index) => settled.get(addDays(monday, index)) ?? null);
 }
 
 /**
