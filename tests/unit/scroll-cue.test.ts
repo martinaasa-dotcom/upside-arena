@@ -15,12 +15,27 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const CUE = readFileSync("src/components/ScrollCue.tsx", "utf8");
-const LANDING = readFileSync("src/app/page.tsx", "utf8");
+const LANDING = readFileSync("src/components/SignedOutLanding.tsx", "utf8");
 const CSS = readFileSync("src/app/globals.css", "utf8");
 
 describe("the scroll cue", () => {
   it("is mounted on the signed-out page", () => {
     expect(LANDING).toContain("<ScrollCue />");
+  });
+
+  it("leaves the next section standing clear of its own fade", () => {
+    // A peek shorter than the fade would be faded out by the very thing
+    // meant to be pointing at it.
+    const fade = CUE.match(/\bh-(\d+)\b[^"]*bg-gradient-to-t/);
+    expect(fade, "the fade carries a height").not.toBeNull();
+    const peek = LANDING.match(/min-h-\[calc\(100svh-(\d+(?:\.\d+)?)rem\)\]/);
+    expect(peek, "the hero carries a height floor").not.toBeNull();
+    expect(Number(peek![1])).toBeGreaterThan(Number(fade![1]) / 4);
+  });
+
+  it("uses `svh`, so a retracting address bar cannot outgrow the hero", () => {
+    expect(LANDING).toContain("100svh");
+    expect(LANDING).not.toContain("100dvh");
   });
 
   it("is pinned to the window, not laid out under the last card", () => {
