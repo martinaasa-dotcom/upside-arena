@@ -55,11 +55,18 @@ export function WeekShape({ days }: { days: readonly ShapeDay[] }) {
 
   return (
     /*
-      Capped, because five bars do not get more informative at nine hundred
-      pixels across -- they just get to be billboards. On a phone this is the
-      full width and the cap never applies.
+      Fills whatever it is given. There was a cap here for a while, put in
+      after the bars were photographed at nine hundred pixels across and
+      looked like billboards -- but that width only exists in the gallery,
+      where each case gets the whole page. In the app the widest this is ever
+      drawn is one column of the two-column room, about seven hundred, and the
+      share page is narrower still.
+
+      What the cap actually did was leave the bars stopping two thirds of the
+      way across a panel whose other chart ran the full width of it, which
+      reads as something failing rather than as a considered content width.
     */
-    <div className="flex max-w-md items-end gap-2">
+    <div className="flex items-end gap-2">
       {days.map((day, index) => {
         const value = day.returnPercent;
         const up = value != null && value >= 0;

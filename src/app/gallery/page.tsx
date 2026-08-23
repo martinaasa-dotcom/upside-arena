@@ -387,6 +387,59 @@ export default function GalleryPage() {
         </div>
       </Case>
 
+      {/*
+        The charts at the width they are actually drawn at.
+
+        Both of these were measured on their own, which gave them the whole
+        page -- and neither is ever drawn there. A line and a row of bars are
+        exactly the components whose readability is a function of how wide
+        they are, so they want a case inside the room they ship in.
+      */}
+      <Case name="room-split-charts">
+        <div className={SPLIT}>
+          <div className={COLUMN}>
+            <Panel
+              title="Your week so far"
+              description="Each bar is where the week stood at that day's close. The outlined one is today, and it can still move."
+              action={
+                <span className="figure flex items-baseline gap-1.5 text-sm">
+                  <span className="text-muted-foreground">Today</span>
+                  <span className="text-gain">+0.8%</span>
+                </span>
+              }
+            >
+              <WeekShape
+                days={weekSoFar({
+                  monday: fixture.partWeekMonday,
+                  marks: fixture.partWeekMarks,
+                  today: fixture.partWeekToday,
+                  liveReturnPercent: fixture.partWeekLive,
+                })}
+              />
+              <p className="text-sm text-muted-foreground">
+                Up <span className="figure">$812</span> since last night&rsquo;s close.
+              </p>
+            </Panel>
+
+            <Panel
+              title="How it has gone"
+              description="Each point is a day's close. The line across the middle is what everybody started with."
+            >
+              <Trail values={fixture.quarterTrail} from="17 August" to="Now" />
+            </Panel>
+          </div>
+
+          <div className={COLUMN}>
+            <Panel title="The table">
+              <StandingsTable standings={fixture.leagueStandings} />
+            </Panel>
+            <Panel title="What you own">
+              <Holdings positions={fixture.positions} />
+            </Panel>
+          </div>
+        </div>
+      </Case>
+
       <Case name="form-strip">
         <FormStrip weeks={fixture.recordedWeeks} you={fixture.honours[1]} href="#" />
       </Case>
