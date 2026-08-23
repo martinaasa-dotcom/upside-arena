@@ -214,11 +214,6 @@ function SampleLeague() {
       />
 
       <div className="card-sheen glass rise rise-3 relative overflow-hidden rounded-xl p-4 shadow-2xl shadow-black/60 ring-1 ring-primary/15">
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-24 bg-gradient-to-b from-white/[0.06] to-transparent"
-          aria-hidden="true"
-        />
-
         <div className="mb-3 flex items-center justify-between gap-3">
           <span className="text-sm text-muted-foreground">Friday close</span>
           <Badge variant="outline">Sample</Badge>

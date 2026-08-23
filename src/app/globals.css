@@ -77,18 +77,22 @@
   --glass-rim-left: oklch(1 0 0 / 19%);
   --glass-rim-right: oklch(1 0 0 / 10%);
   /*
-    Thickness. Light entering the top of a pane and dying out downward is
-    the gradient real glass has, and a bright line on top with nothing under
-    it is why a card still read as an evenly tinted rectangle. The reach
-    matters as much as the strength: it has to carry past the padding and
-    into the body, or a probe measures no difference between the top third
-    of a pane and the bottom third.
+    There is no falloff term, and there must not be one.
+
+    A pane used to carry an inset white shadow under its top edge, meant to
+    read as light entering the glass and dying out downward. On a big panel
+    that is what thick glass does. On a 40px row, a chip or a score cell it
+    is a bright band across the top and a dark smear through the middle, and
+    it reads as exactly what it is: a gradient painted on a box.
+
+    A small piece of glass does not do that. Its body is one uniform tint
+    the whole way through and all of the light lives at the edges, where it
+    refracts. So the body here is a flat translucent fill and every specular
+    term is on the rim.
+
+    Do not reintroduce `--glass-depth`, an inset falloff, or a
+    `background-image` ramp on any glass surface.
   */
-  --glass-depth: oklch(1 0 0 / 20%);
-  --glass-depth-reach: 64px;
-  /* A little of it wrapping back up off the bottom edge. */
-  --glass-underglow: oklch(1 0 0 / 10%);
-  --glass-underglow-reach: 34px;
   /*
     Two shadows, not one. The soft one is the cast; the tight one is
     contact, and without it a pane hovers rather than sits.
@@ -98,8 +102,6 @@
   /* The nested well is the same material, quieter on every term. */
   --well-rim-top: oklch(0.97 0.03 207 / 28%);
   --well-rim-bottom: oklch(0.95 0.035 328 / 15%);
-  --well-depth: oklch(1 0 0 / 10%);
-  --well-depth-reach: 40px;
 
   /*
     Semantic, never decorative.
@@ -446,11 +448,6 @@
       inset 1px 0 0 0 var(--glass-rim-left),
       inset -1px 0 0 0 var(--glass-rim-right),
       inset 0 -1px 0 0 var(--glass-rim-bottom),
-      inset 0 var(--glass-depth-reach) var(--glass-depth-reach)
-        calc(var(--glass-depth-reach) * -1) var(--glass-depth),
-      inset 0 calc(var(--glass-underglow-reach) * -1)
-        var(--glass-underglow-reach) calc(var(--glass-underglow-reach) * -1)
-        var(--glass-underglow),
       inset 0 0 0 1px var(--border),
       0 2px 5px -3px var(--glass-contact),
       0 18px 44px -20px var(--glass-cast);
@@ -504,8 +501,6 @@
     box-shadow:
       inset 0 1px 0 0 var(--well-rim-top),
       inset 0 -1px 0 0 var(--well-rim-bottom),
-      inset 0 var(--well-depth-reach) var(--well-depth-reach)
-        calc(var(--well-depth-reach) * -1) var(--well-depth),
       inset 0 0 0 1px var(--border);
   }
 
