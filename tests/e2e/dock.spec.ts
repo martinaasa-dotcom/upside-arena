@@ -2,18 +2,28 @@ import { readFileSync } from "node:fs";
 import { test, expect } from "@playwright/test";
 
 /*
-  The dock has to fit on the screen it is drawn on.
+  The dock has to fit on the screen it is drawn on, and so does every word in
+  it.
 
   This is measured rather than reasoned about, because it has already been got
-  wrong once: adding a fifth room pushed the labelled row past the width it
+  wrong twice. Adding a fifth room pushed the labelled row past the width it
   hid its labels at, and nothing caught it, because a dock that overflows
-  still renders perfectly well. A rule about which breakpoint to use would
-  have to be re-derived every time a room is added; a measurement does not.
+  still renders perfectly well. Then the rule meant to save it -- hide the
+  labels under 544px -- turned out to fire on every phone anybody owns, so the
+  fix for a row that did not fit was five unlabelled glyphs. A rule about
+  which breakpoint to use would have to be re-derived every time a room is
+  added; a measurement does not.
+
+  The labels are on at every width now, so what has to be measured changed
+  with them. Under `md` the dock is the full width of the screen and cannot
+  overflow it, and the question becomes whether a label fits its own cell.
+  Above `md` the dock sizes itself, and the question is still whether the row
+  fits the screen. Both are asked below.
 
   The dock lives behind a sign-in, so its markup is drawn onto a real page
   instead. The stylesheet, the font and the classes are the real ones, which
-  is what the width depends on. The rooms and the label rule are read out of
-  the source itself so this cannot quietly drift away from it.
+  is what the width depends on. The rooms and the dock's own class strings are
+  read out of the source so this cannot quietly drift away from it.
 
   The rooms come from lib/rooms rather than from the dock, because that is
   where they went when the consent notice needed to know which routes have a
@@ -29,27 +39,32 @@ const ROOM_SOURCE = readFileSync("src/lib/rooms.ts", "utf8");
 
 const ROOMS = [...ROOM_SOURCE.matchAll(/label:\s*"([^"]+)"/g)].map((m) => m[1]);
 
-const LABELS_FIT = SOURCE.match(/const LABELS_FIT = "([^"]+)"/)?.[1] ?? "";
-
 /*
-  The dock's own two class strings, read out of the component for the same
-  reason the rooms are: a probe that hardcodes them would keep passing after
-  someone edits the real thing.
+  The dock's own class strings, read out of the component for the same reason
+  the rooms are: a probe that hardcodes them would keep passing after someone
+  edits the real thing. The cell's string is the one inside `cn(...)` on the
+  Link, which is where the two shapes and the breakpoint between them live.
 */
 const NAV_CLASS = SOURCE.match(/<nav[\s\S]*?className="([^"]+)"/)?.[1] ?? "";
 const PILL_CLASS =
-  SOURCE.match(/<nav[\s\S]*?<div className="([^"]+)"/)?.[1] ?? "";
+  SOURCE.match(/className=\{cn\(\s*\n\s*"(card-sheen[^"]+)",\s*\n\s*"(md:[^"]+)"/)
+    ?.slice(1, 3)
+    .join(" ") ?? "";
+const CELL_CLASS =
+  SOURCE.match(/"(relative flex h-12[^"]+)",\s*\n\s*"(md:h-11[^"]+)"/)
+    ?.slice(1, 3)
+    .join(" ") ?? "";
 
 const DOCK = `
-<nav id="probe" style="position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;">
-  <div id="probe-well" class="card-sheen glass flex items-center gap-1 rounded-xl p-1 ring-1 ring-foreground/20">
+<nav id="probe" class="${NAV_CLASS}">
+  <div id="probe-well" class="${PILL_CLASS}" style="grid-template-columns:repeat(${ROOMS.length},minmax(0,1fr))">
     ${ROOMS.map(
       (label, i) => `
-      <a class="flex h-11 items-center gap-2 rounded-lg px-4 text-sm font-medium ${
+      <a class="${CELL_CLASS} ${
         i === 0 ? "bg-primary text-primary-foreground" : "text-muted-foreground"
       }">
-        <svg class="size-4" viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/></svg>
-        <span class="${LABELS_FIT}">${label}</span>
+        <svg class="relative size-4 shrink-0" viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/></svg>
+        <span class="probe-label relative max-w-full leading-none">${label}</span>
       </a>`
     ).join("")}
   </div>
@@ -57,18 +72,32 @@ const DOCK = `
 
 test.describe("the dock", () => {
   test("is read correctly out of the component", () => {
-    // If either of these comes back empty the widths below would all pass
-    // while measuring nothing at all.
+    // If any of these comes back empty the widths below would all pass while
+    // measuring nothing at all.
     expect(ROOMS.length).toBeGreaterThan(1);
-    expect(LABELS_FIT).toMatch(/^max-\[\d+px\]:sr-only$/);
+    expect(NAV_CLASS, "the nav's class string was read").not.toBe("");
+    expect(PILL_CLASS, "the pill's class string was read").not.toBe("");
+    expect(CELL_CLASS, "the cell's class string was read").not.toBe("");
   });
 
   /*
-    Every width a phone or a small tablet actually reports, plus the two on
-    either side of the label rule, which is where it broke last time.
+    Every room is labelled at every width. This is the rule the old
+    `max-[544px]:sr-only` broke, and it broke silently: a dock of five
+    unlabelled glyphs renders perfectly and reads as a puzzle.
   */
-  for (const width of [320, 360, 375, 390, 414, 480, 500, 540, 543, 544, 600, 768]) {
-    test(`fits inside ${width}px`, async ({ page }) => {
+  test("never hides a label", () => {
+    expect(SOURCE).not.toContain("sr-only");
+    expect(CELL_CLASS, "the cell stacks on a phone and lies down at md").toMatch(
+      /flex-col[\s\S]*md:flex-row/
+    );
+  });
+
+  /*
+    Every width a phone or a small tablet actually reports, plus `md` and the
+    width either side of it, which is where the dock changes shape.
+  */
+  for (const width of [320, 360, 375, 390, 414, 480, 540, 600, 767, 768, 900, 1280]) {
+    test(`fits inside ${width}px, labels and all`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       await page.goto("/");
       await page.evaluate((html) => {
@@ -78,15 +107,46 @@ test.describe("the dock", () => {
       // A fallback face measures differently from the one that ships.
       await page.evaluate(() => document.fonts.ready);
 
-      const { dock, viewport } = await page.evaluate(() => ({
-        dock: document.getElementById("probe-well")!.getBoundingClientRect().width,
-        viewport: document.documentElement.clientWidth,
-      }));
+      const { dock, viewport, overflowing } = await page.evaluate(() => {
+        /*
+          A label is clipped when it is wider than the padding box of the cell
+          holding it -- not when it is wider than the viewport. Measuring
+          against the viewport is what let a label spill inside a 52px cell on
+          a 320px screen while the row itself "fitted" perfectly.
+        */
+        const overflowing: string[] = [];
+        for (const el of Array.from(
+          document.querySelectorAll<HTMLElement>(".probe-label")
+        )) {
+          const cell = el.parentElement!;
+          const style = getComputedStyle(cell);
+          const room =
+            cell.clientWidth -
+            parseFloat(style.paddingLeft) -
+            parseFloat(style.paddingRight);
+          const needed = el.getBoundingClientRect().width;
+          if (needed > room + 0.5) {
+            overflowing.push(
+              `${el.textContent} needs ${needed.toFixed(1)}px in ${room.toFixed(1)}px`
+            );
+          }
+        }
+        return {
+          dock: document.getElementById("probe-well")!.getBoundingClientRect().width,
+          viewport: document.documentElement.clientWidth,
+          overflowing,
+        };
+      });
 
       expect(
         dock,
         `the dock is ${dock.toFixed(0)}px inside a ${width}px screen`
       ).toBeLessThanOrEqual(viewport);
+
+      expect(
+        overflowing,
+        `labels spilling their cells at ${width}px:\n  ${overflowing.join("\n  ")}`
+      ).toEqual([]);
     });
   }
 });
@@ -133,9 +193,17 @@ test.describe("the dock and the corner beside it", () => {
         document.body.insertAdjacentHTML("beforeend", corner as string);
         const el = document.createElement("nav");
         el.className = nav as string;
-        el.innerHTML = `<div class="${pill}">${(rooms as string[])
-          .map((r) => `<a class="flex h-11 items-center px-4">${r}</a>`)
-          .join("")}</div>`;
+        el.innerHTML =
+          `<div class="${pill}" style="grid-template-columns:repeat(${
+            (rooms as string[]).length
+          },minmax(0,1fr))">` +
+          (rooms as string[])
+            .map(
+              (r) =>
+                `<a class="flex h-12 flex-col items-center justify-center md:h-11 md:flex-row md:px-4">${r}</a>`
+            )
+            .join("") +
+          `</div>`;
         document.body.append(el);
         (window as unknown as { hits: string[] }).hits = [];
         document.getElementById("corner")!.addEventListener("click", () => {
@@ -245,9 +313,17 @@ test.describe("the measurement notice and the dock", () => {
           el.className = nav as string;
           el.setAttribute("data-dock", "");
           el.id = "probe-dock";
-          el.innerHTML = `<div id="probe-pill" class="${pill}">${(rooms as string[])
-            .map((r) => `<a class="flex h-11 items-center px-4">${r}</a>`)
-            .join("")}</div>`;
+          el.innerHTML =
+            `<div id="probe-pill" class="${pill}" style="grid-template-columns:repeat(${
+              (rooms as string[]).length
+            },minmax(0,1fr))">` +
+            (rooms as string[])
+              .map(
+                (r) =>
+                  `<a class="flex h-12 flex-col items-center justify-center md:h-11 md:flex-row md:px-4">${r}</a>`
+              )
+              .join("") +
+            `</div>`;
           document.body.append(el);
         }
         const n = document.createElement("div");
@@ -283,10 +359,10 @@ test.describe("the measurement notice and the dock", () => {
 
   /*
     390px is the width it broke at. 1280 is where the dock is at its widest
-    relative to the notice, and 544 is the label breakpoint, which changes how
-    wide the dock is and so where its edges fall.
+    relative to the notice, and 768 is `md`, where the dock changes shape and
+    so where its edges fall.
   */
-  for (const width of [320, 390, 544, 768, 1280]) {
+  for (const width of [320, 390, 767, 768, 1280]) {
     for (const [what, cls] of [
       ["notice", NOTICE_CLASS],
       ["install prompt", INSTALL_CLASS],

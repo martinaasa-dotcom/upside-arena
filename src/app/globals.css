@@ -555,6 +555,64 @@
   }
 
   /*
+    The dock: the same pane as .glass, with the chrome fill instead of the
+    card veil. Add it after `card-sheen glass`, which keeps the rim, the ring
+    and the lift shadow exactly as they are; only the body and the blur change.
+
+    A dock is not a card, and treating it as one is measurably wrong. A card
+    sits IN the field and its job is to let the room through: a 2% white veil,
+    a 6px blur, saturate 1.75. A dock sits OVER the room's brightest corner
+    with content scrolling underneath it, and at those numbers it does not
+    show the glow, it amplifies it. Measured in Chromium against Upside Lab's
+    phone field, where the far lobe is hottest, walking the whole bar and
+    keeping the worst pixel:
+
+    |                       | own chroma C* | vs the field | across the bar |
+    |-----------------------|---------------|--------------|----------------|
+    | the field itself      |          4.69 |        1.00x |      9.3 levels|
+    | through `.glass`      |      **8.82** |    **1.88x** |  **9.3 levels**|
+    | through `.glass-dock` |          4.10 |        0.87x |      1.9 levels|
+
+    Two constraints pick the 55%, and it is the smallest number that meets
+    both. **Ceiling: a pane may carry the room's colour, never more of it than
+    the room has**, which the fill reaches at 45%. **Floor: muted label text
+    clears AAA over every pixel of the bar**, which it reaches at 55% (7.06:1
+    on a 390px phone, 7.00:1 on a 430px one; at 50% it is 6.88 and 6.82, and
+    at the card veil it is 4.62). Going further starts draining the glow
+    rather than attenuating it, which is the mistake `.glass-bar` was written
+    to avoid.
+
+    The fill is keyed to `--background`, which is true black, so its alpha is
+    exactly how much of the glow the dock eats and it cannot leave a hue
+    behind. Black lift at the page middle measures -0.1: this deepens the
+    black the veil holds everywhere else rather than greying it.
+
+    Arena's own field is calm at the bottom either way. It takes the same
+    material as Lab because the two docks are one design, and because a dock
+    over content wants the harder blur regardless of what the field is doing.
+
+    20px, not the card's 6. The 6px ceiling is there because past roughly 7px
+    a blur stops refracting and starts mixing adjacent hues into mud, and that
+    is a real risk for a pane in the middle of the field with two lobes
+    reaching it. It is not a risk here: measured along the dock at every
+    width, the near lobe contributes under 0.25% alpha, so there is one hue
+    under this pane and nothing for a wider radius to muddy. The radius is
+    also a lever in its own right and not just legibility -- at the card's
+    veil, widening 6px to 20px alone takes the pane from 1.88x the field's
+    chroma to 1.43x, because what it averages out is the steep part of the
+    gradient running under the bar. What it buys on top of that is the thing a
+    floating tab bar is for, which is content passing under it as a soft wash
+    rather than as legible rows competing with the labels.
+  */
+  .glass-dock {
+    background-color: color-mix(in oklch, var(--background), transparent 45%);
+    -webkit-backdrop-filter: blur(20px) saturate(var(--glass-sat))
+      brightness(var(--glass-bright)) contrast(var(--glass-contrast));
+    backdrop-filter: blur(20px) saturate(var(--glass-sat))
+      brightness(var(--glass-bright)) contrast(var(--glass-contrast));
+  }
+
+  /*
     First paint on the signed-out page. A short stagger, so the page arrives
     rather than appearing. Reduced-motion users get it instantly, handled by
     the media query at the end of this file.
