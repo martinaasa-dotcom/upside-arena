@@ -88,6 +88,25 @@ function Column({ label, rows }: { label: string; rows: Mover[] }) {
                 ) : null}
               </span>
 
+              {/*
+                What the company is actually called.
+
+                This panel exists to show "companies you would recognise" and
+                was showing four letters. F is Ford and DIS is Disney to
+                somebody who already knows, and to everybody else they are
+                four letters with a percentage next to them -- on the one
+                screen in Arena whose job is to introduce a company to a
+                person who has not met it.
+
+                The name was already being fetched and carried the whole way
+                here. It was thrown away at the last step.
+              */}
+              {row.name ? (
+                <span className="truncate text-xs text-muted-foreground">
+                  {row.name}
+                </span>
+              ) : null}
+
               <span
                 className={cn(
                   "figure text-sm font-semibold",
