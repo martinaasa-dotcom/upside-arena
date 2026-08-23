@@ -66,7 +66,8 @@ export function ProfileForm({
           className="text-muted-foreground"
         />
         <p className="text-sm text-muted-foreground">
-          This is how you sign in. To change it, email app.support@upthink.ee.
+          Where Arena writes to you. To sign in from another address as well, add
+          it under Ways to sign in below.
         </p>
       </div>
 

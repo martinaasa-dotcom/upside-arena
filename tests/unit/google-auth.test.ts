@@ -80,7 +80,34 @@ describe("the state that ties a request to its answer", () => {
     const state = stateFor("/trade");
     expect(readStateCookie(state.cookie)).toEqual({
       secret: state.param,
+      intent: "sign-in",
       next: "/trade",
+    });
+  });
+
+  it("remembers whether the handshake was a sign-in or an address being added", () => {
+    // What comes back from Google cannot say which it was. Only the cookie
+    // this server wrote can, and getting it wrong means either a session
+    // nobody asked for or an address quietly claimed.
+    const linking = stateFor("/profile", "link");
+    expect(readStateCookie(linking.cookie).intent).toBe("link");
+
+    const signingIn = stateFor("/home");
+    expect(readStateCookie(signingIn.cookie).intent).toBe("sign-in");
+  });
+
+  it("keeps the intent out of the url as well", () => {
+    expect(stateFor("/profile", "link").param).not.toContain("link");
+  });
+
+  it("treats a destination that looks like an intent as a destination", () => {
+    // A cookie written before the intent existed carries none, and the field
+    // after the secret is the front of a path. Anything that is not one of
+    // the two known intents means exactly that.
+    expect(readStateCookie("secret|/leagues|abc")).toEqual({
+      secret: "secret",
+      intent: "sign-in",
+      next: "/leagues|abc",
     });
   });
 
@@ -93,6 +120,7 @@ describe("the state that ties a request to its answer", () => {
   it("copes with a cookie that carries no destination", () => {
     expect(readStateCookie("justasecret")).toEqual({
       secret: "justasecret",
+      intent: "sign-in",
       next: "",
     });
   });
@@ -161,7 +189,20 @@ describe("deciding what to do with a callback", () => {
         state: good.param,
         cookie: good.cookie,
       })
-    ).toEqual({ kind: "proceed", code: "abc", next: "/leagues" });
+    ).toEqual({ kind: "proceed", code: "abc", next: "/leagues", intent: "sign-in" });
+  });
+
+  it("carries what the handshake was for through to the callback", () => {
+    const state = stateFor("/profile", "link");
+
+    expect(
+      decideCallback({
+        error: null,
+        code: "abc",
+        state: state.param,
+        cookie: state.cookie,
+      })
+    ).toEqual({ kind: "proceed", code: "abc", next: "/profile", intent: "link" });
   });
 
   it("treats a refusal as a refusal, not an error", () => {
@@ -237,7 +278,12 @@ describe("deciding what to do with a callback", () => {
         state: state.param,
         cookie: state.cookie,
       });
-      expect(decision).toEqual({ kind: "proceed", code: "abc", next: "/home" });
+      expect(decision).toEqual({
+        kind: "proceed",
+        code: "abc",
+        next: "/home",
+        intent: "sign-in",
+      });
     }
   });
 });

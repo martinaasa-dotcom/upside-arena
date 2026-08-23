@@ -10,11 +10,13 @@ import {
   STATE_COOKIE,
   STATE_MAX_AGE_SECONDS,
   stateFor,
+  type GoogleIntent,
 } from "@/lib/auth/google-state";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 import { safeNext } from "@/lib/redirects";
 import { readEmail } from "@/lib/auth/email-address";
 import { domainAcceptsMail } from "@/lib/auth/email-mx";
+import { accountForAddress, sendLinkedSignIn } from "@/lib/auth/linked-emails";
 
 export type AuthState = {
   error?: string;
@@ -85,8 +87,34 @@ export async function signInWithEmail(
     };
   }
 
-  const supabase = await createClient();
   const next = safeNext(parsed.data.next);
+
+  /*
+    An address somebody added to their account opens that account.
+
+    Sent by Arena rather than by Supabase, because Supabase knows this address
+    as nobody: asked for a link at it, it would make a second account, with the
+    same person inside it and none of their weeks, their tag or their leagues.
+    So the token is minted for the account the address was added to and the
+    link carrying it goes to the mailbox that asked. See
+    src/lib/auth/linked-emails.ts.
+  */
+  const linked = await accountForAddress(email);
+
+  if (linked) {
+    const sent = await sendLinkedSignIn(email, linked.primaryEmail, next);
+
+    if (!sent) {
+      return {
+        error: `We could not get a link to ${email}. Try the address this account was made with, or Google.`,
+        typed: email,
+      };
+    }
+
+    return { sent: true };
+  }
+
+  const supabase = await createClient();
 
   const { error } = await supabase.auth.signInWithOtp({
     email,
@@ -117,12 +145,28 @@ export async function signInWithEmail(
  * costs instead.
  */
 export async function signInWithGoogle(formData: FormData) {
+  return startGoogleHandshake(safeNext(formData.get("next")?.toString()), "sign-in");
+}
+
+/**
+ * The same handshake, used to add the address on another Google account to the
+ * account already signed in here.
+ *
+ * Nothing about the trip to Google differs. What differs is what the callback
+ * does with the token that comes back, and that is decided here, before the
+ * browser leaves, because on the way back nothing but this server's own cookie
+ * can say what the sign-in was for.
+ */
+export async function connectGoogle() {
+  return startGoogleHandshake("/profile", "link");
+}
+
+async function startGoogleHandshake(next: string, intent: GoogleIntent) {
   if (!isSupabaseConfigured || !googleConfigured()) {
     redirect("/auth/error?reason=not-configured");
   }
 
-  const next = safeNext(formData.get("next")?.toString());
-  const state = stateFor(next);
+  const state = stateFor(next, intent);
 
   /*
     The half of the state that stays with the browser. Http-only so no script

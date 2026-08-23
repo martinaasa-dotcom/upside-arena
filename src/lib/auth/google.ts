@@ -1,6 +1,7 @@
 import "server-only";
 
 import { siteUrl } from "@/lib/env";
+import { googleEmailFromIdToken } from "@/lib/auth/id-token";
 
 /*
   Google sign-in, run on Arena's own domain.
@@ -140,4 +141,17 @@ export async function exchangeCode(code: string): Promise<GoogleTokens> {
   } catch {
     return { ok: false, reason: "exchange" };
   }
+}
+
+/**
+ * The address on the Google account somebody just signed in with.
+ *
+ * Read here rather than left to Supabase, because the answer decides which
+ * account the session belongs to: an address somebody has added to their
+ * Arena account opens that account, not a new one with the same person in it.
+ * See src/lib/auth/id-token.ts for why the token is trusted at this point and
+ * what is checked before it is.
+ */
+export function googleEmail(idToken: string): string | null {
+  return googleEmailFromIdToken(idToken, clientId());
 }
