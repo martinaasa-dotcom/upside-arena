@@ -90,6 +90,21 @@ export type BattleStanding = {
   rank: number;
   totalValue: number;
   returnPercent: number;
+
+  /*
+    Always null, and it has to be here so a battle can be shown in the same
+    table as a league week.
+
+    Closes are recorded for the house week and nothing else -- see
+    recordDailyMarks -- so a battle has no last night to measure today
+    against. The table leaves the column off when nobody in it has one,
+    which is every battle, so nothing is claimed that is not known.
+
+    Worth having one day: a quarter-long battle showing a single figure and
+    no trajectory is the same flat-number problem the week had.
+  */
+  todayPercent: null;
+
   versusMarket: number | null;
   isYou: boolean;
   hasTraded: boolean;
@@ -674,6 +689,8 @@ export const getBattleView = cache(async function getBattleView(
           : 0,
       isYou: memberId === userId,
       hasTraded: portfolio ? tradedPortfolios.has(portfolio.id) : false,
+      // See the type: a battle has no recorded closes to measure a day against.
+      todayPercent: null,
     };
   });
 

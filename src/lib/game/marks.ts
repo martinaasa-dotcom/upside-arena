@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { BENCHMARK_SYMBOL, MARKET_TIMEZONE } from "@/lib/game";
 import { getQuotes } from "@/lib/market/quotes";
 import { isTradingDay, nyDate } from "@/lib/market/session";
+import type { DailyMark } from "@/lib/game/shape";
 
 /*
   What every portfolio was worth at the end of each trading day.
@@ -26,12 +27,6 @@ const RECORD_FROM_HOUR = 16;
 
 /** And past this hour it is tomorrow's problem. */
 const RECORD_UNTIL_HOUR = 23;
-
-/** One recorded close: the New York date, and what the week stood at. */
-export type DailyMark = {
-  date: string;
-  returnPercent: number;
-};
 
 export type MarkResult = {
   date: string;
@@ -216,15 +211,56 @@ export const getDailyMarks = cache(async function getDailyMarks(
   const admin = createAdminClient();
   const { data } = await admin
     .from("portfolio_marks")
-    .select("return_percent, on_date")
+    .select("return_percent, on_date, value")
     .eq("portfolio_id", portfolioId)
     .order("on_date", { ascending: true });
 
-  return ((data ?? []) as { return_percent: string; on_date: string }[]).map((row) => ({
-    date: row.on_date,
-    returnPercent: Number(row.return_percent),
-  }));
+  return (data ?? []).map(toMark);
 });
+
+/**
+ * The same, for a whole league at once.
+ *
+ * One request for every portfolio in the room rather than one per player.
+ * The league table wants each member's last close so it can say who has had
+ * the best day, and asking per member would be a query per row of a table
+ * that is meant to be read at a glance.
+ */
+export const getMarksFor = cache(async function getMarksFor(
+  portfolioIds: readonly string[]
+): Promise<Map<string, DailyMark[]>> {
+  const byPortfolio = new Map<string, DailyMark[]>();
+  if (!canWriteGame || portfolioIds.length === 0) return byPortfolio;
+
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("portfolio_marks")
+    .select("portfolio_id, return_percent, on_date, value")
+    .in("portfolio_id", [...portfolioIds])
+    .order("on_date", { ascending: true });
+
+  for (const row of (data ?? []) as (MarkRow & { portfolio_id: string })[]) {
+    const list = byPortfolio.get(row.portfolio_id) ?? [];
+    list.push(toMark(row));
+    byPortfolio.set(row.portfolio_id, list);
+  }
+
+  return byPortfolio;
+});
+
+type MarkRow = {
+  on_date: string;
+  value: string | number;
+  return_percent: string | number;
+};
+
+function toMark(row: MarkRow): DailyMark {
+  return {
+    date: row.on_date,
+    value: Number(row.value),
+    returnPercent: Number(row.return_percent),
+  };
+}
 
 /** The daily returns for one portfolio, oldest first. */
 export async function getMarks(portfolioId: string): Promise<number[]> {

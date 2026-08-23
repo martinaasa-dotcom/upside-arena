@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { settledWeek, weekSoFar, worthDrawing } from "@/lib/game/shape";
+import {
+  dayMove,
+  lastCloseBefore,
+  settledWeek,
+  weekSoFar,
+  worthDrawing,
+} from "@/lib/game/shape";
 
 /*
   The week as five days rather than one number.
@@ -175,5 +181,63 @@ describe("whether it is worth drawing at all", () => {
       liveReturnPercent: 0,
     });
     expect(worthDrawing(days)).toBe(false);
+  });
+});
+
+describe("today, as distinct from the week", () => {
+  const marks = [
+    { date: MONDAY, value: 101_500, returnPercent: 1.5 },
+    { date: TUESDAY, value: 99_500, returnPercent: -0.5 },
+  ];
+
+  it("measures against the last close before today", () => {
+    expect(lastCloseBefore(marks, WEDNESDAY)?.date).toBe(TUESDAY);
+  });
+
+  /*
+    The one that would quietly report every evening as a day on which
+    nothing happened. After four in the afternoon today's own close is in
+    the book, and measuring today against itself gives zero for ever.
+  */
+  it("ignores today's own close once it has been recorded", () => {
+    const withToday = [...marks, { date: WEDNESDAY, value: 102_000, returnPercent: 2 }];
+    expect(lastCloseBefore(withToday, WEDNESDAY)?.date).toBe(TUESDAY);
+  });
+
+  it("has nothing to measure against on the first day of a week", () => {
+    expect(lastCloseBefore([], MONDAY)).toBeNull();
+    expect(dayMove(100_000, null)).toBeNull();
+  });
+
+  it("is the move since last night, in money and in percent", () => {
+    // Closed at 99,500 and is worth 100,495 now: up 995, which is one per
+    // cent of last night rather than of the hundred thousand it started on.
+    const move = dayMove(100_495, marks[1]);
+    expect(move?.amount).toBeCloseTo(995, 9);
+    expect(move?.percent).toBeCloseTo(1, 9);
+  });
+
+  /*
+    Why it is not the difference of the two weekly figures. Those are both
+    against the starting balance, so subtracting them answers "how much of
+    the starting balance did today move", which is a different and smaller
+    number -- here 1.0% against 0.995 percentage points. Small, and wrong,
+    and it grows with the size of the gap.
+  */
+  it("is against last night's value, not against what the week started with", () => {
+    const move = dayMove(100_495, marks[1]);
+    const naive = 0.495 - -0.5;
+    expect(move?.percent).not.toBeCloseTo(naive, 6);
+    expect(move?.percent).toBeCloseTo(1, 9);
+  });
+
+  it("goes down as well", () => {
+    const move = dayMove(97_510, marks[1]);
+    expect(move?.amount).toBeCloseTo(-1990, 9);
+    expect(move?.percent).toBeCloseTo(-2, 9);
+  });
+
+  it("refuses to divide by a close of nothing", () => {
+    expect(dayMove(100, { date: MONDAY, value: 0, returnPercent: -100 })).toBeNull();
   });
 });

@@ -10,6 +10,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getQuotes } from "@/lib/market/quotes";
 import { BENCHMARK_SYMBOL } from "@/lib/game";
 import { getCurrentCycle, type Cycle } from "@/lib/game/portfolio";
+import { getMarksFor } from "@/lib/game/marks";
+import { dayMove, lastCloseBefore } from "@/lib/game/shape";
+import { hasOpenedToday, nyDate } from "@/lib/market/session";
 import type { LeagueRow } from "@/lib/supabase/database.types";
 
 /*
@@ -42,6 +45,16 @@ export type Standing = {
   /** Cash plus everything held, priced now. */
   totalValue: number;
   returnPercent: number;
+
+  /*
+    What today alone has done to this portfolio, against last night's close.
+
+    Null for everybody at once, never for one person in a row of people: at
+    the weekend, before the bell, and on a Monday there is no close behind
+    today to measure it against, so the column is simply not there rather
+    than showing a table of zeroes.
+  */
+  todayPercent: number | null;
   /** Percentage points ahead of the market. Null until the market is known. */
   versusMarket: number | null;
   isYou: boolean;
@@ -196,7 +209,30 @@ export const getLeagueStandings = cache(async function getLeagueStandings(
   const symbols = [
     ...new Set(((holdings ?? []) as { symbol: string }[]).map((h) => h.symbol)),
   ];
-  const quotes = await getQuotes([...symbols, BENCHMARK_SYMBOL]);
+
+  /*
+    Prices, and every close already in the book for this room.
+
+    The closes are what turn a weekly table into one worth opening on a
+    Wednesday. A league that has been running since Monday barely reorders --
+    the person who is up four per cent is still up four per cent -- while the
+    day inside it has somebody having a good one, and that is the part worth
+    coming back for.
+
+    One request for the whole roster, not one per member.
+  */
+  const [quotes, marksByPortfolio] = await Promise.all([
+    getQuotes([...symbols, BENCHMARK_SYMBOL]),
+    getMarksFor(portfolioIds),
+  ]);
+
+  /*
+    Whether today is a day at all. Before the bell and at the weekend nothing
+    has happened since the last close, so the column is left off entirely
+    rather than filled with a row of noughts.
+  */
+  const today = nyDate();
+  const dayIsOn = hasOpenedToday();
 
   const benchmarkQuote = quotes[BENCHMARK_SYMBOL] ?? null;
   const benchmarkReturnPercent =
@@ -259,8 +295,17 @@ export const getLeagueStandings = cache(async function getLeagueStandings(
 
     const totalValue = cash + holdingsValue;
 
+    const move =
+      dayIsOn && portfolio
+        ? dayMove(
+            totalValue,
+            lastCloseBefore(marksByPortfolio.get(portfolio.id) ?? [], today)
+          )
+        : null;
+
     return {
       userId: memberId,
+      todayPercent: move ? move.percent : null,
       displayName: profile?.display_name ?? "Player",
       handle: profile?.handle ?? null,
       avatarUrl: profile?.avatar_url ?? null,

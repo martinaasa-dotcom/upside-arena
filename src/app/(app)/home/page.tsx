@@ -24,7 +24,7 @@ import { hasDeclaredGoalThisWeek } from "@/lib/game/goals";
 import { getLatestLineupReport } from "@/lib/game/lineup";
 import { getMovers } from "@/lib/market/movers";
 import { getDailyMarks } from "@/lib/game/marks";
-import { weekSoFar, worthDrawing } from "@/lib/game/shape";
+import { dayMove, lastCloseBefore, weekSoFar, worthDrawing } from "@/lib/game/shape";
 import { Movers } from "@/components/Movers";
 import { WeekShape } from "@/components/WeekShape";
 import { BattleCard } from "@/components/BattleCard";
@@ -33,7 +33,7 @@ import { considerHandoff, labUrl } from "@/lib/billing/handoff";
 import { plural } from "@/lib/format";
 import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
 import { formatGap, formatMoney, formatPercent } from "@/lib/format";
-import { nyDate, sessionLabel } from "@/lib/market/session";
+import { hasOpenedToday, nyDate, sessionLabel } from "@/lib/market/session";
 
 export const metadata = { title: "Home" };
 
@@ -292,12 +292,32 @@ async function Rest() {
     build time, and "today" is the player's today rather than the day the
     site was compiled.
   */
+  const today = nyDate();
+
   const days = weekSoFar({
     monday: view.cycle.monday,
     marks,
-    today: nyDate(),
+    today,
     liveReturnPercent: view.returnPercent,
   });
+
+  /*
+    Today, which by Thursday is the only part still moving.
+
+    The week's figure changes by a fraction of a per cent on a good day and
+    reads as the number it read yesterday. What is actually happening is the
+    day inside it, measured against last night's close rather than against
+    what the week started with -- a different sum, and the one somebody means
+    when they ask how it is going.
+
+    Only while the market has actually been open. Before the bell, at the
+    weekend, and on a Monday with no close behind it, the honest answer is
+    that today has not done anything, and "Today +0.0%" is a figure invented
+    to fill a line.
+  */
+  const move = hasOpenedToday()
+    ? dayMove(view.totalValue, lastCloseBefore(marks, today))
+    : null;
 
   /*
     Somebody who has never traded is still being told what this is. It goes
@@ -384,8 +404,27 @@ async function Rest() {
             <Panel
               title="Your week so far"
               description="Each bar is where the week stood at that day's close. The outlined one is today, and it can still move."
+              action={
+                move ? (
+                  <span className="figure flex items-baseline gap-1.5 text-sm">
+                    <span className="text-muted-foreground">Today</span>
+                    <span
+                      className={move.percent >= 0 ? "text-gain" : "text-loss"}
+                    >
+                      {formatPercent(move.percent)}
+                    </span>
+                  </span>
+                ) : undefined
+              }
             >
               <WeekShape days={days} />
+              {move ? (
+                <p className="text-sm text-muted-foreground">
+                  {move.amount >= 0 ? "Up" : "Down"}{" "}
+                  <span className="figure">{formatMoney(Math.abs(move.amount))}</span>{" "}
+                  since last night&rsquo;s close.
+                </p>
+              ) : null}
             </Panel>
           ) : null}
 

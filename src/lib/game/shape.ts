@@ -20,6 +20,19 @@ import { addDays } from "@/lib/market/session";
   so both callers can be tested against a week that has already happened.
 */
 
+/**
+ * One close, as it was recorded on the day.
+ *
+ * The value and not only the percentage, because "how is today going" is a
+ * question about the two values either side of last night, and deriving it
+ * from two percentages of a starting balance answers a subtly different one.
+ */
+export type DailyMark = {
+  date: string;
+  value: number;
+  returnPercent: number;
+};
+
 /** One slot in a week: a day, and what the week stood at when it ended. */
 export type ShapeDay = {
   /** Mon, Tue, and so on. */
@@ -112,4 +125,49 @@ export function weekSoFar(input: {
  */
 export function worthDrawing(days: readonly ShapeDay[]): boolean {
   return days.filter((day) => day.returnPercent != null).length >= 2;
+}
+
+/**
+ * The last close before today, which is what today is measured against.
+ *
+ * Strictly before, and that is the whole of it. After four in the afternoon
+ * today's own close is in the book, and measuring today against itself would
+ * report every evening as a day on which nothing happened.
+ */
+export function lastCloseBefore(
+  marks: readonly DailyMark[],
+  today: string
+): DailyMark | null {
+  let best: DailyMark | null = null;
+  for (const mark of marks) {
+    if (mark.date >= today) continue;
+    if (best == null || mark.date > best.date) best = mark;
+  }
+  return best;
+}
+
+/** What a day has done: in money, and against what it opened the day at. */
+export type DayMove = {
+  amount: number;
+  percent: number;
+};
+
+/**
+ * Today, as distinct from the week.
+ *
+ * By Thursday the week's figure barely moves -- a good day shifts it by a
+ * fraction of a per cent and it reads as the same number it read yesterday.
+ * The day inside it is the part that is actually happening, and it is a
+ * different sum: today's percentage is against last night's value, not
+ * against what the week started with.
+ *
+ * Null when there is nothing to measure against. On a Monday the last close
+ * belongs to a week that has been settled and put away, and the week's own
+ * figure is today's figure anyway.
+ */
+export function dayMove(totalValue: number, lastClose: DailyMark | null): DayMove | null {
+  if (lastClose == null || lastClose.value <= 0) return null;
+
+  const amount = totalValue - lastClose.value;
+  return { amount, percent: (amount / lastClose.value) * 100 };
 }

@@ -158,7 +158,11 @@ export function GoalMark({
   return (
     <span
       className={cn(
-        "flex items-center gap-1.5 text-xs",
+        // min-w-0 so the label may be cut rather than pushing the row wider,
+        // and one line rather than six: a goal is a note under a name, and a
+        // long one was turning a fourteen-pixel row into a paragraph and
+        // stranding its tick halfway down the side of it.
+        "flex min-w-0 items-center gap-1.5 text-xs",
         met === true
           ? "text-gain"
           : met === false
@@ -167,7 +171,7 @@ export function GoalMark({
       )}
     >
       <Icon className="size-3 shrink-0" aria-hidden="true" />
-      {label}
+      <span className="truncate">{label}</span>
       {met === null ? (
         // Not a failure. The week has simply not decided yet, and marking
         // somebody as having missed on a Tuesday would be a fabricated

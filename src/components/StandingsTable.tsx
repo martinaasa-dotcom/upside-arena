@@ -6,6 +6,16 @@ import type { Standing } from "@/lib/game/leagues";
 /*
   The league table. One fixed-height row per person, so a glance down the
   column tells you where you are.
+
+  It has a header now, which it did not need while there was one figure per
+  row and did the moment there were two. Two percentages side by side with
+  nothing naming them is a puzzle, and the answer -- one is the week, one is
+  today -- is the whole reason the second one is worth showing.
+
+  The day column appears only when the day is a thing that has happened. It
+  is null for everybody at once or for nobody: at the weekend, before the
+  bell, and on a Monday there is no close behind today, so rather than a
+  column of noughts there is no column.
 */
 export function StandingsTable({
   standings,
@@ -20,10 +30,33 @@ export function StandingsTable({
   */
   goalFor?: (userId: string) => { label: string; met: boolean | null } | null;
 }) {
+  const showToday = standings.some((row) => row.todayPercent != null);
+
   return (
     <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-3 px-4 text-xs text-muted-foreground">
+        {/* Standing in for the rank and the initials, so the labels line up
+            with the figures they name rather than with the names. */}
+        <span className="w-6 shrink-0" aria-hidden="true" />
+        <span className="size-8 shrink-0" aria-hidden="true" />
+        <span className="min-w-0 flex-1">Player</span>
+        {showToday ? (
+          <span className="hidden w-16 shrink-0 text-right sm:block">Today</span>
+        ) : null}
+        <span className="w-20 shrink-0 text-right">Week</span>
+      </div>
+
       {standings.map((row) => {
         const up = row.returnPercent >= 0;
+        const today = row.todayPercent;
+
+        const tone =
+          today == null
+            ? "text-muted-foreground"
+            : today >= 0
+              ? "text-gain/90"
+              : "text-loss/90";
+
         return (
           <div
             key={row.userId}
@@ -58,8 +91,8 @@ export function StandingsTable({
                 if (goal) return <GoalMark label={goal.label} met={goal.met} />;
                 if (!row.hasTraded) {
                   return (
-                    <span className="text-xs text-muted-foreground">
-                      Has not traded yet
+                    <span className="truncate text-xs text-muted-foreground">
+                      No trades yet
                     </span>
                   );
                 }
@@ -67,13 +100,52 @@ export function StandingsTable({
               })()}
             </span>
 
-            <span className="flex shrink-0 flex-col items-end">
+            {/*
+              Today, quieter than the week, because the week is what the
+              table is ranked by and the eye should land there first.
+
+              A column of its own only where there is width for a third one.
+              At 390px three figures beside a name left the name about four
+              characters, so on a phone it rides under the week instead and
+              says the word "today" so it needs no header to explain it.
+            */}
+            {showToday ? (
+              <span
+                className={cn("figure hidden w-16 shrink-0 text-right text-sm sm:block", tone)}
+              >
+                {today == null ? "—" : formatPercent(today)}
+              </span>
+            ) : null}
+
+            {/*
+              A minimum rather than a width. "-12.4% today" is wider than the
+              percentage above it, and a fixed box would have let it spill
+              sideways into somebody’s name. Growing instead makes the name
+              give up the characters, which is the right one to lose.
+            */}
+            <span className="flex min-w-20 shrink-0 flex-col items-end">
               <span
                 className={cn("figure text-sm font-semibold", up ? "text-gain" : "text-loss")}
               >
                 {formatPercent(row.returnPercent)}
               </span>
-              <span className="figure text-xs text-muted-foreground">
+
+              {showToday && today != null ? (
+                <span className={cn("figure text-xs sm:hidden", tone)}>
+                  {formatPercent(today)} today
+                </span>
+              ) : null}
+              {/*
+                What it is worth. It gives up its place on a phone to the
+                day, which is the newer news, and only when there is a day
+                to give it up to -- a battle has none, so there it stays.
+              */}
+              <span
+                className={cn(
+                  "figure text-xs text-muted-foreground",
+                  showToday ? "hidden sm:block" : "block"
+                )}
+              >
                 {formatMoney(row.totalValue)}
               </span>
             </span>

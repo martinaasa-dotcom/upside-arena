@@ -87,6 +87,7 @@ export const leagueStandings: Standing[] = [
     versusMarket: 121.4,
     isYou: false,
     hasTraded: true,
+    todayPercent: 0.9,
   },
   {
     userId: "l2",
@@ -99,6 +100,7 @@ export const leagueStandings: Standing[] = [
     versusMarket: null,
     isYou: true,
     hasTraded: false,
+    todayPercent: -1.4,
   },
 ];
 
