@@ -3,14 +3,6 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import {
-  BellRing,
-  CalendarRange,
-  Home,
-  Swords,
-  Trophy,
-  User,
-} from "lucide-react";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -20,11 +12,7 @@ import { Button } from "@/components/ui/button";
 import { finishTour } from "@/app/(app)/actions";
 import { CARD } from "@/lib/page-shell";
 import { cn } from "@/lib/utils";
-import { formatMoney } from "@/lib/format";
-import { STARTING_BALANCE, MAX_LINEUP_ORDERS } from "@/lib/game";
-import { MIN_WEEKS_TO_RANK } from "@/lib/game/season-rules";
-import { DAILY_CAP, QUIET_HOURS } from "@/lib/notify/timing";
-import { ROOMS } from "@/lib/rooms";
+import { STEPS, type Step } from "@/lib/tour-steps";
 
 /*
   The walkthrough somebody gets on their way in.
@@ -40,8 +28,10 @@ import { ROOMS } from "@/lib/rooms";
   So this says the whole thing, once, in the app, to everybody -- and then
   never again. Its rules:
 
-    Every screen is one idea and fits without scrolling on a phone. A modal
-    that scrolls is a document, and a document is what /how already is.
+    Every screen is the same shape: progress, where you are, a heading, a
+    sentence, the things, the same footer. Nothing moves between steps except
+    the words, because a walkthrough whose buttons wander is one somebody has
+    to re-read the bottom of eight times.
 
     Nothing here is a figure this file made up. The starting balance, the
     lineup size, the season threshold, the notification cap and the rooms are
@@ -54,165 +44,137 @@ import { ROOMS } from "@/lib/rooms";
 
     The one thing it never does is stand between a person and the room. It
     opens over Home with Home already painted behind it.
+
+  `TourScreen` is exported on its own so every screen is in /gallery, which is
+  what tests/e2e/clipping.spec.ts measures at every width a phone reports. A
+  modal is the easiest thing in an app to ship broken on a phone -- nobody
+  sees it twice -- and it was the one family of component the probe could not
+  reach.
 */
 
-type Step = {
-  /** The dot label. Short: eight of these share a row on a phone. */
-  key: string;
-  title: string;
-  lede: string;
-  rows?: { icon?: React.ComponentType<{ className?: string }>; term: string; text: string }[];
-  note?: string;
-};
+/**
+ * One screen, with no idea it is in a dialog.
+ *
+ * Split out from the dialog so /gallery can render all eight of them in the
+ * page flow, where the clipping probe measures every element at every phone
+ * width. What it is inside is the dialog's business.
+ */
+export function TourScreen({
+  step,
+  index,
+  total,
+  headingId,
+  Title = "h2",
+  Description = "p",
+  children,
+}: {
+  step: Step;
+  index: number;
+  total: number;
+  /** So the dialog can point `aria-labelledby` at the heading on every step. */
+  headingId?: string;
+  /*
+    What the heading and the sentence under it are made of.
 
-/*
-  `ROOMS` is the dock's own list, so the map is guaranteed to be the rooms
-  that exist. Only the sentence about each one lives here.
-*/
-const ROOM_BLURB: Record<string, string> = {
-  "/home": "What you own, what it is worth, what moved today, and where your week stands against the market.",
-  "/trade": "Buy and sell. Real companies, real prices, whole shares, no borrowing.",
-  "/leagues": "Your leagues, the tables, the invite codes, weekly goals, and battles.",
-  "/season": "The quarter's ranking, and how many weeks you still need to be placed in it.",
-  "/profile": "Every week you have played, your streak, what you have earned, and every switch.",
-};
+    `DialogTitle` and `DialogDescription` throw outside a `Dialog`, and half
+    the point of this component is being rendered in /gallery where there
+    isn't one. So the live tour passes the Radix pair and the gallery takes
+    the plain elements — same markup, same classes, and Radix still gets the
+    title it insists a dialog has.
+  */
+  Title?: React.ElementType;
+  Description?: React.ElementType;
+  /** The footer, which only the live tour has. */
+  children?: React.ReactNode;
+}) {
+  const rows = step.rows ?? [];
 
-const STEPS: Step[] = [
-  {
-    key: "Game",
-    title: "Arena is a game, and the money is not real",
-    lede: `You get ${formatMoney(
-      STARTING_BALANCE
-    )} of pretend money and buy shares in real companies at real prices. At the end of the week you find out how you did — against the market, and against your friends.`,
-    rows: [
-      {
-        term: "Nothing here is real money",
-        text: "You cannot deposit, you cannot withdraw, and you cannot lose money you had. There is no stake and no payout.",
-      },
-      {
-        term: "It is free, and it stays free",
-        text: "Nothing you can buy changes a result. Anything paid is more leagues and things to wear next to your name.",
-      },
-    ],
-  },
-  {
-    key: "Week",
-    title: "The week is the whole game",
-    lede: "Every Monday at 09:30 New York time everybody starts again with the same money. You buy and sell on weekdays between 09:30 and 16:00. At Friday's close the week is scored, and on Monday everybody is level again.",
-    rows: [
-      {
-        term: "Nothing carries over",
-        text: "Somebody who has played for a year starts Monday exactly level with somebody who signed up last night.",
-      },
-      {
-        term: "Cash earns nothing",
-        text: "Whole shares only, no borrowing, no leverage. Sitting in cash is a decision, not a safe place to hide.",
-      },
-    ],
-  },
-  {
-    key: "Score",
-    title: "The number that counts is the second one",
-    lede: "Home shows what you made this week and how that compares to the market as a whole. The second one is the honest one.",
-    rows: [
-      {
-        term: "Up is not the same as good",
-        text: "Everybody is up in a week the market ran. Up 2% while the market was up 3% is a bad week that looks like a good one.",
-      },
-      {
-        term: "A falling week is still worth playing",
-        text: "Losing 1% while the market lost 4% is one of the better things you can do here, and the app says so.",
-      },
-    ],
-  },
-  {
-    key: "Rooms",
-    title: "Where everything is",
-    lede: "Five rooms, on the bar along the bottom of the screen. That bar is the whole navigation — there is nothing hidden behind a menu.",
-    rows: ROOMS.map((room) => ({
-      icon: room.icon,
-      term: room.label,
-      text: ROOM_BLURB[room.href] ?? "",
-    })),
-  },
-  {
-    key: "Leagues",
-    title: "A league is where the game actually happens",
-    lede: "Playing alone is a spreadsheet. Two people is a game. We have already made you a league of your own — send its code to one person and you have a race.",
-    rows: [
-      {
-        icon: Trophy,
-        term: "Private, always",
-        text: "Nobody can find your league and nobody joins it without the code. Inside it you see everybody's week and who is immediately ahead of you.",
-      },
-      {
-        icon: Swords,
-        term: "Battles",
-        text: "A second contest beside the ordinary week, with its own rules: semiconductors only, one company at a time, pick the losers instead of the winners. Anyone in the league can start one.",
-      },
-      {
-        icon: CalendarRange,
-        term: "Say what you are going for",
-        text: "Once a week you can call your shot — beat the market, finish top three, just show up. It earns nothing. Saying it to people who will see whether you did is the point.",
-      },
-    ],
-    note: "Everybody's holdings are opened to the league once a week is settled, never while it is running.",
-  },
-  {
-    key: "Weekend",
-    title: "The weekend is for deciding, not for waiting",
-    lede: `The market shuts at 16:00 on Friday and opens at 09:30 on Monday. Nothing moves in between, so there is nothing to miss. What you can do is line up next week: pick up to ${MAX_LINEUP_ORDERS} companies and they are bought for you at Monday's opening price.`,
-    rows: [
-      {
-        term: "No advantage in being early",
-        text: "Everybody who leaves a lineup fills at the same opening price. It locks when the market opens, so nothing is ever placed with hindsight.",
-      },
-      {
-        term: "A minute a day, ten on a Sunday",
-        text: "That is honestly the whole thing. Forget about it for a week and you have lost that week and nothing else.",
-      },
-    ],
-  },
-  {
-    key: "Record",
-    title: "What keeps going underneath",
-    lede: "The week resets. These do not.",
-    rows: [
-      {
-        icon: Home,
-        term: "Your streak",
-        text: "Days you opened Arena and looked at your week. Trading days only, so a weekend never breaks one, and it has nothing to do with how well you did.",
-      },
-      {
-        icon: User,
-        term: "Your record",
-        text: "Every week you have played is on your profile — what you made, and how it compared to the market. Each was settled on the Friday it happened.",
-      },
-      {
-        icon: CalendarRange,
-        term: "The season",
-        text: `A quarter of weeks, ranked on how far ahead of the market you finished per week rather than on total profit. Play ${MIN_WEEKS_TO_RANK} weeks of a quarter and you are placed in it.`,
-      },
-    ],
-  },
-  {
-    key: "Notes",
-    title: "What Arena will send you, and what it will not",
-    lede: "Every message is something that actually happened, to you, with a name attached. Every one of them is a switch on your profile, and off means off that moment.",
-    rows: [
-      {
-        icon: BellRing,
-        term: "The cap",
-        text: `Never more than ${DAILY_CAP} in a day, and never between ${QUIET_HOURS} where you are.`,
-      },
-      {
-        term: "Never about a bad week",
-        text: "No “come back”, no “your friends are playing without you”, no invented countdown. Messaging a loss as something one more trade could fix is not going to be built here.",
-      },
-    ],
-    note: "Not a broker. Not real money. Not advice, and not a prediction — a week of picking winners with pretend money tells you very little about picking them with real money.",
-  },
-];
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      {/*
+        `pe-9` keeps the bar and the count clear of the dialog's close button,
+        which the primitive draws in this corner at `top-4 right-4`. Reserved
+        unconditionally rather than passed in, so /gallery measures the same
+        header a person is actually looking at.
+      */}
+      <div className="flex shrink-0 flex-col gap-2 pe-9">
+        <div className="flex gap-1.5" aria-hidden="true">
+          {Array.from({ length: total }, (_, i) => (
+            <span
+              key={i}
+              className={cn(
+                "h-1 min-w-0 flex-1 rounded-full transition-colors",
+                i <= index ? "bg-primary" : "bg-muted"
+              )}
+            />
+          ))}
+        </div>
+        <p className="text-sm tabular-nums text-muted-foreground">
+          Step {index + 1} of {total} · {step.key}
+        </p>
+      </div>
+
+      {/*
+        The one scroller. Everything that can grow with the copy is inside it,
+        and the progress above and the footer below are pinned either side --
+        so the way forward is on screen at every width, and the eighth screen
+        on a 320px phone scrolls its own text rather than pushing the button
+        off the bottom of the world.
+      */}
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+        <div className="flex flex-col gap-2">
+          <Title id={headingId} className="text-lg font-semibold tracking-tight">
+            {step.title}
+          </Title>
+          <Description className="text-sm leading-relaxed text-muted-foreground">
+            {step.lede}
+          </Description>
+        </div>
+
+        {rows.length > 0 ? (
+          /*
+            Two columns once there are more than two of them and there is room.
+            A desktop reading five one-line rooms down a single narrow column
+            is a lot of white either side of very little; a phone reading two
+            columns is two words per line.
+          */
+          <ul
+            className={cn(
+              "grid gap-2",
+              rows.length > 2 && "sm:grid-cols-2"
+            )}
+          >
+            {rows.map((row) => {
+              const Icon = row.icon;
+              return (
+                <li key={row.term} className={cn(CARD, "flex items-start gap-3")}>
+                  {Icon ? (
+                    <Icon
+                      className="mt-0.5 size-4 shrink-0 text-primary"
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span className="text-sm font-medium">{row.term}</span>
+                    <span className="text-sm text-muted-foreground">{row.text}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+
+        {step.note ? (
+          <p className="text-sm text-muted-foreground">{step.note}</p>
+        ) : null}
+      </div>
+
+      {children}
+    </div>
+  );
+}
+
+const HEADING_ID = "welcome-tour-title";
 
 export function WelcomeTour({ playerName }: { playerName: string | null }) {
   const [open, setOpen] = useState(true);
@@ -224,8 +186,9 @@ export function WelcomeTour({ playerName }: { playerName: string | null }) {
 
   /*
     Written down once, whichever way it ends. `finishTour` is idempotent, but
-    Escape firing while the "Done" transition is already in flight would send
-    a second write for no reason, so the guard is here rather than there.
+    Escape firing while the "Start playing" transition is already in flight
+    would send a second write for no reason, so the guard is here rather than
+    there.
   */
   const [closed, setClosed] = useState(false);
   const close = useCallback(() => {
@@ -262,7 +225,15 @@ export function WelcomeTour({ playerName }: { playerName: string | null }) {
       }}
     >
       <DialogContent
-        className="max-w-[calc(100%-2rem)] sm:max-w-xl"
+        aria-labelledby={HEADING_ID}
+        /*
+          A height and a floor under it. Without the height the eighth screen
+          on a short phone runs off both ends of the viewport with the button
+          somewhere below the fold; `dvh` rather than `vh` because a phone
+          browser's chrome is part of the difference. The padding steps down
+          on a phone the way every other surface in the app does.
+        */
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] flex-col gap-0 p-4 sm:max-w-2xl sm:p-6"
         /*
           Clicking the page behind a walkthrough is somebody reaching for the
           room, not somebody dismissing eight screens they have not read. The
@@ -270,89 +241,67 @@ export function WelcomeTour({ playerName }: { playerName: string | null }) {
         */
         onInteractOutside={(event) => event.preventDefault()}
       >
-        <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-3">
-            <div className="flex gap-1.5" aria-hidden="true">
-              {STEPS.map((s, i) => (
-                <span
-                  key={s.key}
-                  className={cn(
-                    "h-1 min-w-0 flex-1 rounded-full transition-colors",
-                    i <= index ? "bg-primary" : "bg-muted"
-                  )}
-                />
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground tabular-nums">
-              Step {index + 1} of {STEPS.length} · {step.key}
-            </p>
-          </div>
+        <TourScreen
+          step={index === 0 && playerName ? withGreeting(step, playerName) : step}
+          index={index}
+          total={STEPS.length}
+          headingId={HEADING_ID}
+          Title={DialogTitle}
+          Description={DialogDescription}
+        >
+          {/*
+            One footer, the same on every screen: back on the left where it is
+            ignorable, the way forward on the right where the thumb is, and
+            the long version as the quietest thing on it.
 
-          <div className="flex flex-col gap-2">
-            <DialogTitle>
-              {index === 0 && playerName ? `Welcome, ${playerName}. ` : ""}
-              {step.title}
-            </DialogTitle>
-            <DialogDescription className="leading-relaxed">
-              {step.lede}
-            </DialogDescription>
-          </div>
-
-          {step.rows?.length ? (
-            <ul className="flex flex-col gap-2">
-              {step.rows.map((row) => {
-                const Icon = row.icon;
-                return (
-                  <li key={row.term} className={cn(CARD, "flex items-start gap-3")}>
-                    {Icon ? (
-                      <Icon
-                        className="mt-0.5 size-4 shrink-0 text-primary"
-                        aria-hidden="true"
-                      />
-                    ) : null}
-                    <span className="flex min-w-0 flex-col gap-0.5">
-                      <span className="text-sm font-medium">{row.term}</span>
-                      <span className="text-sm text-muted-foreground">{row.text}</span>
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
-
-          {step.note ? (
-            <p className="text-sm text-muted-foreground">{step.note}</p>
-          ) : null}
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              {index > 0 ? (
-                <Button variant="ghost" onClick={() => setIndex(index - 1)}>
-                  Back
-                </Button>
-              ) : (
-                <Button variant="ghost" onClick={close}>
-                  Skip the tour
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/how"
-                className="text-sm text-muted-foreground underline underline-offset-4"
-                onClick={close}
+            A grid on a phone and a row from `sm` up, rather than one wrapping
+            row. Wrapping put the three of them on two lines with the primary
+            button at the bottom *left*, which is the one place the way
+            forward should never be. Two columns keeps back and next at the
+            ends of the same line at 320px and drops the link underneath them.
+          */}
+          <div className="grid shrink-0 grid-cols-2 items-center gap-x-3 gap-y-2 border-t border-border pt-4 sm:flex">
+            {index > 0 ? (
+              <Button
+                variant="ghost"
+                className="justify-self-start"
+                onClick={() => setIndex(index - 1)}
               >
+                Back
+              </Button>
+            ) : (
+              <Button variant="ghost" className="justify-self-start" onClick={close}>
+                Skip the tour
+              </Button>
+            )}
+            <Button
+              className="justify-self-end sm:order-last"
+              onClick={() => (last ? close() : setIndex(index + 1))}
+            >
+              {last ? "Start playing" : "Next"}
+            </Button>
+            {/*
+              A `Button asChild`, not a bare link. Beside two buttons in a
+              footer, a 20px-tall tap target is the one a thumb misses — and
+              the size variants are where this app puts its touch targets.
+            */}
+            <Button
+              asChild
+              variant="link"
+              className="col-span-2 justify-self-center text-muted-foreground sm:col-span-1 sm:ms-auto sm:justify-self-auto"
+            >
+              <Link href="/how" onClick={close}>
                 The long version
               </Link>
-              <Button
-                onClick={() => (last ? close() : setIndex(index + 1))}
-              >
-                {last ? "Start playing" : "Next"}
-              </Button>
-            </div>
+            </Button>
           </div>
-        </div>
+        </TourScreen>
       </DialogContent>
     </Dialog>
   );
+}
+
+/** "Welcome, Martin." in front of the first heading, and nowhere else. */
+function withGreeting(step: Step, name: string): Step {
+  return { ...step, title: `Welcome, ${name}. ${step.title}` };
 }
