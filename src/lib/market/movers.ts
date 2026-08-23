@@ -51,8 +51,6 @@ export type Mover = {
   changePercent: number;
   /** True when this is something the viewer holds. */
   owned: boolean;
-  /** True when the price came from cache after a failed refresh. */
-  stale: boolean;
 };
 
 export type MoversView = {
@@ -60,8 +58,6 @@ export type MoversView = {
   up: Mover[];
   /** Biggest fallers first. */
   down: Mover[];
-  /** True when anything shown came from cache after a failed refresh. */
-  anyStale: boolean;
 };
 
 /** How many each way. Six is a glance; twenty is a screen to scroll. */
@@ -118,7 +114,6 @@ export async function getMovers(owned: readonly string[] = []): Promise<MoversVi
       price: quote.price,
       changePercent: quote.changePercent,
       owned: held.has(quote.symbol),
-      stale: quote.stale,
     }));
 
   // Not enough to fill a row honestly. Better to show none than to pad it.
@@ -136,11 +131,7 @@ export async function getMovers(owned: readonly string[] = []): Promise<MoversVi
 
   if (up.length === 0 && down.length === 0) return null;
 
-  return {
-    up,
-    down,
-    anyStale: [...up, ...down].some((row) => row.stale),
-  };
+  return { up, down };
 }
 
 /** The watchlist, for a test that wants to know it is a real list. */

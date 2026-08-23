@@ -659,22 +659,19 @@ export const headToHead: HeadToHead[] = [
   need truncating, and a move wide enough to fill its own cell.
 */
 export const movers: MoversView = {
-  anyStale: false,
   up: [
-    { symbol: "NVDA", name: "NVIDIA Corporation", price: 1284.55, changePercent: 12.42, owned: true, stale: false },
-    { symbol: "GOOGL", name: "Alphabet Inc. Class A", price: 204.1, changePercent: 3.8, owned: false, stale: false },
-    { symbol: "BRK-B", name: "Berkshire Hathaway Inc. New", price: 486.22, changePercent: 1.05, owned: false, stale: false },
-    { symbol: "F", name: "Ford Motor Company", price: 11.4, changePercent: 0.04, owned: false, stale: false },
+    { symbol: "NVDA", name: "NVIDIA Corporation", price: 1284.55, changePercent: 12.42, owned: true },
+    { symbol: "GOOGL", name: "Alphabet Inc. Class A", price: 204.1, changePercent: 3.8, owned: false },
+    { symbol: "BRK-B", name: "Berkshire Hathaway Inc. New", price: 486.22, changePercent: 1.05, owned: false },
+    { symbol: "F", name: "Ford Motor Company", price: 11.4, changePercent: 0.04, owned: false },
   ],
   down: [
-    { symbol: "TSLA", name: "Tesla, Inc.", price: 198.4, changePercent: -128.5, owned: true, stale: false },
-    { symbol: "COIN", name: "Coinbase Global, Inc.", price: 240.15, changePercent: -6.2, owned: false, stale: false },
-    { symbol: "PLTR", name: "Palantir Technologies Inc.", price: 71.05, changePercent: -2.1, owned: false, stale: false },
-    { symbol: "DIS", name: "The Walt Disney Company", price: 96.8, changePercent: -0.11, owned: false, stale: false },
+    { symbol: "TSLA", name: "Tesla, Inc.", price: 198.4, changePercent: -128.5, owned: true },
+    { symbol: "COIN", name: "Coinbase Global, Inc.", price: 240.15, changePercent: -6.2, owned: false },
+    { symbol: "PLTR", name: "Palantir Technologies Inc.", price: 71.05, changePercent: -2.1, owned: false },
+    { symbol: "DIS", name: "The Walt Disney Company", price: 96.8, changePercent: -0.11, owned: false },
   ],
 };
-
-export const moversStale: MoversView = { ...movers, anyStale: true };
 
 /** A player's own weeks, including one the market was never recorded for. */
 export const playedWeeks: PlayedWeek[] = [

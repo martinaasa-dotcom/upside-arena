@@ -632,10 +632,6 @@ export default function GalleryPage() {
         <Movers movers={fixture.movers} />
       </Case>
 
-      <Case name="movers-stale">
-        <Movers movers={fixture.moversStale} />
-      </Case>
-
       <Case name="invite-code">
         <InviteCode code="ABCD2345" leagueName={fixture.LONG_LEAGUE} />
       </Case>

@@ -132,7 +132,6 @@ async function MarketBadges() {
 
   return (
     <>
-      {view.anyStale ? <Badge variant="warning">Prices are catching up</Badge> : null}
       <Badge variant="outline">{sessionLabel(view.marketState)}</Badge>
     </>
   );

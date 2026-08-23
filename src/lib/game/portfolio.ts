@@ -81,8 +81,6 @@ export type PortfolioView = {
    * Wednesday afternoon.
    */
   marketState: string | null;
-  /** True when any price shown came from cache after a failed refresh. */
-  anyStale: boolean;
 };
 
 type PortfolioRow = {
@@ -271,7 +269,6 @@ function stubView(): PortfolioView {
     versusMarket: 0.9,
     tradingOpen: true,
     marketState: "REGULAR",
-    anyStale: false,
   };
 }
 
@@ -366,15 +363,11 @@ export const getPortfolioView = cache(async function getPortfolioView(
   const quotes = { ...benchmarkQuotes, ...held };
   const benchmarkOpenPrice = cycle.benchmark_open;
 
-  let anyStale = false;
-
   const positions: Position[] = holdings.map((row) => {
     const symbol = row.symbol;
     const quantity = num(row.quantity);
     const costBasis = num(row.cost_basis);
     const quote = quotes[symbol] ?? null;
-
-    if (quote?.stale) anyStale = true;
 
     // With no price at all, the position is shown at cost rather than at
     // zero. Zero would look like a wipeout that never happened.
@@ -418,7 +411,6 @@ export const getPortfolioView = cache(async function getPortfolioView(
       benchmarkReturnPercent == null ? null : returnPercent - benchmarkReturnPercent,
     tradingOpen: cycle.status === "open" && isTradingOpen(),
     marketState: benchmarkQuote?.marketState ?? null,
-    anyStale,
   };
 })
 export type TradeOutcome =

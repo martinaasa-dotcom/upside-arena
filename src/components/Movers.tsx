@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Panel } from "@/components/Panel";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatMoney, formatPercent } from "@/lib/format";
@@ -25,13 +24,9 @@ export function Movers({ movers }: { movers: MoversView }) {
       title="What moved today"
       description="The largest real moves among companies you would recognise, and anything you own. A big move is not a reason to buy something. It is just what happened."
       action={
-        movers.anyStale ? (
-          <Badge variant="warning">Prices are catching up</Badge>
-        ) : (
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/trade">Trade</Link>
-          </Button>
-        )
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/trade">Trade</Link>
+        </Button>
       }
     >
       <div className="flex flex-col gap-4">
