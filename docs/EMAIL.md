@@ -1,100 +1,96 @@
 # Email, and keeping it deliverable
 
-Arena sends two kinds of mail, from two different places, and only one of them
-is a problem when it goes wrong.
+Arena sends one kind of mail.
 
 | What | Sent by | To whom |
 |---|---|---|
-| The sign-in link | Supabase Auth | Anybody who types an address into the sign-in form |
-| The weekly notification fallback | Resend, from `src/lib/notify/send.ts` | Players who asked for it, at the address on their account |
-| Confirming a second address | Resend, from `src/lib/auth/link-mail.ts` | An address a signed-in player asked to add to their account |
-| A sign-in link at a second address | Resend, same place | Somebody asking for a link at an address that was added to an account |
+| The notification fallback | Resend, from `src/lib/notify/send.ts` | A player who asked to be told about something, at the address on their account, when push reached no browser |
 
-The last two are why `sendTransactionalEmail` exists next to `sendEmail` in
-`src/lib/notify/send.ts`: same provider, same from address, and no unsubscribe
-on either, because turning them off would mean never being able to confirm an
-address or sign in at one again.
+It used to send four. What went, and when:
 
-The second of them is sent by Arena rather than by Supabase for a reason worth
-knowing: Supabase has never heard of that address. Asked for a link at it, it
-would make a second account with the same person inside it, a new player tag
-and no record. So the token is minted for the account the address was added to
-and the link carrying it goes to the mailbox that asked. See
+- **The sign-in link**, sent by Supabase Auth to anybody who typed an address
+  into the sign-in form. Gone with the magic link on 2026-08-23. Google is the
+  only way into an account, and an ID token needs no mailbox.
+- **A sign-in link at a second address**, sent by Arena rather than by
+  Supabase because Supabase had never heard of that address. Gone the same
+  day, with `signInWithEmail`, its only caller.
+- **Confirming a second address.** Gone with the flow it belonged to: an
+  address you cannot sign in with is not worth confirming, and a second Google
+  account proves itself in the handshake. `link-mail.ts` and
+  `sendTransactionalEmail` went with it.
+
+**Supabase Auth now sends nothing at all.** `magicTokenFor` still mints a
+one-time token so a linked address opens the account it was added to, but the
+Google callback spends it where it stands rather than posting it anywhere, so
+it never reaches a mailbox, a URL or a history entry. See
 `src/lib/auth/linked-emails.ts`.
 
-The sign-in link is the one that matters here. It goes to an address nobody
-has verified yet, because verifying it is exactly what the link is for. Every
-typo, every placeholder, every address somebody made up to see what the app
-does is a message sent to a mailbox that does not exist, and every one of those
-comes back as a bounce against the project's sending reputation.
+## Why this is smaller than it was, and still worth care
 
-## Why this is worth caring about
+The old version of this page argued that bounces were the single failure that
+could take the front door off the product, and it was right at the time: a
+restricted sender meant nobody could sign in at all.
 
-Supabase writes when a project's bounce rate gets high, and the letter says
-plainly what happens next: sending privileges get restricted. That does not
-degrade sign-in, it removes it. Nobody new can get in, and nobody signed out
-can get back in, including every player whose address was spelled perfectly.
+Two things changed that, and it is worth being precise about which.
 
-So bounces are not a deliverability nicety here. They are the single failure
-that can take the front door off the product.
+**Google carries sign-in, and it touches no mail.** A sending problem can no
+longer keep anybody out of their account.
+
+**Every address Arena mails is now one Google verified**, on an account that
+asked to be written to. Nothing goes to an address a stranger typed into a
+form, which is where the bounce risk actually lived: the typo, the
+placeholder, the address somebody invented to see what the app does. That was
+the whole argument for the MX lookup in `email-mx.ts`, and it is why that file
+is gone rather than kept for luck.
+
+What is left to protect is the notification fallback itself. A restricted
+domain does not degrade it, it removes it: push reaches very few people on
+iOS, which is the entire reason the fallback exists, so a player who asked to
+be told something simply stops being told.
 
 ## What the app does about it
 
-Three checks stand in front of `signInWithOtp`, in `src/app/auth/actions.ts`.
-All three run before any message is asked for, because the cheapest bounce is
-the one that was never sent.
+`src/lib/auth/email-address.ts` reads an address strictly, and `isSendable`
+is what stands in front of every send in `src/lib/notify/send.ts`.
 
-**1. The address has to be shaped like an address.**
-`src/lib/auth/email-address.ts` reads it strictly: one `@`, a local part a
-mailbox could actually have, a domain of real labels, and an alphabetic ending.
-It also tidies first — whitespace, `mailto:`, angle brackets, a trailing dot
-and the zero-width characters that ride along with a copy from a web page are
-all things somebody meant to leave out.
+**1. The address has to be shaped like an address.** One `@`, a local part a
+mailbox could actually have, a domain of real labels, and an alphabetic
+ending. It tidies first: whitespace, `mailto:`, angle brackets, a trailing dot
+and the zero-width characters that ride along with a copy from a web page.
 
-**2. Names that can never receive are refused outright.**
-The RFC 2606 and 6761 reserved names — `example.com`, anything under `.test`,
-`.invalid`, `.local`, `.localhost` — exist so as never to resolve, and they
-turn up in real sign-in fields constantly because that is what a placeholder
-teaches people to type. So do send-only mailboxes like `noreply@`. Both are a
-guaranteed bounce and both now get a sentence instead of a message.
+**2. Names that can never receive are refused outright.** The RFC 2606 and
+6761 reserved names (`example.com`, anything under `.test`, `.invalid`,
+`.local`, `.localhost`) exist so as never to resolve, and so do send-only
+mailboxes like `noreply@`. Both are a guaranteed bounce.
 
-**3. A domain one edit from a very common one gets a question.**
-`gmial.com`, `hotmial.com`, `gmail.con`, `outlok.com`. The person is asked
-"did you mean" and their own spelling stays on offer next to the suggestion.
-Nothing is corrected silently: real domains do sit one letter from famous ones,
-and quietly sending somebody's sign-in link to a stranger's mailbox would be a
-worse bug than the one being fixed.
+This runs against an address that came from an account rather than from a
+form, so nobody can be asked about it. An account created before these checks
+existed would otherwise be mailed every week for ever, bouncing every time,
+and that is the case the guard is really for.
 
-**4. And then the domain system is asked whether there is anywhere to deliver.**
-`src/lib/auth/email-mx.ts` looks for a mail exchanger, and for the address
-record that makes a host its own exchanger. A domain with neither will bounce
-without exception, so that is refused too.
-
-That check fails open, deliberately and in every direction. A timeout, a
-refused resolver, a server failure, an edge runtime with no resolver at all:
-every one of those lets the sign-in through. Only the domain system saying
-"there is no such name" turns anybody away. Locking players out over a slow DNS
-server would be a far worse fault than the bounce being prevented.
-
-The same syntax rules guard the notification fallback in
-`src/lib/notify/send.ts`, where nobody can be asked about a bad address because
-it came from an account rather than a form. An account created before these
-checks existed would otherwise be mailed every week for ever, bouncing every
-time.
+**What is no longer here.** The MX lookup asked the domain system whether
+there was anywhere to deliver, and the "did you mean gmail.com" question
+caught a domain one edit from a famous one. Both were about an address
+somebody had just typed. `readEmail` still has the suggestion branch because
+it is one function with two callers' worth of history in it; nothing reaches
+it from a form any more.
 
 ## The dashboard half, which cannot be done in code
 
-### Auth email is on Resend — done, 2026-08-22
+### Auth email is on Resend, done 2026-08-22, dormant since 2026-08-23
 
-Supabase's built-in email service is shared infrastructure with a small hourly
-allowance, and its reputation is shared with every other project using it.
-Arena already has a Resend account and a verified domain for the notification
-fallback, so pointing auth at the same place means one sender, one reputation
-and metrics that actually name the bounces.
+**Supabase Auth sends nothing now**, because nothing asks it to. The settings
+below are recorded as they stand, they cost nothing where they are, and
+anything that ever starts mailing through Supabase again wants them checked
+rather than assumed.
 
-Recorded here so the settings can be checked without hunting for them. In
-**Supabase, Project Settings, Authentication, SMTP Settings**, *Enable Custom
-SMTP* is on:
+The original reason still holds if that day comes: Supabase's built-in email
+service is shared infrastructure with a small hourly allowance and a
+reputation shared with every other project using it, while Arena already has
+a Resend account and a verified domain.
+
+In **Supabase, Project Settings, Authentication, SMTP Settings**, *Enable
+Custom SMTP* is on:
 
 | Field | Value |
 |---|---|
@@ -106,56 +102,40 @@ SMTP* is on:
 | Sender name | `Upside Arena` |
 | Minimum interval per user | `60` seconds |
 
-The API key is a separate one from the notification key, named `supabase-auth`,
-so either can be revoked without taking the other down.
+The API key is a separate one from the notification key, named
+`supabase-auth`, so either can be revoked without taking the other down.
+
+### The sending domain, which is not dormant
 
 The sender address has to be on a domain verified in Resend. An unverified one
-does not bounce, it fails outright, which is worse: nobody can sign in at all.
-upsidearena.com is verified — DKIM at `resend._domainkey`, a return path at
-`send.upsidearena.com`, and a `p=none` DMARC record — and those are worth
-checking with `dig` rather than trusting, because a DNS record removed at the
-registrar takes sign-in down with it and nothing in the app will say so.
+does not bounce, it fails outright, which is worse: nothing arrives and
+nothing says so. upsidearena.com is verified, with DKIM at
+`resend._domainkey`, a return path at `send.upsidearena.com`, and a `p=none`
+DMARC record. Those are worth checking with `dig` rather than trusting,
+because a record removed at the registrar takes the notification mail down
+with it and nothing in the app will say a word.
 
 Set `RESEND_FROM` to the same address, `Upside Arena
 <arena@upsidearena.com>`, in Vercel. The code defaults to `arena@upthink.ee`,
-so an unset variable means the sign-in link and the notification mail leave
-from two different domains, building two reputations where the point of this
-was to have one.
+so an unset variable means the mail leaves from a domain that was never
+verified for it.
 
 The domain sends but does not receive: it has no MX record of its own, so a
-reply to a sign-in link reaches nobody. That is normal for transactional mail
-and it is why the app names `app.support@upthink.ee`, a mailbox that does
-receive, wherever it invites somebody to get in touch.
-
-**Confirm it worked.** Request a sign-in link, then look in Resend's **Emails**
-list. The message should be there. If it is not, Supabase is still sending it
-itself and the settings did not save.
-
-### Set the rate limits alongside it
-
-*Minimum interval per user* is set to 60 seconds, on the same screen. Somebody
-pressing the button four times does not need four links, and four links to a
-dead address is four bounces rather than one.
-
-*Emails per hour* is the one still worth a decision. Turning custom SMTP on
-raises it to 30 an hour, which is fine for a quiet week and is not a launch
-day: thirty people signing in inside an hour is not an unusual afternoon, and
-the thirty-first is simply refused. **Authentication, Rate Limits** is where to
-raise it, and it should be set to what a real day needs and no more.
+reply reaches nobody. That is normal for transactional mail and it is why the
+app names `app.support@upthink.ee`, a mailbox that does receive, wherever it
+invites somebody to get in touch.
 
 ### Watch the number
 
-Resend's dashboard shows bounces per day once auth mail goes through it. A
-bounce rate above about 2% is worth looking into; above 5% is what generates
-the letter from Supabase. If it climbs after all of the above, the cause is
-almost always a real address that has since been closed, and the fix is to stop
-mailing it: those come from the notification fallback, not from sign-in.
+Resend's dashboard shows bounces per day. Above about 2% is worth looking
+into. With sign-in gone from the picture the cause is now almost always a real
+address that has since been closed, and the fix is to stop mailing it.
 
 ## Testing without mailing strangers
 
 `supabase start` runs a local mail server on
 [127.0.0.1:54324](http://127.0.0.1:54324) and every message the local project
-sends lands there and goes nowhere else. That is the place to test sign-in.
+sends lands there and goes nowhere else.
 
 Never test against a live address that is not your own, and never against a
 made-up one: a made-up address on a real domain is a real bounce, and it is

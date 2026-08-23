@@ -95,10 +95,12 @@ will work — see [Migrations](docs/DEPLOY.md#migrations).
 
 ## Email
 
-Sign-in is a magic link, so an address that cannot receive mail is a bounce
-against the project's sending reputation rather than a small mistake. What the
-app checks before sending, and the dashboard settings that cannot be done in
-code, are in [`docs/EMAIL.md`](docs/EMAIL.md).
+Arena sends one kind of mail: the notification fallback, to a player who
+asked to be told about something, at the address on their account, when push
+reached no browser. Sign-in used to be a magic link and is now Google alone,
+so nothing is mailed to an address a stranger typed. What the app checks
+before sending, and the dashboard settings that cannot be done in code, are in
+[`docs/EMAIL.md`](docs/EMAIL.md).
 
 ## Stack
 
