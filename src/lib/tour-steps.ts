@@ -62,7 +62,7 @@ export const STEPS: Step[] = [
     title: "Arena is a game, and the money is not real",
     lede: `You get ${formatMoney(
       STARTING_BALANCE
-    )} of pretend money and buy shares in real companies at real prices. At the end of the week you find out how you did — against the market, and against your friends.`,
+    )} of pretend money and buy shares in real companies at real prices. At the end of the week you find out how you did, against the market and against your friends.`,
     rows: [
       {
         term: "None of it is real money",
@@ -70,7 +70,7 @@ export const STEPS: Step[] = [
       },
       {
         term: "It is free, and it stays free",
-        text: "Nothing you can buy changes a result. Anything paid — Plus, in the top corner — is more leagues and things to wear next to your name.",
+        text: "Nothing you can buy changes a result. Anything paid sits under Plus, in the top corner, and it is more leagues and things to wear next to your name.",
       },
     ],
   },
@@ -107,7 +107,7 @@ export const STEPS: Step[] = [
   {
     key: "Rooms",
     title: "Where everything is",
-    lede: "Five rooms, on the bar along the bottom of the screen. Nothing is hidden behind a menu — the only two things not on that bar are your profile, which is also the picture in the top corner, and Plus beside it.",
+    lede: "Five rooms, on the bar along the bottom of the screen. Nothing is hidden behind a menu. Only two things sit off that bar: your profile, which is also the picture in the top corner, and Plus beside it.",
     rows: ROOMS.map((room) => ({
       icon: room.icon,
       term: room.label,
@@ -117,7 +117,7 @@ export const STEPS: Step[] = [
   {
     key: "Leagues",
     title: "A league is where the game actually happens",
-    lede: "Playing alone is a spreadsheet. Two people is a game. We have already made you a league of your own — send its code to one person and you have a race.",
+    lede: "Playing alone is a spreadsheet. Two people is a game. We have already made you a league of your own, so send its code to one person and you have a race.",
     rows: [
       {
         icon: Trophy,
@@ -165,7 +165,7 @@ export const STEPS: Step[] = [
       {
         icon: User,
         term: "Your record",
-        text: "Every week you have played is on your profile — what you made, and how it compared to the market. Each was settled on the Friday it happened.",
+        text: "Every week you have played is on your profile: what you made, and how it compared to the market. Each was settled on the Friday it happened.",
       },
       {
         icon: CalendarRange,
@@ -189,6 +189,6 @@ export const STEPS: Step[] = [
         text: "No “come back”, no “your friends are playing without you”, no invented countdown. Messaging a loss as something one more trade could fix is not going to be built here.",
       },
     ],
-    note: "Not a broker. Not real money. Not advice, and not a prediction — a week of picking winners with pretend money tells you very little about picking them with real money.",
+    note: "Not a broker. Not real money. Not advice, and not a prediction. A week of picking winners with pretend money tells you very little about picking them with real money.",
   },
 ];

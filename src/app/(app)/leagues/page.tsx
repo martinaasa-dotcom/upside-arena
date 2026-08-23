@@ -117,7 +117,7 @@ async function Leagues() {
                 <span className="truncate text-sm font-medium">{league.name}</span>
                 <span className="truncate text-xs text-muted-foreground">
                   {alone
-                    ? "Nobody else yet — send them the code"
+                    ? "Nobody else yet, send them the code"
                     : position?.leader
                       ? `${position.leader.displayName} is top`
                       : position

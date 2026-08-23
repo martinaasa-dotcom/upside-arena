@@ -129,7 +129,7 @@ export default function LandingPage({
                 >
                   How Arena works
                 </Link>{" "}
-                — the whole game in two minutes, no account needed.
+                explains the whole game in two minutes, no account needed.
               </p>
             </div>
 

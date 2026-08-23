@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { finishTour } from "@/app/(app)/actions";
-import { CARD } from "@/lib/page-shell";
 import { cn } from "@/lib/utils";
 import { STEPS, type Step } from "@/lib/tour-steps";
 
@@ -51,6 +50,24 @@ import { STEPS, type Step } from "@/lib/tour-steps";
   sees it twice -- and it was the one family of component the probe could not
   reach.
 */
+
+/*
+  The row treatment, which is not `CARD`.
+
+  `CARD` is `glass-well`: the quiet nested material, keyed to `--muted` and
+  carrying nothing but a hairline. That is right for a well inside a panel,
+  where the panel around it is already the glass. Inside the walkthrough
+  there is no panel around it -- the rows sit straight on the dialog over an
+  80% scrim -- and `glass-well` on that reads as a flat grey box, which is
+  the one thing this app's surfaces are not.
+
+  So the rows take the top-level material instead: `.glass` for the blur and
+  the 66% fill, `card-sheen` for the three specular terms that are what
+  actually sell it as glass on a near-black field. Padding stays on the
+  element rather than in the constant, because a row is a row and not a
+  panel.
+*/
+const ROW_GLASS = "card-sheen glass rounded-lg p-4";
 
 /**
  * One screen, with no idea it is in a dialog.
@@ -147,7 +164,7 @@ export function TourScreen({
             {rows.map((row) => {
               const Icon = row.icon;
               return (
-                <li key={row.term} className={cn(CARD, "flex items-start gap-3")}>
+                <li key={row.term} className={cn(ROW_GLASS, "flex items-start gap-3")}>
                   {Icon ? (
                     <Icon
                       className="mt-0.5 size-4 shrink-0 text-primary"

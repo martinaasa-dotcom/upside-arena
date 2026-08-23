@@ -329,7 +329,7 @@ async function Aside({ params }: Params) {
       {alone ? (
         <Panel
           title="Nobody else is here yet"
-          description="A league of one is a spreadsheet. Send this code to one person and it becomes a game — that is the whole difference, and two is enough."
+          description="A league of one is a spreadsheet. Send this code to one person and it becomes a game. That is the whole difference, and two is enough."
         >
           <InviteCode code={league.inviteCode} leagueName={league.name} />
         </Panel>

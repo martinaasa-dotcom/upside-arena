@@ -88,7 +88,7 @@ export default function OnboardingPage() {
             the way. Told first, it is the rest of the sign-up.
           */}
           <p className="mt-6 text-sm text-muted-foreground">
-            Next we show you around — the week, the scoring, and where
+            Next we show you around: the week, the scoring, and where
             everything is. It takes a minute and you can skip it. The long
             version lives at{" "}
             <Link href="/how" className="text-foreground underline underline-offset-4">

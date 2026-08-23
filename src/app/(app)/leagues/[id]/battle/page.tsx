@@ -15,7 +15,7 @@ import { TrackView } from "@/components/TrackView";
 import { getSession } from "@/lib/profile";
 import { getBattleView, getLeagueBattle } from "@/lib/game/battles";
 import { allowedSymbols } from "@/lib/game/formats";
-import { formatDate } from "@/lib/format";
+import { NO_VALUE, formatDate } from "@/lib/format";
 import { submitCancelBattle } from "@/app/(app)/leagues/battle-actions";
 import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
 import { formatGap, formatMoney, formatPercent, ordinal } from "@/lib/format";
@@ -74,17 +74,17 @@ export default function BattlePage({
         way Home does it. "Cash left" is true before the number is.
       */}
       <Scoreboard>
-        <Suspense fallback={<Score label="Your money" value="—" as="text" />}>
+        <Suspense fallback={<Score label="Your money" value={NO_VALUE} as="text" />}>
           <MoneyScore params={params} />
         </Suspense>
-        <Suspense fallback={<Score label="This battle" value="—" as="text" />}>
+        <Suspense fallback={<Score label="This battle" value={NO_VALUE} as="text" />}>
           <ReturnScore params={params} />
         </Suspense>
         <Suspense
           fallback={
             <Score
               label="The benchmark"
-              value="—"
+              value={NO_VALUE}
               as="text"
               hint="What this battle is measured against"
             />
@@ -94,7 +94,7 @@ export default function BattlePage({
         </Suspense>
         <Suspense
           fallback={
-            <Score label="Cash left" value="—" as="text" hint="Cash earns nothing" />
+            <Score label="Cash left" value={NO_VALUE} as="text" hint="Cash earns nothing" />
           }
         >
           <CashScore params={params} />
@@ -162,7 +162,7 @@ async function BackToLeague({ params }: Params) {
 */
 async function MoneyScore({ params }: Params) {
   const view = await battleFor(params);
-  if (!view?.you) return <Score label="Your money" value="—" as="text" />;
+  if (!view?.you) return <Score label="Your money" value={NO_VALUE} as="text" />;
 
   return (
     <Score
@@ -175,7 +175,7 @@ async function MoneyScore({ params }: Params) {
 
 async function ReturnScore({ params }: Params) {
   const view = await battleFor(params);
-  if (!view) return <Score label="This battle" value="—" as="text" />;
+  if (!view) return <Score label="This battle" value={NO_VALUE} as="text" />;
 
   if (!view.you) {
     return (
@@ -222,7 +222,7 @@ async function CashScore({ params }: Params) {
   return (
     <Score
       label="Cash left"
-      value={cash == null ? "—" : formatMoney(cash)}
+      value={cash == null ? NO_VALUE : formatMoney(cash)}
       as={cash == null ? "text" : "figure"}
       hint="Cash earns nothing"
     />
@@ -442,7 +442,7 @@ async function Rest({ params }: Params) {
       ) : battle.finished ? (
         <Panel
           title="This battle is over"
-          description="Settled on the closing prices of its last day. Nothing here counted towards your record, a season or a streak — a battle is between the people in it and nobody else."
+          description="Settled on the closing prices of its last day. Nothing here counted towards your record, a season or a streak. A battle is between the people in it and nobody else."
         >
           <Button asChild variant="outline" size="sm">
             <Link href={`/leagues/${id}`}>Back to the league</Link>

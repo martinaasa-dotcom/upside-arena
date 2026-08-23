@@ -31,7 +31,7 @@ import { WeekShape } from "@/components/WeekShape";
 import { BattleCard } from "@/components/BattleCard";
 import { LineupReport } from "@/components/Lineup";
 import { considerHandoff, labUrl } from "@/lib/billing/handoff";
-import { plural } from "@/lib/format";
+import { NO_VALUE, plural } from "@/lib/format";
 import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
 import { formatGap, formatMoney, formatPercent } from "@/lib/format";
 import { sessionLabel } from "@/lib/market/session";
@@ -88,17 +88,17 @@ export default function HomePage() {
         and never replaced.
       */}
       <Scoreboard>
-        <Suspense fallback={<Score label="Your money" value="—" as="text" />}>
+        <Suspense fallback={<Score label="Your money" value={NO_VALUE} as="text" />}>
           <MoneyScore />
         </Suspense>
-        <Suspense fallback={<Score label="This week" value="—" as="text" />}>
+        <Suspense fallback={<Score label="This week" value={NO_VALUE} as="text" />}>
           <WeekScore />
         </Suspense>
         <Suspense
           fallback={
             <Score
               label="The market"
-              value="—"
+              value={NO_VALUE}
               as="text"
               hint="Everyone is measured against this"
             />
@@ -107,7 +107,7 @@ export default function HomePage() {
           <MarketScore />
         </Suspense>
         <Suspense
-          fallback={<Score label="Cash left" value="—" as="text" hint="Cash earns nothing" />}
+          fallback={<Score label="Cash left" value={NO_VALUE} as="text" hint="Cash earns nothing" />}
         >
           <CashScore />
         </Suspense>
@@ -146,7 +146,7 @@ async function homeView() {
 
 async function MoneyScore() {
   const view = await homeView();
-  if (!view) return <Score label="Your money" value="—" as="text" />;
+  if (!view) return <Score label="Your money" value={NO_VALUE} as="text" />;
   return (
     <Score
       label="Your money"
@@ -158,7 +158,7 @@ async function MoneyScore() {
 
 async function WeekScore() {
   const view = await homeView();
-  if (!view) return <Score label="This week" value="—" as="text" />;
+  if (!view) return <Score label="This week" value={NO_VALUE} as="text" />;
 
   const up = view.returnPercent >= 0;
 
@@ -193,7 +193,7 @@ async function CashScore() {
   return (
     <Score
       label="Cash left"
-      value={view ? formatMoney(view.cash) : "—"}
+      value={view ? formatMoney(view.cash) : NO_VALUE}
       as={view ? "figure" : "text"}
       hint="Cash earns nothing"
     />

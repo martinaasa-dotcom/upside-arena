@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
-import { formatDate, formatMoney } from "@/lib/format";
+import { NO_VALUE, formatDate, formatMoney } from "@/lib/format";
 import { lookupSymbols } from "@/app/(app)/trade/actions";
 import {
   submitClearLineupOrder,
@@ -112,8 +112,8 @@ export function Lineup({ view }: { view: LineupView }) {
         {waiting.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Nothing lined up. You start Monday with{" "}
-            {formatMoney(view.startingBalance)} in cash either way — a lineup
-            only saves you doing it at half past nine.
+            {formatMoney(view.startingBalance)} in cash either way. A lineup only
+            saves you doing it at half past nine.
           </p>
         ) : (
           <div className="flex flex-col gap-2">
@@ -151,7 +151,7 @@ export function Lineup({ view }: { view: LineupView }) {
                   belongs to some other row.
                 */}
                 <span className="figure shrink-0 self-start text-right text-sm sm:self-center">
-                  {order.estimate == null ? "—" : `about ${formatMoney(order.estimate)}`}
+                  {order.estimate == null ? NO_VALUE : `about ${formatMoney(order.estimate)}`}
                 </span>
                 {view.locked ? null : (
                   <Button
