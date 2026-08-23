@@ -157,6 +157,16 @@ export type RevealedBook = {
   returnPercent: number;
   /** What they never put to work. A story in itself, when it is most of it. */
   cash: number;
+
+  /**
+   * Whether they ever traded in this contest at all.
+   *
+   * Somebody holding nothing at the end is two completely different people:
+   * one who sold up before the close, and one who never turned up. Without
+   * this the panel called both of them a decision to stay in cash, which is
+   * putting a strategy in the mouth of somebody who simply missed it.
+   */
+  traded: boolean;
   positions: { symbol: string; quantity: number; costBasis: number }[];
 };
 
@@ -848,6 +858,7 @@ export const getBattleView = cache(async function getBattleView(
           rank: row.rank,
           returnPercent: row.returnPercent,
           cash: portfolio ? num(portfolio.cash) : battle.startingBalance,
+          traded: row.hasTraded,
           positions: held
             .map((position) => ({
               symbol: position.symbol,

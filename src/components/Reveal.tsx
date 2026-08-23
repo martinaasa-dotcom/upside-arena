@@ -52,12 +52,19 @@ export function Reveal({ books }: { books: RevealedBook[] }) {
 
             {book.positions.length === 0 ? (
               /*
-                Somebody who never traded. Worth a line of its own rather than
-                an empty row: sitting the whole thing out in cash is a way of
-                playing it, and on a week the market fell it is a winning one.
+                Holding nothing at the end is two different people, and calling
+                both of them the same thing is unfair to one of them.
+
+                Somebody who traded and sold up made a decision, and in a week
+                the market fell it is a winning one. Somebody who never traded
+                did not decide anything -- they missed it -- and telling their
+                league they "stayed in cash" puts a strategy in their mouth
+                that they never had.
               */
               <p className="text-sm text-muted-foreground">
-                Held nothing. Stayed in cash the whole way.
+                {book.traded
+                  ? "Sold up before the end and finished in cash."
+                  : "Never traded in this one."}
               </p>
             ) : (
               <>

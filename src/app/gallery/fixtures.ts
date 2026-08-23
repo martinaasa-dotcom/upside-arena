@@ -305,6 +305,7 @@ export const revealedBooks = [
     rank: 1,
     returnPercent: 12.4,
     cash: 2100,
+    traded: true,
     positions: [
       { symbol: "NVDA", quantity: 210, costBasis: 62_000 },
       { symbol: "AVGO", quantity: 96, costBasis: 24_500 },
@@ -317,6 +318,7 @@ export const revealedBooks = [
     rank: 2,
     returnPercent: 3.1,
     cash: 41_000,
+    traded: true,
     positions: [
       { symbol: "MU", quantity: 300, costBasis: 31_000 },
       { symbol: "TSM", quantity: 120, costBasis: 28_000 },
@@ -324,10 +326,20 @@ export const revealedBooks = [
   },
   {
     userId: "r3",
-    displayName: "Marcus",
+    displayName: "Priya",
     rank: 3,
-    returnPercent: -0.2,
+    returnPercent: 1.8,
+    cash: 101_800,
+    traded: true,
+    positions: [],
+  },
+  {
+    userId: "r4",
+    displayName: "Marcus",
+    rank: 4,
+    returnPercent: 0,
     cash: 100_000,
+    traded: false,
     positions: [],
   },
 ];
