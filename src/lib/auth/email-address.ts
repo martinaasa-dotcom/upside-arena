@@ -160,8 +160,14 @@ export function normalizeEmail(raw: string): string {
     // fail a syntax check nobody can see the reason for.
     .replace(/[\u200b-\u200d\ufeff]/g, "")
     .trim()
-    .replace(/^mailto:/i, "")
+    /*
+      Brackets before the scheme, because a copy out of a mail client hands
+      over `<mailto:you@gmail.com>` and stripping the scheme first leaves the
+      brackets holding it in place.
+    */
     .replace(/^<([\s\S]*)>$/, "$1")
+    .trim()
+    .replace(/^mailto:/i, "")
     .trim()
     .replace(/^["']|["']$/g, "")
     .trim()
