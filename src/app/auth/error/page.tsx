@@ -23,10 +23,6 @@ const REASONS: Record<string, string> = {
   identity:
     "Google confirmed who you are, but we could not finish signing you in. Try once more.",
   "not-configured": "Sign-in is not connected yet.",
-  "address-taken":
-    "That address has an Arena account of its own now, so it cannot be added to another one. Email app.support@upthink.ee.",
-  "link-failed":
-    "We could not connect that address. Ask for a fresh link from your profile and try again.",
   "link-signed-out":
     "Sign in first, then connect the other account from your profile. Nothing was changed.",
 };

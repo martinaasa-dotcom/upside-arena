@@ -14,8 +14,10 @@
   help and a silent correction is a lie about where their mail went.
 
   Everything in this file is pure and free of Node built-ins, so it can run on
-  a server, in a test, or in a browser. The DNS half lives next door in
-  email-mx.ts, which is server only.
+  a server, in a test, or in a browser. There used to be a DNS half next door
+  in email-mx.ts, asking whether a domain accepts mail at all; it went with the
+  forms that asked somebody to type an address, and what is left here is what
+  decides whether a notification may be sent to one already on file.
 */
 
 /** The verdict on one typed address. */

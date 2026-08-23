@@ -1,16 +1,11 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { canWriteGame, siteUrl } from "@/lib/env";
+import { canWriteGame } from "@/lib/env";
 import { playerCache } from "@/lib/game/cache";
 import { normalizeEmail } from "@/lib/auth/email-address";
-import { confirmAddressMail, linkedSignInMail } from "@/lib/auth/link-mail";
-import { emailConfigured, sendTransactionalEmail } from "@/lib/notify/send";
 import {
   decideClaim,
-  hashLinkToken,
-  linkUrl,
-  mintLinkToken,
   type AddressOutcome,
   type ClaimVerdict,
 } from "@/lib/auth/address-link";
@@ -138,40 +133,6 @@ export async function magicTokenFor(primaryEmail: string): Promise<string | null
   return data?.properties?.hashed_token ?? null;
 }
 
-/** The confirm url a hashed token opens, which is the same one Supabase mails. */
-export function confirmUrlFor(tokenHash: string, next: string): string {
-  const query = new URLSearchParams({
-    token_hash: tokenHash,
-    type: "magiclink",
-    next,
-  });
-
-  return `${siteUrl()}/auth/confirm?${query.toString()}`;
-}
-
-/**
- * Sends a sign-in link to an address that was added to an account.
- *
- * Arena sends this one rather than Supabase, because Supabase would send it to
- * the address the account was made with, which is not the mailbox the person
- * is sitting in front of.
- */
-export async function sendLinkedSignIn(
-  address: string,
-  primaryEmail: string,
-  next: string
-): Promise<boolean> {
-  if (!emailConfigured) return false;
-
-  const tokenHash = await magicTokenFor(primaryEmail);
-  if (!tokenHash) return false;
-
-  return sendTransactionalEmail(
-    address,
-    linkedSignInMail(confirmUrlFor(tokenHash, next))
-  );
-}
-
 /*
   What the account asking already has, and what the address already reaches.
   Four questions, asked together, so the verdict next door has everything.
@@ -216,174 +177,6 @@ async function claimVerdict(
     neverPlayed,
     linkedCount: mine.count ?? 0,
   });
-}
-
-export type LinkStart =
-  | { kind: "sent"; email: string; closes: boolean }
-  | { kind: "already" }
-  | { kind: "error"; code: AddressOutcome };
-
-/**
- * Starts adding an address: writes it down as pending and mails it a link.
- *
- * Nothing is joined here. The row this leaves behind reaches no account and
- * signs nobody in until the link in that mailbox is opened, which is the only
- * proof that the person asking can read it.
- */
-export async function startAddressLink(input: {
-  userId: string;
-  primaryEmail: string | null;
-  email: string;
-}): Promise<LinkStart> {
-  if (!canWriteGame) return { kind: "error", code: "not-configured" };
-  if (!emailConfigured) return { kind: "error", code: "no-mail" };
-
-  const email = normalizeEmail(input.email);
-  const admin = createAdminClient();
-
-  /*
-    A pending row nobody ever confirmed holds an address hostage, because the
-    table allows one row per address whatever its state. An expired one is
-    worth nothing to the account that started it, so it goes rather than
-    standing in the way of somebody who is asking now.
-  */
-  await admin
-    .from("account_emails")
-    .delete()
-    .eq("email", email)
-    .is("verified_at", null)
-    .lt("token_expires_at", new Date().toISOString());
-
-  const verdict = await claimVerdict(input.userId, input.primaryEmail, email);
-
-  if (verdict.kind === "already") return { kind: "already" };
-  if (verdict.kind === "refuse") return { kind: "error", code: verdict.code };
-
-  const token = mintLinkToken();
-
-  /*
-    One row per address per account, so asking again sends a fresh link rather
-    than filling the table with tokens that all open the same thing. The old
-    token stops working the moment this lands, which is what somebody who
-    clicked "send it again" expects.
-  */
-  await admin
-    .from("account_emails")
-    .delete()
-    .eq("email", email)
-    .eq("user_id", input.userId)
-    .is("verified_at", null);
-
-  const { error } = await admin.from("account_emails").insert({
-    user_id: input.userId,
-    email,
-    token_hash: token.hash,
-    token_expires_at: token.expiresAt,
-    verified_at: null,
-  });
-
-  if (error) {
-    /*
-      The unique index on the address, reached by two people asking for the
-      same one in the same breath. It is the same answer the verdict above
-      gives, arrived at a moment later, so it reads the same way.
-    */
-    if (error.code === "23505") return { kind: "error", code: "linked-elsewhere" };
-
-    console.error("could not record a pending address", error.message);
-    return { kind: "error", code: "failed" };
-  }
-
-  const sent = await sendTransactionalEmail(
-    email,
-    confirmAddressMail(linkUrl(siteUrl(), token.token), input.primaryEmail)
-  );
-
-  if (!sent) {
-    await admin
-      .from("account_emails")
-      .delete()
-      .eq("email", email)
-      .eq("user_id", input.userId)
-      .is("verified_at", null);
-
-    return { kind: "error", code: "failed" };
-  }
-
-  return { kind: "sent", email, closes: verdict.kind === "adopt" };
-}
-
-export type LinkConfirmation =
-  | { kind: "linked"; email: string }
-  | { kind: "fail"; reason: string };
-
-/**
- * The other end of that link.
- *
- * Every check runs again here rather than being trusted from when the mail was
- * sent. An hour is long enough for the address to have been claimed by
- * somebody else, and the answer that matters is the one true at the moment the
- * address is actually joined.
- */
-export async function confirmAddressLink(token: string): Promise<LinkConfirmation> {
-  if (!canWriteGame) return { kind: "fail", reason: "not-configured" };
-
-  const admin = createAdminClient();
-  const hash = hashLinkToken(token);
-
-  const { data: pending } = await admin
-    .from("account_emails")
-    .select("id, user_id, email, token_expires_at, verified_at")
-    .eq("token_hash", hash)
-    .maybeSingle();
-
-  if (!pending || pending.verified_at) return { kind: "fail", reason: "expired" };
-
-  if (!pending.token_expires_at || new Date(pending.token_expires_at) < new Date()) {
-    await admin.from("account_emails").delete().eq("id", pending.id);
-    return { kind: "fail", reason: "expired" };
-  }
-
-  const { data: loginAccount } = await admin.rpc("account_for_login_email", {
-    p_email: pending.email,
-  });
-
-  const other = (loginAccount as string | null) ?? null;
-
-  if (other && other !== pending.user_id) {
-    const { data: never } = await admin.rpc("account_never_played", { p_user: other });
-
-    if (never !== true) {
-      await admin.from("account_emails").delete().eq("id", pending.id);
-      return { kind: "fail", reason: "address-taken" };
-    }
-
-    /*
-      The empty account on this address, closed so the address can reach the
-      one the person actually plays on. It has no tag, no week, no league and
-      nothing bought, which the database decided rather than this file, and
-      whoever is holding this link has just proved they can read the mailbox it
-      was made with.
-    */
-    const { error } = await admin.auth.admin.deleteUser(other);
-
-    if (error) {
-      console.error("could not close the empty account on a linked address", error.message);
-      return { kind: "fail", reason: "address-taken" };
-    }
-  }
-
-  const { error } = await admin
-    .from("account_emails")
-    .update({ verified_at: new Date().toISOString(), token_hash: null, token_expires_at: null })
-    .eq("id", pending.id);
-
-  if (error) {
-    console.error("could not confirm an address", error.message);
-    return { kind: "fail", reason: "link-failed" };
-  }
-
-  return { kind: "linked", email: pending.email };
 }
 
 export type GoogleLink =
