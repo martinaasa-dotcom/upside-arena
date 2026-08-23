@@ -34,6 +34,7 @@ import { considerHandoff, labUrl } from "@/lib/billing/handoff";
 import { NO_VALUE, plural } from "@/lib/format";
 import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
 import { formatGap, formatMoney, formatPercent } from "@/lib/format";
+import { PriceAge } from "@/components/PriceAge";
 import { sessionLabel } from "@/lib/market/session";
 import { marketHasOpened, today as todayInNewYork } from "@/lib/market/clock";
 
@@ -132,6 +133,12 @@ async function MarketBadges() {
 
   return (
     <>
+      {/*
+        Only when a refresh has actually failed, which is rare. The ordinary
+        case says nothing, because a sixty second quote reporting its age
+        every time you look at it is a label rather than news.
+      */}
+      {view.staleSince != null ? <PriceAge since={view.staleSince} /> : null}
       <Badge variant="outline">{sessionLabel(view.marketState)}</Badge>
     </>
   );
