@@ -303,6 +303,54 @@ test.describe("landing", () => {
     await expect(footer.getByRole("link", { name: "Terms of use" })).toBeVisible();
     await expect(footer.getByRole("link", { name: "Privacy" })).toBeVisible();
   });
+
+  test("says the page continues, and stops saying it once you scroll", async ({
+    page,
+  }, testInfo) => {
+    await page.goto("/");
+
+    /*
+      A landing page that reads as finished at the fold is one nobody scrolls,
+      and the sections under the hero are most of what this page has to say.
+      The guard below is the other half of it: on a window the whole page fits
+      inside there is nothing down there and the cue must not claim otherwise,
+      because a hint pointing at nothing teaches a reader to ignore hints.
+    */
+    /*
+      Answer the measurement question first. Below `sm` it is a full-width
+      strip on the very line this cue takes, and two things cannot have it,
+      so the cue deliberately stands down until the question is gone. On a
+      phone's first visit the fold is doing the work on its own: the sample
+      league is cut in half by it.
+    */
+    const noThanks = page.getByRole("button", { name: "No thanks" });
+    if (await noThanks.isVisible()) await noThanks.click();
+
+    const cue = page.getByRole("button", { name: /More below/ });
+    const scrollable = await page.evaluate(() => {
+      const doc = document.scrollingElement!;
+      return doc.scrollHeight - doc.clientHeight > 240;
+    });
+
+    if (!scrollable) {
+      await expect(cue).toBeHidden();
+      return;
+    }
+
+    await expect(cue).toBeVisible();
+
+    // In view at the fold, which is the one moment it is any use. The old
+    // version of this hint on Upside Lab was laid out under the last card,
+    // so it was off screen exactly when it was needed.
+    const box = (await cue.boundingBox())!;
+    expect(box.y).toBeGreaterThan(testInfo.project.use.viewport!.height * 0.6);
+    expect(box.y + box.height).toBeLessThanOrEqual(
+      testInfo.project.use.viewport!.height
+    );
+
+    await page.mouse.wheel(0, 400);
+    await expect(cue).toBeHidden();
+  });
 });
 
 test.describe("legal", () => {

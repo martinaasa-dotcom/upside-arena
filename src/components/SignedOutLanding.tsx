@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CalendarClock, CalendarRange, Check, Swords } from "lucide-react";
 import { Arrive } from "@/components/Arrive";
 import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
+import { ScrollCue } from "@/components/ScrollCue";
 import { Badge } from "@/components/ui/badge";
 import { COMPANY } from "@/lib/company";
 import { formatMoney } from "@/lib/format";
@@ -264,15 +265,33 @@ const SAMPLE_LEAGUE = [
  * sharpest thing on the page, and the week arrives directly under it as the
  * answer rather than three screens later.
  *
- * The card is deliberately allowed to run past the bottom of the window.
- * That cut is the scroll affordance doing the real work: a page whose
- * content is visibly severed by the fold is one nobody mistakes for
- * finished, and it beats any arrow. An arrow would have to sit under the
- * card, which is to say off-screen at exactly the moment the hint is needed.
+ * The card is deliberately allowed to run past the bottom of the window,
+ * because a page whose content is visibly severed by the fold is one nobody
+ * mistakes for finished. That cut only exists while the hero is taller than
+ * the window, so on a window taller than it the height floor below keeps the
+ * next section in view and `ScrollCue` says the same thing in words. An
+ * arrow laid out under this card would be off screen at exactly the moment
+ * the hint is needed, which is why that one is pinned to the window instead.
  */
 function Hero({ signIn }: { signIn: ReactNode }) {
   return (
-    <section className="px-6 pb-12 pt-[max(2.5rem,env(safe-area-inset-top))] sm:pb-16">
+    /*
+      At least one screen tall, less 9rem.
+
+      `min-h` only bites when the hero is shorter than the window. Given the
+      floor, the hero fills the window bar 9rem, so the top of the next
+      section is always in view and what a reader sees at rest is a section
+      beginning rather than a page ending. On a shorter window the hero is
+      taller than this and the card is cut instead, which says the same thing
+      more loudly.
+
+      9rem and not less, because `ScrollCue` fades the bottom 5rem of the
+      window into the field and a peek shorter than that would be faded out
+      by the thing meant to be pointing at it. `svh` rather than `dvh`, so a
+      phone that later retracts its address bar does not find the hero taller
+      than the window it was sized against.
+    */
+    <section className="min-h-[calc(100svh-9rem)] px-6 pb-12 pt-[max(2.5rem,env(safe-area-inset-top))] sm:pb-16">
       <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col items-center text-center">
         <ArenaWordmark className="rise rise-1" size={38} />
 
@@ -723,6 +742,12 @@ export function SignedOutLanding({
         <Closing signInAgain={signInAgain} />
       </main>
       <Footer />
+
+      {/*
+        Fixed to the window, so where it sits in the tree only decides what it
+        stacks against: under the measurement question, which is `z-50`.
+      */}
+      <ScrollCue />
     </div>
   );
 }
