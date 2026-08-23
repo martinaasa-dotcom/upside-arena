@@ -6,7 +6,7 @@
   quote shown as live would be worse than no quote at all.
 */
 
-const VERSION = "arena-v3";
+const VERSION = "arena-v4";
 const SHELL_CACHE = `${VERSION}-shell`;
 
 const SHELL_ASSETS = ["/offline", "/icons/icon-192.png", "/manifest.webmanifest"];
@@ -16,7 +16,12 @@ const SHELL_ASSETS = ["/offline", "/icons/icon-192.png", "/manifest.webmanifest"
   handler decides with a lookup rather than a chain of comparisons on the
   critical path of every request the page makes.
 */
-const STATIC_FILES = new Set(["/favicon.png", "/arena-mark.svg", "/og.png"]);
+const STATIC_FILES = new Set([
+  "/favicon.png",
+  "/favicon.ico",
+  "/arena-mark.svg",
+  "/og.png",
+]);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

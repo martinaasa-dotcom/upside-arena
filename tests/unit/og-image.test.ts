@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { WeekBars } from "@/lib/share/week-bars";
+import { arenaMarkDataUri } from "@/lib/brand/mark";
 
 /*
   The one drawing in this product that nothing else could check.
@@ -79,6 +80,51 @@ describe("the picture other people see", () => {
 
   it("draws a week somebody joined halfway through", async () => {
     expect(isPng(await draw([null, null, 1.2, 2.8, 0.4]))).toBe(true);
+  }, 60_000);
+
+  /*
+    The mark on the card is the same drawing as the mark in the app, handed
+    to the converter as an SVG data URI -- and the hairline that parts its
+    two peaks is cut with a `<mask>`, because the mark is transparent and
+    there is no one colour to paint the gap with.
+
+    That mask is a feature of the SVG rasteriser rather than of the CSS
+    subset the rest of this file worries about, and nothing else in the suite
+    goes near it. A rasteriser that ignored it would not fail: it would draw
+    the far peak whole, the two would fuse, and the logo in somebody's group
+    chat would quietly be a blob.
+  */
+  it("draws the mark, hairline and all, through the same converter", async () => {
+    const { ImageResponse } = await import("next/og");
+    const card = new ImageResponse(
+      {
+        type: "div",
+        key: null,
+        props: {
+          style: {
+            display: "flex",
+            width: "100%",
+            height: "100%",
+            background: "#000",
+          },
+          children: {
+            type: "img",
+            key: null,
+            props: { src: arenaMarkDataUri(120), width: 120, height: 120 },
+          },
+        },
+      } as unknown as React.ReactElement,
+      { width: 160, height: 160 }
+    );
+    const bytes = new Uint8Array(await card.arrayBuffer());
+    expect(isPng(bytes)).toBe(true);
+
+    /*
+      And it drew something. A converter that choked on the mask and dropped
+      the image would still hand back a valid PNG -- just an empty one -- so
+      the size is what says a mark actually arrived.
+    */
+    expect(bytes.byteLength).toBeGreaterThan(2_000);
   }, 60_000);
 
   it("draws nothing at all rather than an empty frame", async () => {
