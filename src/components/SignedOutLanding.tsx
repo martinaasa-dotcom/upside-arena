@@ -332,10 +332,8 @@ function Hero({ signIn }: { signIn: ReactNode }) {
 function FridayClose() {
   return (
     <div className="relative">
-      <div
-        className="pointer-events-none absolute -inset-6 -z-10 rounded-[4rem] bg-gradient-to-br from-primary/12 to-transparent opacity-70 blur-3xl"
-        aria-hidden="true"
-      />
+      {/* One quiet lift behind the card, not a halo. See `.ambient-glow`. */}
+      <div className="ambient-glow" aria-hidden="true" />
 
       <div
         className="card-sheen glass rounded-xl p-5 shadow-2xl shadow-black/60 ring-1 ring-primary/15 sm:p-6"

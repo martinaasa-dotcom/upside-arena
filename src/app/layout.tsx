@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { geistMono } from "./fonts";
+import { AmbientDither } from "@/components/AmbientDither";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { Analytics } from "@/components/Analytics";
@@ -74,6 +75,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${GeistSans.variable} ${geistMono.variable}`}>
       <body className="antialiased">
+        <AmbientDither />
         <a
           href="#main"
           className="sr-only rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50"
