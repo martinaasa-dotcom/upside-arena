@@ -1,5 +1,3 @@
-import { createHash, randomBytes } from "node:crypto";
-
 /*
   Joining a second address to an account, decided in one place.
 
@@ -13,46 +11,8 @@ import { createHash, randomBytes } from "node:crypto";
   facts it needs and gets a verdict back.
 */
 
-/** How long a mailed confirmation stays good for. The same hour a sign-in link lasts. */
-export const LINK_TOKEN_TTL_MINUTES = 60;
-
 /** At most this many extra addresses on one account. */
 export const MAX_LINKED_ADDRESSES = 4;
-
-export type MintedToken = {
-  /** Goes in the mail, and is never written down anywhere. */
-  token: string;
-  /** Goes in the database, and cannot be turned back into the token. */
-  hash: string;
-  expiresAt: string;
-};
-
-/**
- * A confirmation token and the digest that will be stored for it.
- *
- * Hashed for the same reason a password is: the table holding these is read
- * by more things than the one route that checks them, and a token kept in
- * the clear is a token anybody who can read a backup can spend.
- */
-export function mintLinkToken(now: Date = new Date()): MintedToken {
-  const token = randomBytes(32).toString("base64url");
-  return {
-    token,
-    hash: hashLinkToken(token),
-    expiresAt: new Date(
-      now.getTime() + LINK_TOKEN_TTL_MINUTES * 60 * 1000
-    ).toISOString(),
-  };
-}
-
-export function hashLinkToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
-}
-
-/** Where the confirmation in the mail points. */
-export function linkUrl(origin: string, token: string): string {
-  return `${origin}/auth/link?token=${encodeURIComponent(token)}`;
-}
 
 /*
   What should happen when an account asks for an address.
@@ -77,35 +37,33 @@ export type ClaimVerdict =
   Every way asking for an address can end, and the one sentence each of them
   says.
 
-  In one place because two roads arrive at the same outcomes: a form on the
-  profile screen, which can answer in the page, and a Google handshake, which
-  comes back as a redirect and can only carry a word. A word and a sentence
-  kept apart would drift, and the sentence somebody reads would depend on which
-  button they pressed.
+  There is one road now, the Google handshake, and it comes back as a redirect
+  that can only carry a word, so the word and its sentence still have to be
+  kept together and looked up on the other side.
+
+  There were two. A form on the profile screen took any address and mailed it
+  a confirmation link, which is where "sent" and "no-mail" came from; both are
+  gone with it. That road went because Google is the only way into an account
+  now, and an address you cannot sign in with is not worth confirming.
 */
 export type AddressOutcome =
   | "linked"
   | "already"
-  | "sent"
   | "linked-elsewhere"
   | "has-record"
   | "limit"
-  | "no-mail"
   | "not-configured"
   | "failed";
 
 export const ADDRESS_MESSAGES: Record<AddressOutcome, string> = {
   linked: "That address now opens this account.",
   already: "That address already opens this account.",
-  sent: "Check that inbox. The link in it lasts one hour.",
   "linked-elsewhere":
     "That address already reaches another Arena account. Take it off there first.",
   "has-record":
     "That address already has an Arena account with a record on it. Two accounts that have both been played cannot be joined here. Email app.support@upthink.ee.",
   limit: `An account holds ${MAX_LINKED_ADDRESSES} extra addresses at most. Take one off to add another.`,
-  "no-mail":
-    "Arena cannot send mail from this deployment, so an address cannot be confirmed here. Connect with Google instead.",
-  "not-configured": "Adding an address is not switched on here yet.",
+  "not-configured": "Connecting another Google account is not switched on here yet.",
   failed: "We could not do that. Try once more.",
 };
 

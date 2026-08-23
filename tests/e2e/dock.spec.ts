@@ -192,6 +192,14 @@ test.describe("the dock and the corner beside it", () => {
       ([nav, pill, corner, rooms]) => {
         document.body.insertAdjacentHTML("beforeend", corner as string);
         const el = document.createElement("nav");
+        /*
+          Identified, and selected by that id below. This used to be reached
+          with `nav a`, which quietly meant "the first nav on the page": the
+          moment the landing grew a footer nav of its own, the probe clicked a
+          real link, navigated away, and reported that the dock had not been
+          clicked. A fixture has to be addressed as a fixture.
+        */
+        el.id = "probe-dock";
         el.className = nav as string;
         el.innerHTML =
           `<div class="${pill}" style="grid-template-columns:repeat(${
@@ -226,7 +234,7 @@ test.describe("the dock and the corner beside it", () => {
     );
 
     await page.locator("#corner").click();
-    await page.locator("nav a").first().click();
+    await page.locator("#probe-dock a").first().click();
 
     // The dock must still take the clicks that land on it.
     const hits = await page.evaluate(

@@ -1,7 +1,6 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured, siteUrl } from "@/lib/env";
@@ -14,127 +13,30 @@ import {
 } from "@/lib/auth/google-state";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 import { safeNext } from "@/lib/redirects";
-import { readEmail } from "@/lib/auth/email-address";
-import { domainAcceptsMail } from "@/lib/auth/email-mx";
-import { accountForAddress, sendLinkedSignIn } from "@/lib/auth/linked-emails";
 
-export type AuthState = {
-  error?: string;
-  sent?: boolean;
-  /*
-    A spelling worth asking about before anything is sent, and the address as
-    it was typed, so the form can offer both and correct nobody by surprise.
-  */
-  suggestion?: string;
-  typed?: string;
-};
+/*
+  Google is the only way in.
 
-const signInSchema = z.object({
-  email: z.string(),
-  next: z.string().optional(),
-  /** Set once the person has answered a "did you mean" question about their own address. */
-  confirmed: z.string().optional(),
-});
+  `signInWithEmail` lived here and sent a magic link. Everything it did was in
+  service of getting an address right that Google already has right: a syntax
+  read, a "did you mean gmail.com" question, an MX lookup against the domain,
+  and a rate limit to sit behind. Every one of those is a way for somebody to
+  fail to get into their own account, and none of them exist on an ID token.
 
-export async function signInWithEmail(
-  _prev: AuthState,
-  formData: FormData
-): Promise<AuthState> {
-  if (!isSupabaseConfigured) {
-    return { error: "Sign-in is not connected yet. Add your Supabase keys to .env.local." };
-  }
+  What it recorded that this does not is `age_confirmed` and the two document
+  versions in Supabase user metadata. That is not a loss: the durable record
+  of who agreed to what is the `terms_acceptances` table, written by
+  `recordAcceptance` at the end of onboarding for everybody however they
+  signed in, and it is what an account export returns.
 
-  const parsed = signInSchema.safeParse({
-    email: formData.get("email"),
-    next: formData.get("next") ?? undefined,
-    confirmed: formData.get("confirmed") ?? undefined,
-  });
-
-  if (!parsed.success) {
-    return { error: "Check the form and try again." };
-  }
-
-  /*
-    Everything about the address is settled before a single message is asked
-    for. A magic link is the only mail Arena sends to a stranger, so an address
-    that cannot receive is not a smaller success: it is a bounce against the
-    project's sending reputation and a person sitting in front of an empty
-    inbox believing the app is broken.
-  */
-  const verdict = readEmail(parsed.data.email);
-
-  if (verdict.kind === "unreachable") {
-    return { error: verdict.message, typed: verdict.email };
-  }
-
-  /*
-    One edit from a domain half the world uses. Asked rather than assumed, and
-    the typed spelling stays on offer, because plenty of real domains sit one
-    letter from a famous one and being told your own address is wrong is worse
-    than a bounce.
-  */
-  if (verdict.kind === "check" && parsed.data.confirmed !== "1") {
-    return { suggestion: verdict.suggestion, typed: verdict.email };
-  }
-
-  const email = verdict.email;
-  const domain = email.slice(email.lastIndexOf("@") + 1);
-
-  if (!(await domainAcceptsMail(domain))) {
-    return {
-      error: `We could not find a mail server for ${domain}, so a link sent there would not arrive. Check the spelling.`,
-      typed: email,
-    };
-  }
-
-  const next = safeNext(parsed.data.next);
-
-  /*
-    An address somebody added to their account opens that account.
-
-    Sent by Arena rather than by Supabase, because Supabase knows this address
-    as nobody: asked for a link at it, it would make a second account, with the
-    same person inside it and none of their weeks, their tag or their leagues.
-    So the token is minted for the account the address was added to and the
-    link carrying it goes to the mailbox that asked. See
-    src/lib/auth/linked-emails.ts.
-  */
-  const linked = await accountForAddress(email);
-
-  if (linked) {
-    const sent = await sendLinkedSignIn(email, linked.primaryEmail, next);
-
-    if (!sent) {
-      return {
-        error: `We could not get a link to ${email}. Try the address this account was made with, or Google.`,
-        typed: email,
-      };
-    }
-
-    return { sent: true };
-  }
-
-  const supabase = await createClient();
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: `${siteUrl()}/auth/confirm?next=${encodeURIComponent(next)}`,
-      data: {
-        age_confirmed: true,
-        terms_version: TERMS_VERSION,
-        privacy_version: PRIVACY_VERSION,
-      },
-    },
-  });
-
-  if (error) {
-    // Supabase rate-limits link requests per address. Say so plainly.
-    return { error: error.message };
-  }
-
-  return { sent: true };
-}
+  One account can still hold more than one address, which is what 0025 is
+  for. What changed is how a second one gets there and what it opens:
+  `connectGoogle` below, and the Google callback, which reads the linked
+  list before it decides whose account an address belongs to. The half of
+  that feature that mailed a confirmation link to an arbitrary mailbox is on
+  its way out with the magic link, because an address nobody can sign in
+  with is not worth confirming.
+*/
 
 /**
  * Starts Google sign-in, on Arena's own domain.
@@ -145,7 +47,10 @@ export async function signInWithEmail(
  * costs instead.
  */
 export async function signInWithGoogle(formData: FormData) {
-  return startGoogleHandshake(safeNext(formData.get("next")?.toString()), "sign-in");
+  return startGoogleHandshake(
+    safeNext(formData.get("next")?.toString()),
+    "sign-in"
+  );
 }
 
 /**
@@ -156,6 +61,10 @@ export async function signInWithGoogle(formData: FormData) {
  * does with the token that comes back, and that is decided here, before the
  * browser leaves, because on the way back nothing but this server's own cookie
  * can say what the sign-in was for.
+ *
+ * This is now the only way a second address reaches an account. The other one
+ * mailed a confirmation link, and it went with the magic link above: an
+ * address nobody can sign in with is not worth confirming.
  */
 export async function connectGoogle() {
   return startGoogleHandshake("/profile", "link");
