@@ -153,6 +153,9 @@ if (!(await ready())) {
 */
 const PER_ROOM_MS = 60_000;
 
+const rendered = [];
+const gaveUp = [];
+
 for (const room of ROOMS) {
   const started = Date.now();
   try {
@@ -162,17 +165,38 @@ for (const room of ROOMS) {
     // Read the body so the render actually finishes before the next room.
     await response.text();
     console.log(`  ${room} -> ${response.status} in ${Date.now() - started}ms`);
+    rendered.push(room);
   } catch (error) {
     console.log(
       `  ${room} -> gave up after ${Date.now() - started}ms (${
         error instanceof Error ? error.name : String(error)
-      }); its insights are still read below`
+      })`
     );
+    gaveUp.push(room);
   }
 }
 
 // The insight is emitted while rendering, which has just finished.
 await sleep(3000);
+
+/*
+  A room that never rendered was never validated, and a room that was never
+  validated cannot have produced a finding. Reporting those as healthy would
+  make this a check that passes hardest when it is working least -- which is
+  precisely how the two versions before this one managed to be green over a
+  broken app.
+
+  So an unrendered room fails the check on its own, before the findings are
+  even read.
+*/
+if (gaveUp.length > 0) {
+  console.error(
+    `\n${gaveUp.join(", ")} did not render, so nothing about ${
+      gaveUp.length === 1 ? "it" : "them"
+    } was checked. That is a failure of this check rather than a verdict on the room.`
+  );
+  stop(1);
+}
 
 const blocking = findings();
 
@@ -194,6 +218,6 @@ if (blocking.length > 0) {
 
   stop(1);
 } else {
-  console.log("\nEvery room can be prerendered.");
+  console.log(`\nAll ${rendered.length} rooms rendered, and every one can be prerendered.`);
   stop(0);
 }
