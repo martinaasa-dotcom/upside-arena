@@ -2,6 +2,7 @@ import "server-only";
 
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { whoWasHere } from "@/lib/game/roster";
 
 /*
   What everybody turned out to be holding, once a contest is over.
@@ -89,30 +90,53 @@ export async function getLastWeekBooks(
   const admin = createAdminClient();
 
   const [{ data: members }, { data: cycles }] = await Promise.all([
-    admin.from("league_members").select("user_id").eq("league_id", leagueId),
+    admin
+      .from("league_members")
+      .select("user_id, joined_at")
+      .eq("league_id", leagueId),
     admin
       .from("weekly_cycles")
-      .select("id, monday")
+      .select("id, monday, ends_on")
       .is("league_id", null)
       .eq("status", "closed")
       .order("monday", { ascending: false })
       .limit(1),
   ]);
 
-  const memberIds = ((members ?? []) as { user_id: string }[]).map((row) => row.user_id);
+  const roster = (members ?? []) as { user_id: string; joined_at: string }[];
+  const memberIds = roster.map((row) => row.user_id);
 
   // Membership is established from the roster rather than assumed from the
   // URL, the same as everywhere else: a league id is not a secret.
   if (!memberIds.includes(userId)) return null;
 
-  const cycle = ((cycles ?? []) as { id: string; monday: string }[])[0];
+  const cycle = ((cycles ?? []) as { id: string; monday: string; ends_on: string }[])[0];
   if (!cycle) return null;
+
+  /*
+    Who was in this league while that week was running.
+
+    A portfolio belongs to a person and a cycle, not to a league, so somebody
+    who played last week on their own and joined here on Monday has a book
+    from it -- and without this they would be in a reveal for a week they were
+    not in this league for, with their holdings shown to people who were not
+    playing against them and their return shifting everybody else's rank.
+
+    The same test getLeagueRecord uses for the same reason, so the two panels
+    in this room cannot disagree about who was in a week. Comparing dates
+    alone is wrong by an evening in one direction and reading the timestamp's
+    first ten characters, which is UTC, is wrong by an evening in the other.
+  */
+  const wasHere = whoWasHere(
+    roster.map((row) => ({ userId: row.user_id, joinedAt: row.joined_at })),
+    cycle.ends_on
+  );
 
   const { data: portfolioRows } = await admin
     .from("portfolios")
     .select("id, user_id, cash, return_percent")
     .eq("cycle_id", cycle.id)
-    .in("user_id", memberIds)
+    .in("user_id", [...wasHere])
     .not("return_percent", "is", null);
 
   const portfolios = (portfolioRows ?? []) as {

@@ -4,7 +4,7 @@ import { cache } from "react";
 
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { beforeContestEnd } from "@/lib/market/session";
+import { whoWasHere } from "@/lib/game/roster";
 import type { LeagueRow, WeeklyCycleRow } from "@/lib/supabase/database.types";
 
 /*
@@ -121,15 +121,14 @@ export const getLeagueRecord = cache(async function getLeagueRecord(
   if (!memberIds.includes(userId) || !leagueRow) return null;
 
   /*
-    When each of them arrived, kept as the moment rather than the date.
+    When each of them arrived, in the shape whoWasHere wants.
 
-    A week takes its last trade at Friday's close, so somebody who joined the
-    league at nine that evening did not play it, whatever the calendar says.
-    Comparing dates alone gets that wrong by an evening in one direction, and
-    reading the timestamp's first ten characters -- which is UTC -- gets it
-    wrong by an evening in the other.
+    That function is shared with the reveal of what everybody held, because
+    "was this person in the league while that week was running" has to have
+    the same answer in every panel of this room -- see lib/game/roster.ts for
+    what happened when it was asked twice.
   */
-  const joinedAt = new Map(roster.map((m) => [m.user_id, new Date(m.joined_at)]));
+  const entries = roster.map((m) => ({ userId: m.user_id, joinedAt: m.joined_at }));
 
   /*
     Every house week that has been settled. Battles are left out on purpose:
@@ -219,10 +218,10 @@ export const getLeagueRecord = cache(async function getLeagueRecord(
       joined last Tuesday did not lose the twelve weeks before that, and a
       head-to-head that said they did would be a scoreline nobody played.
     */
-    const played = (byCycle.get(cycle.id) ?? []).filter((row) => {
-      const joined = joinedAt.get(row.userId);
-      return joined != null && beforeContestEnd(joined, cycle.ends_on);
-    });
+    const wasHere = whoWasHere(entries, cycle.ends_on);
+    const played = (byCycle.get(cycle.id) ?? []).filter((row) =>
+      wasHere.has(row.userId)
+    );
 
     if (played.length === 0) continue;
 
