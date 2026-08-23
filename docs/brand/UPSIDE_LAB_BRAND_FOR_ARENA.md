@@ -28,6 +28,7 @@
 > Everything else here still holds.
 
 Live product: https://upsidelab.app
+Lab's repository: [`martinaasa-dotcom/upside-lab`](https://github.com/martinaasa-dotcom/upside-lab)
 Captured: 2026-08-20 audit screenshots under `audit-final/`. Tokens below are from live source (`src/app/globals.css`, `DESIGN_TOKENS.md`).
 
 **Refreshed 2026-08-21 (evening).** Lab shipped four rounds of design work that
@@ -59,7 +60,7 @@ What Arena must not change: field, card, border, radius, type, accent, gain/loss
 
 ## 2. Screenshots to attach
 
-All under the Lab repo. Desktop first; mobile twins exist with the same names (`-ios`, `-android`).
+All under the Lab repo (`martinaasa-dotcom/upside-lab`). Desktop first; mobile twins exist with the same names (`-ios`, `-android`).
 
 | File | What it shows |
 |---|---|
@@ -628,7 +629,8 @@ Source files if a token is in doubt: `src/app/globals.css`, `DESIGN_TOKENS.md`, 
 ## 11. How to keep this document true — **New 2026-08-21**
 
 This file went stale in five sections in a single day, because it records
-another repository's system and nothing in Lab's CI knows it exists. Two habits
+another repository's system (`martinaasa-dotcom/upside-lab`) and nothing in
+Lab's CI knows it exists. Two habits
 keep that from repeating.
 
 **Re-read it whenever Lab's `DESIGN_TOKENS.md` gains a section.** That file is
