@@ -38,6 +38,7 @@ export async function GET() {
     entitlementsResult,
     coinsResult,
     devicesResult,
+    addressesResult,
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
     supabase.from("terms_acceptances").select("*").eq("user_id", user.id),
@@ -75,6 +76,16 @@ export async function GET() {
       .from("push_subscriptions")
       .select("id, user_agent, created_at, last_used_at")
       .eq("user_id", user.id),
+    /*
+      The other addresses that open this account, without the digest of a
+      pending confirmation. That digest is the only thing standing between a
+      copy of this file and somebody claiming an address, and it is of no use
+      to the person who asked what we hold on them.
+    */
+    supabase
+      .from("account_emails")
+      .select("id, email, verified_at, created_at")
+      .eq("user_id", user.id),
   ]);
 
   /*
@@ -105,6 +116,7 @@ export async function GET() {
     what_you_have_bought: entitlementsResult,
     coin_history: coinsResult,
     subscribed_devices: devicesResult,
+    other_sign_in_addresses: addressesResult,
   };
 
   const unread = Object.entries(sections)
@@ -146,6 +158,7 @@ export async function GET() {
     what_you_have_bought: entitlementsResult.data ?? [],
     coin_history: coinsResult.data ?? [],
     subscribed_devices: devicesResult.data ?? [],
+    other_sign_in_addresses: addressesResult.data ?? [],
   };
 
   return new NextResponse(JSON.stringify(payload, null, 2), {

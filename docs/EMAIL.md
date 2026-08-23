@@ -7,6 +7,20 @@ is a problem when it goes wrong.
 |---|---|---|
 | The sign-in link | Supabase Auth | Anybody who types an address into the sign-in form |
 | The weekly notification fallback | Resend, from `src/lib/notify/send.ts` | Players who asked for it, at the address on their account |
+| Confirming a second address | Resend, from `src/lib/auth/link-mail.ts` | An address a signed-in player asked to add to their account |
+| A sign-in link at a second address | Resend, same place | Somebody asking for a link at an address that was added to an account |
+
+The last two are why `sendTransactionalEmail` exists next to `sendEmail` in
+`src/lib/notify/send.ts`: same provider, same from address, and no unsubscribe
+on either, because turning them off would mean never being able to confirm an
+address or sign in at one again.
+
+The second of them is sent by Arena rather than by Supabase for a reason worth
+knowing: Supabase has never heard of that address. Asked for a link at it, it
+would make a second account with the same person inside it, a new player tag
+and no record. So the token is minted for the account the address was added to
+and the link carrying it goes to the mailbox that asked. See
+`src/lib/auth/linked-emails.ts`.
 
 The sign-in link is the one that matters here. It goes to an address nobody
 has verified yet, because verifying it is exactly what the link is for. Every

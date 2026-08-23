@@ -6,6 +6,7 @@ import { HairlineCell, HairlineGrid } from "@/components/HairlineGrid";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ProfileForm } from "@/components/ProfileForm";
+import { SignInAddresses } from "@/components/SignInAddresses";
 import { AccountControls } from "@/components/AccountControls";
 import { ConsentControl } from "@/components/ConsentControl";
 import { ReplayTour } from "@/components/ReplayTour";
@@ -23,6 +24,9 @@ import { getMyCards } from "@/lib/game/share";
 import { getStanding, FREE_STANDING } from "@/lib/billing/entitlements";
 import { flairStyleKey } from "@/lib/game/cosmetics";
 import { getNotificationState, DEFAULT_SETTINGS } from "@/lib/notify/settings";
+import { listAddresses } from "@/lib/auth/linked-emails";
+import { ADDRESS_MESSAGES, type AddressOutcome } from "@/lib/auth/address-link";
+import { googleConfigured } from "@/lib/auth/google";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatDate, initials, ordinal, plural } from "@/lib/format";
 import { signOut } from "@/app/auth/actions";
@@ -32,18 +36,26 @@ export const metadata = { title: "Profile" };
 /*
   The heading is the room; everything about the person streams under it.
 */
-export default function ProfilePage() {
+export default function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ address?: string }>;
+}) {
   return (
     <div className={`${PAGE} ${STACK}`}>
       <h1>Profile</h1>
       <Suspense fallback={null}>
-        <Player />
+        <Player searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
-async function Player() {
+async function Player({
+  searchParams,
+}: {
+  searchParams: Promise<{ address?: string }>;
+}) {
   const { user, profile } = await getSession();
   const name = profile?.display_name ?? "Player";
 
@@ -52,7 +64,7 @@ async function Player() {
     Awaited one after another they queued behind each other for no reason, and
     the profile screen took as long as all of them added together.
   */
-  const [rewards, leagues, seasons, cards, standing, notifications, weeks] = user
+  const [rewards, leagues, seasons, cards, standing, notifications, weeks, addresses] = user
     ? await Promise.all([
         getRewards(user.id),
         getLeagues(user.id),
@@ -61,6 +73,7 @@ async function Player() {
         getStanding(user.id),
         getNotificationState(user.id),
         getPlayedWeeks(user.id),
+        listAddresses(user.id),
       ])
     : [
         {
@@ -79,6 +92,7 @@ async function Player() {
           pushAvailable: false,
           emailAvailable: false,
         },
+        [],
         [],
       ];
 
@@ -213,6 +227,24 @@ async function Player() {
         />
       </Panel>
 
+      {/*
+        One account, however many mailboxes the person has. A second address
+        that made a second account would be a second player tag and a record
+        starting from nothing, which is why this is here rather than in a
+        support inbox.
+      */}
+      <Panel
+        title="Ways to sign in"
+        description="Every address here opens this account, with this player tag and this record. Nothing new is made."
+      >
+        <SignInAddresses
+          primaryEmail={user?.email ?? ""}
+          addresses={addresses}
+          googleEnabled={googleConfigured()}
+          notice={await addressNotice(searchParams)}
+        />
+      </Panel>
+
       {notifications.pushAvailable || notifications.emailAvailable ? (
         <Panel
           title="Being told things"
@@ -305,4 +337,20 @@ async function Player() {
       </Panel>
     </>
   );
+}
+
+/**
+ * What to say about an address the Google handshake just came back from.
+ *
+ * The sentences live with the rules that produce them, so the redirect carries
+ * a word and the screen looks up what it means. A word this screen does not
+ * know says nothing at all rather than guessing.
+ */
+async function addressNotice(
+  searchParams: Promise<{ address?: string }>
+): Promise<string | undefined> {
+  const { address } = await searchParams;
+  if (!address) return undefined;
+
+  return ADDRESS_MESSAGES[address as AddressOutcome];
 }

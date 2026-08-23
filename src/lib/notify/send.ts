@@ -167,3 +167,49 @@ export async function sendEmail(
     return false;
   }
 }
+
+/**
+ * A letter that answers something the person just did, rather than one they
+ * subscribed to.
+ *
+ * Confirming a second address is the only thing that uses this so far. It
+ * shares the provider and the from address with the notification mail above,
+ * and shares nothing else: there is no unsubscribe on it, because there is
+ * nothing to unsubscribe from. Turning these off would mean never being able
+ * to confirm an address, or to sign in at one, again.
+ */
+export async function sendTransactionalEmail(
+  to: string,
+  letter: { subject: string; html: string; text: string }
+): Promise<boolean> {
+  if (!emailConfigured || !to) return false;
+
+  if (!isSendable(to)) {
+    const domain = to.includes("@") ? to.slice(to.lastIndexOf("@") + 1) : "no domain";
+    console.error("email skipped, the address cannot receive", domain);
+    return false;
+  }
+
+  try {
+    const { Resend } = await import("resend");
+    const resend = new Resend(RESEND_KEY);
+
+    const { error } = await resend.emails.send({
+      from: RESEND_FROM,
+      to,
+      subject: letter.subject,
+      html: letter.html,
+      text: letter.text,
+    });
+
+    if (error) {
+      console.error("email refused by the provider", RESEND_FROM, error.message);
+      return false;
+    }
+
+    return true;
+  } catch (thrown) {
+    console.error("email failed to send", thrown);
+    return false;
+  }
+}
