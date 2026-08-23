@@ -136,19 +136,17 @@ describe("what moved", () => {
   });
 
   /*
-    A stale price is still shown -- a panel that emptied itself every time the
-    upstream hiccuped would be worse than one that says its prices are a minute
-    behind -- but it has to say so, which is the same rule the portfolio screen
-    follows.
+    A panel that emptied itself every time the upstream hiccuped would be
+    worse than one showing prices a minute behind, so the last known prices
+    stay on screen. That is the same rule the portfolio screen follows.
   */
-  it("says so when a price came from cache after a failed refresh", async () => {
+  it("keeps showing the last known prices after a failed refresh", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-24T14:00:00Z"));
 
     try {
       movingBy(laddered());
-      const first = await getMovers();
-      expect(first?.anyStale).toBe(false);
+      expect(await getMovers()).not.toBeNull();
 
       // Past the cache's time to live, so the next ask is a real refresh.
       vi.setSystemTime(new Date("2026-08-24T14:05:00Z"));
@@ -156,7 +154,7 @@ describe("what moved", () => {
 
       const second = await getMovers();
       expect(second, "the last known prices are still shown").not.toBeNull();
-      expect(second?.anyStale, "and are labelled as catching up").toBe(true);
+      expect(second?.up.length, "with the panel still full").toBeGreaterThan(0);
     } finally {
       vi.useRealTimers();
     }

@@ -43,6 +43,36 @@ export function formatDate(value: Date | string) {
 }
 
 /**
+ * How long ago something was, in the coarsest unit that still says it.
+ *
+ * Rounds down, then floors at one, so a gap this is asked about never reads
+ * as "0m". Anything worth putting an age on has already lasted longer than
+ * the last quote's sixty seconds, and "0m ago" is a sentence that describes
+ * now while claiming to describe the past.
+ */
+export function formatAge(ms: number) {
+  const minutes = Math.floor(Math.max(0, ms) / 60_000);
+  if (minutes < 60) return `${Math.max(1, minutes)}m`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+
+  return `${Math.floor(hours / 24)}d`;
+}
+
+/**
+ * How far behind the prices on a screen are.
+ *
+ * Here rather than beside the component that draws it, because the component
+ * is a client one and the gallery is a server one, and both need the exact
+ * sentence: the gallery measures the widest reading it has at every width a
+ * phone reports, and a second copy of the words is a second thing to forget.
+ */
+export function priceAgeLabel(ms: number) {
+  return `Prices from ${formatAge(ms)} ago`;
+}
+
+/**
  * Money, whole by default.
  *
  * A portfolio worth $104,382.17 is worth $104,382, and the cents are noise in

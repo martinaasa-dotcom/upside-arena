@@ -259,9 +259,6 @@ async function Rest({ params }: Params) {
           {format.name}
         </h1>
         <div className="flex items-center gap-2">
-          {view.anyStale ? (
-            <Badge variant="warning">Prices are catching up</Badge>
-          ) : null}
           <Badge variant={battle.finished ? "outline" : "gain"}>
             {battle.finished ? "Finished" : battle.timeLeft}
           </Badge>
