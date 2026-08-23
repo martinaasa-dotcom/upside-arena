@@ -13,6 +13,8 @@ export type Profile = {
   equipped_flair: string | null;
   equipped_theme: string | null;
   onboarded_at: string | null;
+  /** Highest walkthrough version finished. 0 = never. See lib/tour.ts. */
+  tour_version: number;
   created_at: string;
   updated_at: string;
 };

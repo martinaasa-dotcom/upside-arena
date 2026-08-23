@@ -183,11 +183,16 @@ With a project configured:
    `/onboarding`, not `/home`.
 2. Pick a name and a player tag. A tag that is already taken should say so
    rather than failing silently.
-3. You land on `/home`. The header, dock and profile all show your name.
-4. On `/profile`, change your name and save. Download your data and check the
+3. You land on `/home` and the walkthrough opens over it. Step through all
+   eight, or skip it from the first screen; move to another room and it
+   should not reappear.
+4. The header, dock and profile all show your name.
+5. On `/profile`, **Show me around again** re-opens the walkthrough, and
+   finishing it puts it away again.
+6. On `/profile`, change your name and save. Download your data and check the
    file contains your profile and your recorded agreements.
-5. Sign out. `/home` should send you back to the landing page.
-6. Close the account from `/profile`. Signing in with the same address should
+7. Sign out. `/home` should send you back to the landing page.
+8. Close the account from `/profile`. Signing in with the same address should
    produce a fresh, un-onboarded account.
 
 ## Decisions taken inside phase 1

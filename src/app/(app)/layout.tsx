@@ -4,9 +4,11 @@ import { AppHeader } from "@/components/AppHeader";
 import { ArenaTheme } from "@/components/ArenaTheme";
 import { BottomDock } from "@/components/BottomDock";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { WelcomeTour } from "@/components/WelcomeTour";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toaster } from "@/components/ui/sonner";
 import { getSession, isOnboarded } from "@/lib/profile";
+import { needsTour } from "@/lib/tour";
 import { themeStyleKey } from "@/lib/game/cosmetics";
 import { initials } from "@/lib/format";
 import { PAGE_FRAME } from "@/lib/page-shell";
@@ -122,6 +124,19 @@ async function PlayerChrome() {
     <>
       <ArenaTheme theme={theme} />
       <InstallPrompt weeksPlayed={profile?.weeks_played ?? 0} />
+
+      {/*
+        The walkthrough, over a room that has already painted.
+
+        It is here rather than on Home because a person can arrive anywhere:
+        a push notification opens Leagues, an installed app opens whatever it
+        was last on, and somebody who has never been told what a battle is
+        should not have to find their way to Home to be told. It shows once
+        ever, and lib/tour.ts decides what "once" currently means.
+      */}
+      {needsTour(profile) ? (
+        <WelcomeTour playerName={profile?.display_name ?? null} />
+      ) : null}
     </>
   );
 }

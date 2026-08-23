@@ -80,12 +80,21 @@ export default function OnboardingPage() {
             <NameForm />
           </Suspense>
 
+          {/*
+            What happens after the button, said before it is pressed.
+
+            The walkthrough opens on the other side of this form, and a person
+            who does not know that reads the next screen as a thing that got in
+            the way. Told first, it is the rest of the sign-up.
+          */}
           <p className="mt-6 text-sm text-muted-foreground">
-            The whole game, in two minutes:{" "}
+            Next we show you around — the week, the scoring, and where
+            everything is. It takes a minute and you can skip it. The long
+            version lives at{" "}
             <Link href="/how" className="text-foreground underline underline-offset-4">
               how Arena works
             </Link>
-            .
+            , and it is on your profile whenever you want it.
           </p>
         </div>
       </main>
