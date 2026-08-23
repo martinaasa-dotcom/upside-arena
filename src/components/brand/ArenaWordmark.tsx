@@ -1,4 +1,4 @@
-import { LOCKUP_LIFT } from "@/lib/brand/mark";
+import { LOCKUP, LOCKUP_LIFT } from "@/lib/brand/mark";
 import { cn } from "@/lib/utils";
 import { ArenaMark } from "./ArenaMark";
 
@@ -6,9 +6,14 @@ import { ArenaMark } from "./ArenaMark";
   Same lockup pattern as Lab's "UPSIDE LAB": bold brand word, regular product
   word, uppercase, tracking-wide.
 
-  The type is derived from the mark rather than fixed, so the lockup scales as
-  one object. At the header's 20px mark that reproduces the 14px type it has
-  always used; a hero can ask for a bigger mark and the words come with it.
+  `size` is the lockup's unit, and everything is derived from it (`LOCKUP`), so
+  the whole thing scales as one object: at the header's 20 that is the 14px
+  type it has always used, a 22.4px mark, and 10px between them. A hero asks
+  for a bigger unit and all three come with it.
+
+  The unit is not the mark's box. It was, and at that size the drawing stood
+  0.875 of the type where Lab's stands 1.4, which is why Arena's lockup read
+  as the smaller of the two. See LOCKUP.
 */
 export function ArenaWordmark({
   className,
@@ -19,13 +24,15 @@ export function ArenaWordmark({
   size?: number;
   markOnly?: boolean;
 }) {
+  const mark = size * LOCKUP.mark;
+
   return (
     <span
       className={cn("flex items-center", className)}
-      style={{ gap: size * 0.4 }}
+      style={{ gap: size * LOCKUP.gap }}
     >
       <ArenaMark
-        size={size}
+        size={mark}
         title={markOnly ? "Upside Arena" : undefined}
         /*
           Lifted off the row's centre line, and only when there is type to
@@ -39,13 +46,13 @@ export function ArenaWordmark({
         style={
           markOnly
             ? undefined
-            : { transform: `translateY(${-(size * LOCKUP_LIFT).toFixed(3)}px)` }
+            : { transform: `translateY(${-(mark * LOCKUP_LIFT).toFixed(3)}px)` }
         }
       />
       {!markOnly ? (
         <span
           className="leading-none tracking-wide uppercase"
-          style={{ fontSize: size * 0.7 }}
+          style={{ fontSize: size * LOCKUP.type }}
         >
           <span className="font-bold">Upside</span>{" "}
           <span className="font-normal">Arena</span>

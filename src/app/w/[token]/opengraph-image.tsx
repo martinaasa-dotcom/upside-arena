@@ -5,6 +5,7 @@ import { getSharedCard } from "@/lib/game/share";
 import { headline, ordinal, versusMarketLine, weekLabel } from "@/lib/share/card";
 import {
   HEX,
+  LOCKUP,
   LOCKUP_LIFT,
   PRIMARY_RGB,
   SECONDARY_RGB,
@@ -112,21 +113,35 @@ export default async function Image({
     fontFamily: "Geist",
   };
 
+  /*
+    The app's lockup, at the unit this card has room for, and built from the
+    same proportions rather than from three numbers typed in beside each
+    other: the mark 1.12 of the unit, the type 0.7, the gap 0.5, and the mark
+    lifted off the row's centre line because a pair of peaks carries its
+    weight along the baseline. See LOCKUP and LOCKUP_LIFT.
+  */
+  const unit = 34;
+  const markSize = unit * LOCKUP.mark;
   const wordmark = (
-    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-      {/*
-        The same optical lift the app's lockup takes: a pair of peaks carries
-        its weight along the baseline, so centred by the numbers it reads as
-        having sagged beside the word. See LOCKUP_LIFT.
-      */}
+    <div
+      style={{ display: "flex", alignItems: "center", gap: unit * LOCKUP.gap }}
+    >
       <img
-        src={arenaMarkDataUri(34)}
-        width={34}
-        height={34}
+        src={arenaMarkDataUri(markSize)}
+        width={markSize}
+        height={markSize}
         alt=""
-        style={{ transform: `translateY(${-(34 * LOCKUP_LIFT).toFixed(2)}px)` }}
+        style={{
+          transform: `translateY(${-(markSize * LOCKUP_LIFT).toFixed(2)}px)`,
+        }}
       />
-      <div style={{ display: "flex", fontSize: 24, letterSpacing: 0.5 }}>
+      <div
+        style={{
+          display: "flex",
+          fontSize: unit * LOCKUP.type,
+          letterSpacing: 0.5,
+        }}
+      >
         <span style={{ color: HEX.foreground, fontWeight: 600 }}>UPSIDE</span>
         <span style={{ color: HEX.foreground, fontWeight: 400 }}>&nbsp;ARENA</span>
       </div>

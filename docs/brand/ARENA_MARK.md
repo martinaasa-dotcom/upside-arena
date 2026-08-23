@@ -83,10 +83,34 @@ inner apex rides up, the legs thin toward the top, and it reads as a peak.
 
 ### Beside the words
 
-`ArenaWordmark` sets the mark against **UPSIDE ARENA** in a flex row, and the
-type is derived from the mark (`size * 0.7`) so the lockup scales as one
-object. The row centres two boxes; the eye centres two masses, and for this
-drawing those are not the same place.
+`ArenaWordmark` sets the mark against **UPSIDE ARENA** in a flex row. Every
+part of it is a ratio of one unit (`size`), so the lockup scales as one
+object: `LOCKUP` in `src/lib/brand/mark.ts` holds the three.
+
+| | Ratio | At the header's unit of 20 |
+|---|---|---|
+| Type | 0.7 | 14px, which is what the header has always set |
+| Mark's box | 1.12 | 22.4px, so the ink stands 19.6px |
+| Gap | 0.5 | 10px |
+
+**The unit is not the mark's box.** It was, and the drawing's ink is 56 of its
+64 units tall, so the mark stood 0.875 of the type size while Lab's "A" stands
+a clean 1.4. Beside each other, Arena's lockup read as the smaller of two
+siblings rather than as the same one in another colour. At 1.12 the ink is 1.4
+times the type exactly, so the two apps put the same amount of drawing beside
+the same amount of word.
+
+Matching Lab's *width* instead would take 1.43 and it is the wrong invariant:
+Lab draws one wide "A" (aspect 1.24) and Arena two upright peaks (1.11), so
+equal widths would leave Arena towering over the caps. A line of type is
+measured by height.
+
+The gap went 0.4 to 0.5 with it, which is the 10px Lab sets against 14px type.
+The mark's ink runs to within a unit of its box on both sides, so what is set
+here is the whole of the gap on screen.
+
+The row centres two boxes; the eye centres two masses, and for this drawing
+those are not the same place.
 
 Two peaks are nearly all base. The apexes are points and almost every square
 unit of the drawing sits along the baseline, so the ink's centre of area lands
@@ -95,13 +119,14 @@ centred in. Box-centred beside a word, the mark reads as having sagged: its
 feet hang well under the baseline while the apex barely clears the caps.
 
 `LOCKUP_LIFT` lifts it by **half** that offset: 4.4 units, 6.9 percent of the
-drawn size, about 1.4px at the header's 20px mark and 3px at the landing
-page's 44px one. Half rather than all of it because the perceived centre of a
-triangular mass sits between the outline's middle and the balance point;
+drawn size, so about 1.5px at the header's 22.4px mark and 3.4px at the
+landing page's 49px one. Half rather than all of it because the perceived
+centre of a triangular mass sits between the outline's middle and the balance
+point;
 lifting the centre of area itself onto the cap band puts the apex a long way
 over the caps with the feet on the line, and the mark stops looking as though
-it is standing on anything. 0, 3, 4.4, 6 and 8.8 units were rendered at 20px
-and 44px against the real type before the number was picked.
+it is standing on anything. 0, 3, 4.4, 6 and 8.8 units were rendered against
+the real type at both sizes before the number was picked.
 
 Nothing else is needed on the row. Geist's caps are centred in a
 `leading-none` line box to within a twentieth of a pixel at 14px, measured, so

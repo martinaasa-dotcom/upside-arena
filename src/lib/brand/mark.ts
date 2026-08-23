@@ -171,6 +171,38 @@ export const MARK_CENTROID_Y = 40.8;
 export const LOCKUP_LIFT =
   (MARK_CENTROID_Y - (MARK_BOX.y + MARK_BOX.height / 2)) / 2 / ICON_BOX;
 
+/*
+  The lockup's proportions, all of them against its unit (`size` on
+  `ArenaWordmark`), so the whole thing scales as one object.
+
+  `type` is 0.7, which is the 14px the header has always set at unit 20, and
+  it does not move: the words are the fixed part of a lockup and the mark is
+  what is measured against them.
+
+  `mark` is **1.12, not 1**. At 1 the drawing's box was the unit, and since
+  the ink is 56 of its 64 units tall, the mark stood 0.875 of the type size:
+  beside Lab's, whose "A" stands a clean 1.4, Arena's read as the smaller of
+  two sibling lockups rather than as the same one in another colour. At 1.12
+  the ink is 1.4 times the type size exactly, so the two apps put the same
+  amount of drawing beside the same amount of word. Matching Lab's *width*
+  instead would take 1.43, and it is the wrong invariant: Lab draws one wide
+  "A" (aspect 1.24) and Arena two upright peaks (1.11), so equal widths would
+  leave Arena towering over the caps. A line of type is measured by height.
+
+  `gap` is 0.5, a tenth up from the 0.4 that the smaller mark sat behind, and
+  it is Lab's proportion: 10px against 14px type. The mark's own ink runs to
+  within a unit of its box on both sides, so the gap on screen is the whole of
+  this number and nothing is added back by the drawing.
+*/
+export const LOCKUP = {
+  /** The mark's box. */
+  mark: 1.12,
+  /** The type's size. */
+  type: 0.7,
+  /** From the mark's box to the first letter. */
+  gap: 0.5,
+} as const;
+
 export type Ramp = { from: string; to: string };
 export type Colourway = {
   /** The plate under it, top to bottom. Null for the transparent mark. */

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   FAR_PEAK,
+  ICON_BOX,
+  LOCKUP,
   LOCKUP_LIFT,
   MARK_BOX,
   MARK_CENTROID_Y,
@@ -101,5 +103,33 @@ describe("the mark beside the words", () => {
     // has come off the line.
     expect(LOCKUP_LIFT).toBeGreaterThan(0.03);
     expect(LOCKUP_LIFT).toBeLessThan(0.1);
+  });
+});
+
+describe("the lockup's proportions", () => {
+  /*
+    What the mark's ink measures against the words beside it, which is the
+    thing the two apps have to agree on. Lab draws its "A" at 1.4 times the
+    type size; Arena's box is bigger than its ink, so the box has to be 1.12
+    to land in the same place. If either number is edited on its own, this
+    fails rather than the lockups quietly drifting apart again.
+  */
+  const INK = MARK_BOX.height / ICON_BOX;
+
+  it("stands the mark 1.4 times the type size, which is Lab's", () => {
+    const unit = 20;
+    const ink = unit * LOCKUP.mark * INK;
+    expect(ink / (unit * LOCKUP.type)).toBeCloseTo(1.4, 2);
+  });
+
+  it("keeps the header's 14px type", () => {
+    expect(20 * LOCKUP.type).toBe(14);
+  });
+
+  it("scales as one object, so every part is a ratio of the unit", () => {
+    for (const unit of [20, 34, 44]) {
+      expect(unit * LOCKUP.mark * INK).toBeCloseTo(1.4 * unit * LOCKUP.type, 6);
+      expect(unit * LOCKUP.gap).toBeCloseTo(unit * 0.5, 6);
+    }
   });
 });
