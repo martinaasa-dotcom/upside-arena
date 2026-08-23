@@ -351,13 +351,19 @@
     is always a dock. Two places knowing the dock's height is how the first
     one came to be wrong.
   */
+  /*
+    The home indicator is part of the bottom of the window too. The dock
+    already clears it (`pb-[max(1rem,env(safe-area-inset-bottom))]`), and a
+    notice sitting where there is no dock has to do the same, or on an
+    iPhone it lands under the bar the reader swipes.
+  */
   .bottom-notice {
-    bottom: 1rem;
+    bottom: max(1rem, env(safe-area-inset-bottom));
   }
 
   @media (min-width: 640px) {
     .bottom-notice {
-      bottom: 1.5rem;
+      bottom: max(1.5rem, env(safe-area-inset-bottom));
     }
   }
 
