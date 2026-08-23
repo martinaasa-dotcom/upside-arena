@@ -160,16 +160,8 @@ describe("getQuotes", () => {
     quote.mockResolvedValue(batch({ AAPL: 100, MSFT: 200 }));
     await getQuotes(["AAPL", "MSFT"]);
 
-    /*
-      Move past the cache lifetime, then break the provider entirely.
-
-      shouldAdvanceTime, because misses are collected on a tick before they go
-      upstream together, and a frozen clock never reaches that tick: the batch
-      is never sent, nothing rejects, and this waits for a failure that cannot
-      arrive. The clock still jumps forward two minutes, which is the part
-      this test is actually asking for.
-    */
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+    // Move past the cache lifetime, then break the provider entirely.
+    vi.useFakeTimers();
     vi.setSystemTime(Date.now() + 120_000);
     quote.mockRejectedValue(new Error("provider down"));
 
