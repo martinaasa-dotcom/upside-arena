@@ -12,6 +12,12 @@ export default defineConfig({
         leaving the code that holds the client secret untested.
       */
       "server-only": new URL("./tests/stubs/server-only.ts", import.meta.url).pathname,
+
+      /*
+        And the same for the cache directives' helpers, for the same reason.
+        See tests/stubs/next-cache.ts.
+      */
+      "next/cache": new URL("./tests/stubs/next-cache.ts", import.meta.url).pathname,
     },
   },
   test: {

@@ -76,6 +76,56 @@ describe("the rooms behind the dock", () => {
     */
     expect(existsSync(path.join(dir, "loading.tsx"))).toBe(false);
   });
+
+  /*
+    And the same rule where it actually bit.
+
+    The check above asked each room about its own directory, so it went green
+    with a loading.tsx sitting one level up in (app), above all of them, doing
+    the identical thing to every single room. Every per-room skeleton was
+    deleted and that one survived, because nothing was looking there: the
+    rooms were rewritten to paint on the tap and then had a grey rectangle
+    drawn over them on every tap for the trouble.
+
+    A boundary above a route can only hide the route. Anywhere at or above
+    (app) is that, so the check walks up from each room to the group root
+    rather than asking about one directory.
+  */
+  it("has no loading boundary above the rooms either", () => {
+    const above = new Set<string>();
+
+    for (const route of found) {
+      const parts = route.slice(1).split("/");
+      // Every directory from (app) down to the room's own parent.
+      for (let depth = 0; depth < parts.length; depth += 1) {
+        above.add(path.join(ROOMS, ...parts.slice(0, depth)));
+      }
+    }
+
+    expect(above.size).toBeGreaterThan(0);
+
+    for (const dir of above) {
+      expect(
+        existsSync(path.join(dir, "loading.tsx")),
+        `${dir} has a loading.tsx, which covers every room under it`
+      ).toBe(false);
+    }
+  });
+
+  /*
+    A whole-room placeholder has no shape that is right any more. Kept as a
+    check on the component rather than the file, because the way this comes
+    back is somebody needing a fallback, finding one that fits a whole page,
+    and putting it where it does not belong.
+  */
+  it("has no whole-room placeholder left to reach for", () => {
+    const skeleton = readFileSync(
+      path.join(ROOT, "src", "components", "Skeleton.tsx"),
+      "utf8"
+    );
+
+    expect(skeleton).not.toContain("RoomSkeleton");
+  });
 });
 
 describe("the way to Arena Plus", () => {
