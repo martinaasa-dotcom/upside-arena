@@ -7,6 +7,28 @@
 \set ON_ERROR_STOP on
 \o /dev/null
 
+/*
+  Every date in this file means today in New York.
+
+  That is what the metrics functions are asked about -- getMetrics passes
+  nyDate() -- and what record_daily_active is given when the app records a
+  visit. Postgres's current_date is the server's, which in CI and in
+  production is UTC, and between midnight in London and midnight in New York
+  those are two different days.
+
+  Which is a four hour window in which this file failed on arithmetic that
+  was perfectly correct: Priya joins "today", her cohort is dated in New York
+  where it is still yesterday, and metrics_retention is then asked about a
+  UTC today that is already tomorrow, so a player who joined seconds ago is
+  counted as having had a day to come back in.
+
+  Setting the session's timezone rather than rewriting two dozen call sites
+  makes current_date mean the same thing here as nyDate() means in the app,
+  which is the thing the file was always assuming it meant. Each suite gets
+  its own psql session and its own database, so this reaches nothing else.
+*/
+set timezone = 'America/New_York';
+
 insert into auth.users (id, email) values
   ('aaaa1111-0000-0000-0000-000000000001', 'nina@example.com'),
   ('bbbb2222-0000-0000-0000-000000000002', 'omar@example.com'),
