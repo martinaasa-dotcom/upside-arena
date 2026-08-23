@@ -12,7 +12,12 @@ import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getQuotes, normaliseSymbol, type Quote } from "@/lib/market/quotes";
 import { getSessionOpen } from "@/lib/market/benchmark";
-import { beforeContestEnd, isTradingOpen, nyDate } from "@/lib/market/session";
+import {
+  beforeContestEnd,
+  hasOpenedToday,
+  isTradingOpen,
+  nyDate,
+} from "@/lib/market/session";
 import {
   DEFAULT_FORMAT,
   checkTrade,
@@ -29,6 +34,8 @@ import {
   type LengthId,
   type RunLength,
 } from "@/lib/game/lengths";
+import { getMarksFor } from "@/lib/game/marks";
+import { dayMove, lastCloseBefore } from "@/lib/game/shape";
 import type { LeagueRow, WeeklyCycleRow } from "@/lib/supabase/database.types";
 
 /*
@@ -92,18 +99,15 @@ export type BattleStanding = {
   returnPercent: number;
 
   /*
-    Always null, and it has to be here so a battle can be shown in the same
-    table as a league week.
+    What today alone has done, against last night's close.
 
-    Closes are recorded for the house week and nothing else -- see
-    recordDailyMarks -- so a battle has no last night to measure today
-    against. The table leaves the column off when nobody in it has one,
-    which is every battle, so nothing is claimed that is not known.
-
-    Worth having one day: a quarter-long battle showing a single figure and
-    no trajectory is the same flat-number problem the week had.
+    Null for everybody in the contest or for nobody -- at the weekend, before
+    the bell, and on the first day there is nothing behind today to measure
+    against, so the table leaves the column off rather than drawing a row of
+    dashes. Also null throughout a battle that was already running before
+    0022, which is when closes started being kept for anything but the week.
   */
-  todayPercent: null;
+  todayPercent: number | null;
 
   versusMarket: number | null;
   isYou: boolean;
@@ -597,7 +601,25 @@ export const getBattleView = cache(async function getBattleView(
   }[];
 
   const symbols = [...new Set(holdingRows.map((h) => h.symbol))];
-  const quotes = await getQuotes([...symbols, cycle.benchmark_symbol]);
+  /*
+    Prices, and the closes already recorded for this contest.
+
+    A battle can run for a quarter, and over a quarter the standing figure
+    stops being news long before the contest does. The day inside it is what
+    changes between one evening and the next, which is the thing worth coming
+    back for.
+
+    Closes have only been kept for battles since 0022, so an older one has
+    none and simply has no day -- the table leaves the column off rather than
+    showing a row of dashes.
+  */
+  const [quotes, marksByPortfolio] = await Promise.all([
+    getQuotes([...symbols, cycle.benchmark_symbol]),
+    getMarksFor(portfolioIds),
+  ]);
+
+  const today = nyDate();
+  const dayIsOn = hasOpenedToday();
 
   const benchmarkQuote = quotes[cycle.benchmark_symbol] ?? null;
   const benchmarkOpen = battle.benchmarkOpen;
@@ -689,8 +711,13 @@ export const getBattleView = cache(async function getBattleView(
           : 0,
       isYou: memberId === userId,
       hasTraded: portfolio ? tradedPortfolios.has(portfolio.id) : false,
-      // See the type: a battle has no recorded closes to measure a day against.
-      todayPercent: null,
+      todayPercent:
+        dayIsOn && portfolio
+          ? (dayMove(
+              totalValue,
+              lastCloseBefore(marksByPortfolio.get(portfolio.id) ?? [], today)
+            )?.percent ?? null)
+          : null,
     };
   });
 

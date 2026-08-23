@@ -509,6 +509,10 @@ export type Database = {
         Args: { p_monday: string; p_today: string; p_opened: boolean };
         Returns: boolean;
       };
+      marks_needed_today: {
+        Args: { p_date: string };
+        Returns: boolean;
+      };
       fill_lineup: {
         Args: {
           p_user_id: string;

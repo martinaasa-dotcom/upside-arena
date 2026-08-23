@@ -5,6 +5,7 @@ import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BENCHMARK_SYMBOL, MARKET_TIMEZONE } from "@/lib/game";
 import { getQuotes } from "@/lib/market/quotes";
+import { positionValue } from "@/lib/game/formats";
 import { isTradingDay, nyDate } from "@/lib/market/session";
 import type { DailyMark } from "@/lib/game/shape";
 
@@ -31,6 +32,13 @@ const RECORD_UNTIL_HOUR = 23;
 export type MarkResult = {
   date: string;
   recorded: number;
+
+  /**
+   * How many portfolios held something nobody could price, and so were left
+   * for the day rather than written down at a guess.
+   */
+  unpriced: number;
+
   skipped: string | null;
 };
 
@@ -51,14 +59,26 @@ export function isMarkHour(now = new Date()): boolean {
 }
 
 /**
- * Records today's close for every portfolio in the open week.
+ * Records today's close for every portfolio in every contest that is running.
+ *
+ * Every contest, not only the house week. A battle can be a quarter long, and
+ * a quarter with one figure on it and no trajectory tells you nothing about
+ * the quarter -- the same thing that was true of the week before it was drawn
+ * as five days. Marks cannot be worked out afterwards, so a day a battle was
+ * not recorded is a day of its shape that is gone for good.
+ *
+ * Weekends are still not recorded, including for the format whose market
+ * never shuts. The mark hour is the equity close, and inventing a closing
+ * time for a market that does not have one would be making a number up; a
+ * coin battle's Saturday shows up folded into the Monday it is next measured
+ * at, which is honest about what was actually observed.
  *
  * Called from the notification cron, which already runs through the trading
  * day. Safe to call every hour: a day is written once.
  */
 export async function recordDailyMarks(now = new Date()): Promise<MarkResult> {
   const today = nyDate(now);
-  const result: MarkResult = { date: today, recorded: 0, skipped: null };
+  const result: MarkResult = { date: today, recorded: 0, unpriced: 0, skipped: null };
 
   if (!canWriteGame) return { ...result, skipped: "not_configured" };
   if (!isTradingDay(today)) return { ...result, skipped: "not_a_trading_day" };
@@ -66,27 +86,30 @@ export async function recordDailyMarks(now = new Date()): Promise<MarkResult> {
 
   const admin = createAdminClient();
 
+  /*
+    The direction comes along with the id, because it is what a position is
+    worth. A short battle's holdings are worth what they have not cost --
+    2 * cost - shares * price, floored -- and marking one at shares * price
+    would write down a number nobody in that contest has ever been shown.
+  */
   const { data: cycles } = await admin
     .from("weekly_cycles")
-    .select("id, starting_balance")
-    .eq("status", "open")
-    // The house week, not a league's battle. A mark is a bar on a share card
-    // for the week everybody played, and a league running a three month
-    // contest would otherwise be the newest open cycle every day of it.
-    .is("league_id", null)
-    .order("monday", { ascending: false })
-    .limit(1);
+    .select("id, direction")
+    .eq("status", "open");
 
-  const cycle = (cycles ?? [])[0] as { id: string; starting_balance: string } | undefined;
-  if (!cycle) return { ...result, skipped: "no_open_week" };
+  const openCycles = (cycles ?? []) as { id: string; direction: "long" | "short" }[];
+  if (openCycles.length === 0) return { ...result, skipped: "no_open_week" };
+
+  const directionOf = new Map(openCycles.map((cycle) => [cycle.id, cycle.direction]));
 
   const { data: portfolios } = await admin
     .from("portfolios")
-    .select("id, cash, starting_balance")
-    .eq("cycle_id", cycle.id);
+    .select("id, cycle_id, cash, starting_balance")
+    .in("cycle_id", [...directionOf.keys()]);
 
   const rows = (portfolios ?? []) as {
     id: string;
+    cycle_id: string;
     cash: string;
     starting_balance: string;
   }[];
@@ -94,7 +117,7 @@ export async function recordDailyMarks(now = new Date()): Promise<MarkResult> {
 
   const { data: holdingRows } = await admin
     .from("holdings")
-    .select("portfolio_id, symbol, quantity")
+    .select("portfolio_id, symbol, quantity, cost_basis")
     .in(
       "portfolio_id",
       rows.map((row) => row.id)
@@ -104,6 +127,7 @@ export async function recordDailyMarks(now = new Date()): Promise<MarkResult> {
     portfolio_id: string;
     symbol: string;
     quantity: string;
+    cost_basis: string;
   }[];
 
   const symbols = [...new Set(holdings.map((holding) => holding.symbol))];
@@ -115,15 +139,29 @@ export async function recordDailyMarks(now = new Date()): Promise<MarkResult> {
   */
   const quotes = await getQuotes([...symbols, BENCHMARK_SYMBOL]);
 
-  // A price we do not have is a mark we do not write. A day recorded from a
-  // guess would sit in somebody's shared card for ever.
-  const missing = symbols.filter((symbol) => !quotes[symbol]);
-  if (missing.length > 0) return { ...result, skipped: "prices_unavailable" };
+  /*
+    A price we do not have is a mark we do not write. A day recorded from a
+    guess would sit in somebody's shared card for ever.
 
-  const byPortfolio = new Map<string, { symbol: string; quantity: number }[]>();
+    Judged per portfolio rather than over the whole set. It used to be all or
+    nothing, which was defensible while there was one contest and became
+    dangerous the moment there were several: one unpriceable coin in one
+    league's battle would have thrown away the day's closes for everybody
+    playing the ordinary week, and a day not recorded cannot be recovered.
+    A portfolio whose every symbol has a price is a portfolio we know the
+    value of, whatever is going on elsewhere.
+  */
+  const byPortfolio = new Map<
+    string,
+    { symbol: string; quantity: number; costBasis: number }[]
+  >();
   for (const holding of holdings) {
     const list = byPortfolio.get(holding.portfolio_id) ?? [];
-    list.push({ symbol: holding.symbol, quantity: Number(holding.quantity) });
+    list.push({
+      symbol: holding.symbol,
+      quantity: Number(holding.quantity),
+      costBasis: Number(holding.cost_basis),
+    });
     byPortfolio.set(holding.portfolio_id, list);
   }
 
@@ -131,12 +169,30 @@ export async function recordDailyMarks(now = new Date()): Promise<MarkResult> {
     const cash = Number(row.cash);
     const start = Number(row.starting_balance);
 
-    const held = (byPortfolio.get(row.id) ?? []).reduce(
-      (total, position) => total + position.quantity * (quotes[position.symbol]?.price ?? 0),
-      0
-    );
+    const held = byPortfolio.get(row.id) ?? [];
 
-    const value = cash + held;
+    if (held.some((position) => !quotes[position.symbol])) {
+      result.unpriced++;
+      continue;
+    }
+
+    const direction = directionOf.get(row.cycle_id) ?? "long";
+
+    const value =
+      cash +
+      held.reduce(
+        (total, position) =>
+          total +
+          positionValue(
+            { direction },
+            {
+              quantity: position.quantity,
+              costBasis: position.costBasis,
+              price: quotes[position.symbol]?.price ?? null,
+            }
+          ),
+        0
+      );
     const returnPercent = start > 0 ? ((value - start) / start) * 100 : 0;
 
     const { data: wrote } = await admin.rpc("record_portfolio_mark", {
@@ -156,8 +212,15 @@ export async function recordDailyMarks(now = new Date()): Promise<MarkResult> {
  * Whether today still needs recording, as one cheap indexed query.
  *
  * Called on page renders, so it has to stay far cheaper than the recording it
- * might trigger. A day already written makes this a single primary key lookup
- * and nothing else.
+ * might trigger. The database answers it, because the question is "does any
+ * portfolio in any open contest still want today" and that is an anti-join
+ * rather than something worth doing in three round trips.
+ *
+ * It used to look at one portfolio of one cycle and take that as the answer
+ * for everything, which was true while there was only the week. With a league
+ * battle running alongside it, the week having been written says nothing
+ * about whether the battle was, and the day would have been quietly skipped
+ * for one of them.
  */
 export async function needsMarkToday(now = new Date()): Promise<boolean> {
   if (!canWriteGame) return false;
@@ -166,34 +229,9 @@ export async function needsMarkToday(now = new Date()): Promise<boolean> {
   if (!isTradingDay(today) || !isMarkHour(now)) return false;
 
   const admin = createAdminClient();
+  const { data } = await admin.rpc("marks_needed_today", { p_date: today });
 
-  const { data: cycles } = await admin
-    .from("weekly_cycles")
-    .select("id")
-    .eq("status", "open")
-    .is("league_id", null)
-    .order("monday", { ascending: false })
-    .limit(1);
-
-  const cycle = (cycles ?? [])[0] as { id: string } | undefined;
-  if (!cycle) return false;
-
-  const { data: portfolios } = await admin
-    .from("portfolios")
-    .select("id")
-    .eq("cycle_id", cycle.id)
-    .limit(1);
-
-  const portfolio = (portfolios ?? [])[0] as { id: string } | undefined;
-  if (!portfolio) return false;
-
-  const { count } = await admin
-    .from("portfolio_marks")
-    .select("portfolio_id", { count: "exact", head: true })
-    .eq("portfolio_id", portfolio.id)
-    .eq("on_date", today);
-
-  return (count ?? 0) === 0;
+  return data === true;
 }
 
 /**
