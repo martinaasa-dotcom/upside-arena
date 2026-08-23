@@ -131,6 +131,78 @@ export const MARK_BOX = (() => {
 /** The tight viewBox, as the attribute string. */
 export const MARK_VIEWBOX = `${MARK_BOX.x} ${MARK_BOX.y} ${MARK_BOX.width} ${MARK_BOX.height}`;
 
+/*
+  Where the ink actually balances, on the 64 grid.
+
+  Two peaks are nearly all base: the apexes are points and almost every square
+  unit of the drawing sits along the baseline, so the centre of area lands at
+  y = 40.8, which is 8.8 units below the middle of the box the drawing is
+  centred in. Sampled from the two outlines; the hairline cut takes a sliver
+  off the far peak near the foot and moves this by under a tenth of a unit, so
+  it is measured on the outlines rather than on one particular size.
+  `tests/unit/lockup.test.ts` recomputes it, so a peak cannot move without the
+  number following.
+*/
+export const MARK_CENTROID_Y = 40.8;
+
+/*
+  How far to lift the mark when it stands beside the type, as a fraction of
+  the size it is drawn at.
+
+  Centred by the numbers, the mark reads as having sagged: the ink is
+  symmetric about the middle of its box, but its weight is not, and the eye
+  splits the difference between the outline and the balance point. So the
+  perceived centre is about half of those 8.8 units low, and lifting by half
+  the offset -- 4.4 units, or 6.9% of the box -- puts it on the middle of the
+  cap band. Nothing else is needed on a `items-center` row: Geist's caps are
+  centred in a `leading-none` line box to within a twentieth of a pixel at
+  header size, measured, so the row already lines the two boxes up.
+
+  Half, not all of it. Lifting the centre of area itself onto the cap band
+  puts the apex a long way over the caps with the feet at the baseline, and
+  the mark stops reading as sitting on the line at all.
+
+  It belongs to the lockup rather than to the mark, so `ArenaMark` stays
+  centred in its own box: a drawing that is secretly off-centre fights every
+  other place it is put. The plated icons carry their own, smaller lift for
+  the same reason stated against a tile (`OPTICAL_LIFT`), because a tile is
+  not a line of type.
+*/
+export const LOCKUP_LIFT =
+  (MARK_CENTROID_Y - (MARK_BOX.y + MARK_BOX.height / 2)) / 2 / ICON_BOX;
+
+/*
+  The lockup's proportions, all of them against its unit (`size` on
+  `ArenaWordmark`), so the whole thing scales as one object.
+
+  `type` is 0.7, which is the 14px the header has always set at unit 20, and
+  it does not move: the words are the fixed part of a lockup and the mark is
+  what is measured against them.
+
+  `mark` is **1.12, not 1**. At 1 the drawing's box was the unit, and since
+  the ink is 56 of its 64 units tall, the mark stood 0.875 of the type size:
+  beside Lab's, whose "A" stands a clean 1.4, Arena's read as the smaller of
+  two sibling lockups rather than as the same one in another colour. At 1.12
+  the ink is 1.4 times the type size exactly, so the two apps put the same
+  amount of drawing beside the same amount of word. Matching Lab's *width*
+  instead would take 1.43, and it is the wrong invariant: Lab draws one wide
+  "A" (aspect 1.24) and Arena two upright peaks (1.11), so equal widths would
+  leave Arena towering over the caps. A line of type is measured by height.
+
+  `gap` is 0.5, a tenth up from the 0.4 that the smaller mark sat behind, and
+  it is Lab's proportion: 10px against 14px type. The mark's own ink runs to
+  within a unit of its box on both sides, so the gap on screen is the whole of
+  this number and nothing is added back by the drawing.
+*/
+export const LOCKUP = {
+  /** The mark's box. */
+  mark: 1.12,
+  /** The type's size. */
+  type: 0.7,
+  /** From the mark's box to the first letter. */
+  gap: 0.5,
+} as const;
+
 export type Ramp = { from: string; to: string };
 export type Colourway = {
   /** The plate under it, top to bottom. Null for the transparent mark. */

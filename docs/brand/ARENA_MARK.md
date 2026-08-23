@@ -81,6 +81,66 @@ constant horizontal width, and the peak reads blunt — a tent. Below `1` the
 inner apex rides up, the legs thin toward the top, and it reads as a peak.
 `0.62` is as far as it goes before the two legs stop looking like one object.
 
+### Beside the words
+
+`ArenaWordmark` sets the mark against **UPSIDE ARENA** in a flex row. Every
+part of it is a ratio of one unit (`size`), so the lockup scales as one
+object: `LOCKUP` in `src/lib/brand/mark.ts` holds the three.
+
+| | Ratio | At the header's unit of 20 |
+|---|---|---|
+| Type | 0.7 | 14px, which is what the header has always set |
+| Mark's box | 1.12 | 22.4px, so the ink stands 19.6px |
+| Gap | 0.5 | 10px |
+
+**The unit is not the mark's box.** It was, and the drawing's ink is 56 of its
+64 units tall, so the mark stood 0.875 of the type size while Lab's "A" stands
+a clean 1.4. Beside each other, Arena's lockup read as the smaller of two
+siblings rather than as the same one in another colour. At 1.12 the ink is 1.4
+times the type exactly, so the two apps put the same amount of drawing beside
+the same amount of word.
+
+Matching Lab's *width* instead would take 1.43 and it is the wrong invariant:
+Lab draws one wide "A" (aspect 1.24) and Arena two upright peaks (1.11), so
+equal widths would leave Arena towering over the caps. A line of type is
+measured by height.
+
+The gap went 0.4 to 0.5 with it, which is the 10px Lab sets against 14px type.
+The mark's ink runs to within a unit of its box on both sides, so what is set
+here is the whole of the gap on screen.
+
+The row centres two boxes; the eye centres two masses, and for this drawing
+those are not the same place.
+
+Two peaks are nearly all base. The apexes are points and almost every square
+unit of the drawing sits along the baseline, so the ink's centre of area lands
+at **y = 40.8** on the 64 grid — 8.8 units below the middle of the box it is
+centred in. Box-centred beside a word, the mark reads as having sagged: its
+feet hang well under the baseline while the apex barely clears the caps.
+
+`LOCKUP_LIFT` lifts it by **half** that offset: 4.4 units, 6.9 percent of the
+drawn size, so about 1.5px at the header's 22.4px mark and 3.4px at the
+landing page's 49px one. Half rather than all of it because the perceived
+centre of a triangular mass sits between the outline's middle and the balance
+point;
+lifting the centre of area itself onto the cap band puts the apex a long way
+over the caps with the feet on the line, and the mark stops looking as though
+it is standing on anything. 0, 3, 4.4, 6 and 8.8 units were rendered against
+the real type at both sizes before the number was picked.
+
+Nothing else is needed on the row. Geist's caps are centred in a
+`leading-none` line box to within a twentieth of a pixel at 14px, measured, so
+`items-center` already lines the two boxes up and the lift is the only
+correction.
+
+It is a `transform`, so the lockup's own box does not move and nothing around
+it reflows, and it applies **only when there is type**: `markOnly` gets the
+drawing centred in its box, because a mark that is secretly off-centre fights
+every other place it is put. The share card's lockup
+(`app/w/[token]/opengraph-image.tsx`) takes the same lift from the same
+constant. `tests/unit/lockup.test.ts` recomputes the balance point from the
+outlines, so a peak cannot move without the constant following.
+
 ### The cut follows the size, and it runs backwards
 
 `cutForSize()` in `src/lib/brand/mark.ts` decides how wide to cut the hairline
@@ -272,15 +332,20 @@ diagonal, not its width, is what has to fit a circular crop.
 
 ### The optical lift
 
-The plated icons sit the mark 2.5 percent above the geometric centre of the
-plate. A pair of peaks is a triangular mass: nearly all of its area is along
-the baseline and the apexes are points, so its perceived centre is well below
-the middle of its bounding box, and centred by the numbers it reads as having
-sagged.
+The plated icons sit the mark 2 percent (`OPTICAL_LIFT`) above the geometric
+centre of the plate, for the reason set out in *Beside the words*: the mass is
+triangular, so the perceived centre is below the middle of the bounding box
+and centring by the numbers reads as a sag.
 
-It applies to the plated icons only. The bare mark is placed by whatever is
-around it — a flex row in the lockup, a host's own tile padding — and a
-drawing that is secretly off-centre would fight all of them.
+It is smaller than the lockup's 6.9 percent because a tile is not a line of
+type. The lockup answers to a cap band a few pixels tall; a plate is a square
+with generous margin on every side, where the same correction would read as
+the drawing having drifted up.
+
+Both live outside the mark. The drawing itself stays centred in its own box,
+because it is placed by whatever is around it — a flex row in the lockup, a
+plate, a host's own tile padding — and a drawing that is secretly off-centre
+would fight all of them.
 
 ---
 
