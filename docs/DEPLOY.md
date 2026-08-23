@@ -25,7 +25,7 @@ Production and Preview both. None of them belongs in the repository.
 | `NEXT_PUBLIC_SUPABASE_URL` | the Arena project URL | Public. Safe in a browser. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the publishable key | Public. Row level security protects it. |
 | `SUPABASE_SERVICE_ROLE_KEY` | the secret key | **Server only.** Bypasses row level security. Never prefix it with `NEXT_PUBLIC_`. |
-| `NEXT_PUBLIC_SITE_URL` | `https://upsidearena.com` | Set, on All Environments. Builds sign-in links, notification emails and share urls. If it were ever unset, production falls back to the project's production domain rather than to a deployment url, but that is a safety net rather than the setting. |
+| `NEXT_PUBLIC_SITE_URL` | `https://upsidearena.com` | Set, on All Environments. Builds the Google callback url, notification emails and share urls. If it were ever unset, production falls back to the project's production domain rather than to a deployment url, but that is a safety net rather than the setting. |
 | `GOOGLE_CLIENT_ID` | from the Arena Google Cloud project | The Google button appears when this and the secret are both set, and not otherwise. |
 | `GOOGLE_CLIENT_SECRET` | from the same client | **Server only.** Arena exchanges the code itself. See [SWITCH_ON.md](SWITCH_ON.md#6-sign-in-with-google). |
 | `CRON_SECRET` | a long random string | **Server only.** Shared with the GitHub workflows below. |
@@ -116,7 +116,7 @@ Under Authentication, URL Configuration:
   `http://localhost:3000` for local work.
 
 Supabase refuses to redirect anywhere not on this list, which is what stops a
-sign-in link being redirected to somewhere it should not go.
+sign-in being returned to somewhere it should not go.
 
 ## Settling the week, without paying for a scheduler
 

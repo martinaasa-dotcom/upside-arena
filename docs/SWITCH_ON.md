@@ -134,13 +134,15 @@ If mail is configured but not arriving, the cause is almost always an
 unverified domain. Vercel, the deployment, **Logs**, and look for
 `email refused by the provider`. That line exists specifically for this.
 
-### While you are in Resend, point sign-in at it too
+### Sign-in needs nothing from Resend
 
-The sign-in link is sent by Supabase, not by Resend, and Supabase's built-in
-mail is shared infrastructure with a small hourly allowance and a reputation
-Arena does not control. Moving it onto the same Resend account is one screen of
-settings and it is what stops a run of bounced links from taking sign-in down
-for everybody. [EMAIL.md](EMAIL.md#move-auth-email-onto-resend) has the fields.
+It used to. The sign-in link was sent by Supabase, on shared infrastructure
+with a small hourly allowance and a reputation Arena did not control, so
+pointing it at Resend was a step on this list. Google is the only way in as of
+2026-08-23 and Supabase Auth now sends nothing at all, so there is nothing
+here to move. The custom SMTP settings are still recorded in
+[EMAIL.md](EMAIL.md), marked dormant, in case anything ever mails through
+Supabase again.
 
 ---
 
@@ -482,26 +484,22 @@ password a Resend API key of its own, sender `Upside Arena
 upsidearena.com is verified in Resend: the DKIM key is published at
 `resend._domainkey`, the return path at `send.upsidearena.com` points to
 Resend, and there is a `p=none` DMARC record. The domain sends but does not
-receive — it has no MX of its own — so a reply to a sign-in link goes nowhere.
+receive, since it has no MX of its own, so a reply to it goes nowhere.
 Support is `app.support@upthink.ee`, which does receive, and that is the
 address the app tells people to use.
 
-**`RESEND_FROM` has to be set to match.** The notification fallback defaults to
-`arena@upthink.ee`, so leaving the variable unset means auth mail leaves from
-one domain and notifications from another, splitting the sending reputation
-this whole change exists to consolidate. In Vercel, Production and Preview:
-`RESEND_FROM` = `Upside Arena <arena@upsidearena.com>`. Redeploy after.
+**`RESEND_FROM` has to be set.** The notification fallback defaults to
+`arena@upthink.ee`, which is not the domain verified for this, so leaving the
+variable unset means the one mail Arena sends leaves from a domain that was
+never set up to send it. In Vercel, Production and Preview: `RESEND_FROM` =
+`Upside Arena <arena@upsidearena.com>`. Redeploy after.
 
-So the sign-in link and the notification fallback now leave from one account
-with one reputation, and a bounce is something Resend names rather than
-something Supabase writes a letter about. Enabling custom SMTP sets the auth
-rate limit to 30 emails an hour, which is a real ceiling on a launch day:
-**Authentication, Rate Limits** is where to raise it. See
-[EMAIL.md](EMAIL.md).
-
-To check rather than trust this line: request a sign-in link, then look in
-Resend's **Emails** list. If the message is not there, Supabase is still
-sending it itself and the settings did not save.
+This section used to end by saying the sign-in link and the notification
+fallback now share one account and one reputation, and by telling you to
+request a sign-in link and find it in Resend's **Emails** list. There is no
+sign-in link any more, so what is left to check is a notification: turn
+**Email instead** on in Profile, trigger something worth being told about, and
+look for it there. See [EMAIL.md](EMAIL.md).
 
 ### Arena
 
