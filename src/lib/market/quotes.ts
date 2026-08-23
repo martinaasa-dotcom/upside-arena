@@ -28,6 +28,14 @@ export type Quote = {
   currency: string;
   marketState: string | null;
   name: string | null;
+  /*
+    What Yahoo says this is: EQUITY, ETF, CRYPTOCURRENCY and so on.
+
+    Carried because a format decides what may be owned by kind rather than by
+    name -- "funds only", "coins only" -- and the check has to happen against
+    what the thing actually is, not against what somebody typed.
+  */
+  type: string | null;
   /** Epoch milliseconds when this print was actually fetched. */
   fetchedAt: number;
   /** True when served from cache after a failed refresh. */
@@ -77,10 +85,24 @@ type YahooQuote = {
 };
 
 /*
-  Only ordinary shares and funds. Options, futures and currencies are not part
-  of this game, and letting one in would quietly change what the week measures.
+  What this game will price at all.
+
+  Options, futures and currency pairs are still out: they settle differently,
+  they are leveraged, and letting one in would quietly change what a week
+  measures.
+
+  Coins are in, and only because a format asks for them. This is the widest
+  the door goes; which of these a given contest actually allows is a rule of
+  the format, in src/lib/game/formats.ts, and the house week still allows
+  shares and funds only. Pricing something is not permission to buy it.
 */
-const ALLOWED_TYPES = new Set(["EQUITY", "ETF", "MUTUALFUND", "INDEX"]);
+const PRICEABLE_TYPES = new Set([
+  "EQUITY",
+  "ETF",
+  "MUTUALFUND",
+  "INDEX",
+  "CRYPTOCURRENCY",
+]);
 
 function toQuote(raw: YahooQuote, symbol: string): Quote | null {
   const { price, previousClose } = sessionMark({
@@ -105,6 +127,7 @@ function toQuote(raw: YahooQuote, symbol: string): Quote | null {
     currency: raw.currency ?? "USD",
     marketState: raw.marketState ?? null,
     name: raw.longName ?? raw.shortName ?? null,
+    type: raw.quoteType ?? null,
     fetchedAt: Date.now(),
     stale: false,
   };
@@ -112,7 +135,7 @@ function toQuote(raw: YahooQuote, symbol: string): Quote | null {
 
 function accept(raw: YahooQuote | null | undefined, symbol: string): Quote | null {
   if (!raw) return null;
-  if (raw.quoteType && !ALLOWED_TYPES.has(raw.quoteType)) return null;
+  if (raw.quoteType && !PRICEABLE_TYPES.has(raw.quoteType.toUpperCase())) return null;
   return toQuote(raw, symbol);
 }
 
@@ -306,15 +329,27 @@ export type SymbolMatch = {
   exchange: string | null;
 };
 
+/** Whether this game can put a price on something at all. */
+export function isPriceable(quoteType: string | null | undefined): boolean {
+  return quoteType ? PRICEABLE_TYPES.has(quoteType.toUpperCase()) : true;
+}
+
 /**
  * Symbol search for the trade screen.
  *
- * Restricted to the same instrument types trading accepts, so nothing can be
- * found here that cannot then be bought.
+ * Restricted to the instrument types the contest being played accepts, so
+ * nothing can be found here that cannot then be bought. A format that names
+ * its companies one by one does not search at all -- the trade screen offers
+ * the list instead, which is both faster and impossible to be refused by.
  */
-export async function searchSymbols(query: string): Promise<SymbolMatch[]> {
+export async function searchSymbols(
+  query: string,
+  types: readonly string[] = ["EQUITY", "ETF", "MUTUALFUND", "INDEX"]
+): Promise<SymbolMatch[]> {
   const trimmed = query.trim();
   if (trimmed.length < 1) return [];
+
+  const allowed = new Set(types.map((type) => type.toUpperCase()));
 
   try {
     const yahoo = await getYahoo();
@@ -335,7 +370,7 @@ export async function searchSymbols(query: string): Promise<SymbolMatch[]> {
 
     return (result.quotes ?? [])
       .filter((q) => q.isYahooFinance !== false)
-      .filter((q) => q.symbol && ALLOWED_TYPES.has((q.quoteType ?? "").toUpperCase()))
+      .filter((q) => q.symbol && allowed.has((q.quoteType ?? "").toUpperCase()))
       .slice(0, 8)
       .map((q) => ({
         symbol: normaliseSymbol(q.symbol as string),

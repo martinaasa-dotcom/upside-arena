@@ -315,6 +315,37 @@ begin;
 commit;
 
 -- ---------------------------------------------------------------------------
+-- A week somebody only played half of
+-- ---------------------------------------------------------------------------
+-- The card stores the week as five days, Monday first, with a null for a day
+-- the player was not here for. Somebody who signs up on the Wednesday has two
+-- of them, and they have to survive being written down: a null quietly cast
+-- to nought would claim they held something on the Monday and it went
+-- nowhere, on the one thing in this product other people see.
+
+select public.create_share_card(
+  'bbbb2222-0000-0000-0000-000000000002',
+  (select id from public.weekly_cycles where monday = '2026-08-24'),
+  '2026-08-24', 'Omar', null,
+  3.0, 1.0, 2.0, null, null, null, 0,
+  '[null, null, 1.0, 2.0, 3.0]'::jsonb
+);
+
+select public.assert(
+  (select marks from public.share_cards
+   where user_id = 'bbbb2222-0000-0000-0000-000000000002'
+     and monday = '2026-08-24') = '[null, null, 1.0, 2.0, 3.0]'::jsonb,
+  'a half week keeps its empty days rather than filling them with noughts'
+);
+
+select public.assert(
+  (select jsonb_array_length(marks) from public.share_cards
+   where user_id = 'bbbb2222-0000-0000-0000-000000000002'
+     and monday = '2026-08-24') = 5,
+  'and is still five days long, so Friday cannot slide under Wednesday'
+);
+
+-- ---------------------------------------------------------------------------
 -- Closing an account
 -- ---------------------------------------------------------------------------
 

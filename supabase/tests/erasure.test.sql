@@ -40,6 +40,20 @@ select public.assert(
   'every table with a user_id says which account it belongs to'
 );
 
+/*
+  And nothing is left pointing at somebody who has gone.
+
+  Two ways to satisfy that, and only two. A row that is *about* a person goes
+  with them: a portfolio, a streak, a push subscription, a coin balance. A
+  column that merely *records* a person on a row that belongs to other people
+  is emptied instead, and `weekly_cycles.created_by` is the one of those --
+  a league's three month battle must not be deleted out from under four other
+  players because the person who started it closed their account.
+
+  Anything else, and in particular `no action`, is the failure this is looking
+  for: a foreign key that simply refuses the delete, so closing an account
+  raises rather than erasing.
+*/
 select public.assert(
   not exists (
     select 1
@@ -48,9 +62,26 @@ select public.assert(
     join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
     where con.contype = 'f'
       and con.confrelid = 'auth.users'::regclass
-      and con.confdeltype <> 'c'
+      and con.confdeltype not in ('c', 'n')
   ),
   'and every one of those is erased with the account rather than orphaned'
+);
+
+-- A column that empties has to be able to hold nothing. Set null on a not-null
+-- column is a delete that raises, which is the case above wearing a disguise.
+select public.assert(
+  not exists (
+    select 1
+    from pg_constraint con
+    join pg_class c on c.oid = con.conrelid
+    join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+    join pg_attribute a on a.attrelid = c.oid and a.attnum = any (con.conkey)
+    where con.contype = 'f'
+      and con.confrelid = 'auth.users'::regclass
+      and con.confdeltype = 'n'
+      and a.attnotnull
+  ),
+  'and a column that is emptied on the way out is one that may be empty'
 );
 
 -- ---------------------------------------------------------------------------

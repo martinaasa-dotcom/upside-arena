@@ -152,6 +152,47 @@ export function isTradingOpen(now = new Date()): boolean {
   return minutes >= OPEN_MINUTES && minutes < CLOSE_MINUTES;
 }
 
+/**
+ * Whether the market has opened yet today, whether or not it is still open.
+ *
+ * Different question from isTradingOpen, and the difference is what makes a
+ * lineup fair. Before 09:30 nobody knows what Monday's opening price will be,
+ * so a lineup may still be changed. From 09:30 the price exists, and an order
+ * that could still be edited would be a trade placed with hindsight -- which
+ * is the one thing a lineup must never become.
+ */
+export function hasOpenedToday(now = new Date(), afterMinutes = 0): boolean {
+  if (isWeekend(now)) return false;
+  return nyMinutes(now) >= OPEN_MINUTES + afterMinutes;
+}
+
+/**
+ * Whether a moment fell before a contest ending on the given day stopped
+ * taking trades.
+ *
+ * Not the same question as "was it on or before that date", and the difference
+ * is a whole evening. A contest that runs on market hours takes its last trade
+ * at 16:00 on its final day, so somebody who arrives at nine that evening was
+ * never in it however you write the date down. One whose market never shuts
+ * takes trades until midnight, so for that one the whole day counts.
+ *
+ * Comparing the two as dates is what the first attempt at this did, by reading
+ * a timestamp's first ten characters. That reads it in UTC, where the day
+ * rolls over at seven or eight in the New York evening -- which happens to sit
+ * near the close and made the answer accidentally about right, until it was
+ * "fixed" into being reliably wrong.
+ */
+export function beforeContestEnd(
+  moment: Date,
+  endsOn: string,
+  allDay = false
+): boolean {
+  const date = nyDate(moment);
+  if (date < endsOn) return true;
+  if (date > endsOn) return false;
+  return allDay || nyMinutes(moment) < CLOSE_MINUTES;
+}
+
 /** The New York calendar date, as YYYY-MM-DD. */
 export function nyDate(now = new Date()): string {
   const { year, month, day } = nyParts(now);
@@ -226,6 +267,19 @@ function utcToIso(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
+/**
+ * A calendar date a number of days on from another one.
+ *
+ * Noon rather than midnight, so a date is never nudged across a boundary by
+ * an hour of daylight saving. Everything here is a New York calendar date
+ * already, so this is plain calendar arithmetic and not a clock at all.
+ */
+export function addDays(isoDate: string, days: number): string {
+  const date = isoToUtcNoon(isoDate);
+  date.setUTCDate(date.getUTCDate() + days);
+  return utcToIso(date);
+}
+
 /** Whether a New York calendar date fell on a weekday. */
 export function isTradingDay(isoDate: string): boolean {
   const day = isoToUtcNoon(isoDate).getUTCDay();
@@ -281,4 +335,78 @@ export function tradingDaysBetween(fromIso: string, toIso: string): number {
   }
 
   return count;
+}
+
+/*
+  The lineup, and which week it is for.
+
+  A lineup is bought at a Monday's opening price, so the only week you can
+  still queue for is one whose opening price nobody knows yet. That is this
+  Monday until the bell, and the Monday after it from then on.
+*/
+
+/** Whether a week's lineup can still be changed. */
+export function lineupLocked(monday: string, now = new Date()): boolean {
+  const today = nyDate(now);
+  if (today < monday) return false;
+  if (today === monday && !hasOpenedToday(now)) return false;
+  return true;
+}
+
+/**
+ * Whether the lineup is the thing to show right now.
+ *
+ * True when the next opening bell is the one a lineup would fill at: all
+ * weekend, and on the Monday itself until the market opens. The copy promises
+ * a lineup can be changed until the bell on Monday, and a screen that only
+ * offered it at the weekend was not keeping that promise -- somebody opening
+ * Arena at eight on a Monday morning could neither trade nor see the thing
+ * that was about to spend their money.
+ */
+export function isLineupWindow(now = new Date()): boolean {
+  return isWeekend(now) || nyDate(now) === lineupMonday(now);
+}
+
+/**
+ * The Monday a lineup queued now would be filled on.
+ *
+ * At the weekend that is the Monday about to arrive, which is the whole point
+ * of the feature. During the week it is next Monday, because this week's
+ * opening price has already happened.
+ *
+ * Note what this means and what it does not. It is the earliest week that is
+ * still open, so `lineupLocked(lineupMonday())` is false by construction --
+ * which is correct for choosing where a new order goes, and useless as a way
+ * of deciding whether an existing order may still be removed. That question is
+ * about the week the order is for, and only the database knows which week
+ * that is. See 0021.
+ */
+export function lineupMonday(now = new Date()): string {
+  const monday = cycleMonday(now);
+  if (!lineupLocked(monday, now)) return monday;
+
+  const next = isoToUtcNoon(monday);
+  next.setUTCDate(next.getUTCDate() + 7);
+  return utcToIso(next);
+}
+
+/**
+ * Whether a week's lineup can be filled yet.
+ *
+ * Half an hour after the bell rather than on it. The opening price is what a
+ * lineup fills at, and it does not exist in the data provider the instant the
+ * market opens -- the daily bar for the day arrives a few minutes in. Filling
+ * at 09:30:20 would mean recording "we had no opening price" for a name that
+ * had one perfectly well by 09:35, and that error is written into somebody's
+ * week and cannot be taken back.
+ *
+ * Waiting costs nothing. Everybody fills at the same opening price whenever
+ * this runs, so the only thing being delayed is when they find out.
+ */
+const OPEN_PRICE_GRACE_MINUTES = 30;
+
+export function lineupReady(monday: string, now = new Date()): boolean {
+  const today = nyDate(now);
+  if (today > monday) return true;
+  return today === monday && hasOpenedToday(now, OPEN_PRICE_GRACE_MINUTES);
 }

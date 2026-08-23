@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   notifyStandingChanges,
+  notifyBattleResults,
+  notifyBattlesStarted,
   notifyStreaksAtRisk,
   notifyWeekResults,
 } from "@/lib/notify/events";
@@ -51,6 +53,19 @@ const JOBS = {
   marks: recordDailyMarks,
   standings: notifyStandingChanges,
   week: notifyWeekResults,
+  /*
+    After the week, because a battle can settle on the same pass and the two
+    would otherwise compete for the same daily cap in whichever order the
+    object happened to be written. The week everybody plays goes first.
+  */
+  battles: notifyBattleResults,
+  /*
+    After the results, and last of the league jobs, because it is the least
+    time-critical of them: a battle is announced within a couple of days of
+    being made and nothing about it expires that day. A result, by contrast,
+    is news for one evening.
+  */
+  battleStarts: notifyBattlesStarted,
   streaks: notifyStreaksAtRisk,
 } as const;
 

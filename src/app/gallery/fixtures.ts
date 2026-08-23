@@ -2,8 +2,15 @@ import type { SeasonStanding } from "@/lib/game/seasons";
 import type { Standing } from "@/lib/game/leagues";
 import type { Streak } from "@/lib/game/streaks";
 import type { Position } from "@/lib/game/portfolio";
+import type { Quote } from "@/lib/market/quotes";
 import type { PodView } from "@/lib/game/pods";
 import type { Recap } from "@/lib/share/card";
+import type { Battle } from "@/lib/game/battles";
+import type { LineupView } from "@/lib/game/lineup";
+import type { HeadToHead, Honour, PlayedWeek, RecordedWeek } from "@/lib/game/record";
+import type { MoversView } from "@/lib/market/movers";
+import { formatById } from "@/lib/game/formats";
+import { lengthById } from "@/lib/game/lengths";
 
 /*
   The awkward cases, on purpose.
@@ -81,6 +88,7 @@ export const leagueStandings: Standing[] = [
     versusMarket: 121.4,
     isYou: false,
     hasTraded: true,
+    todayPercent: 0.9,
   },
   {
     userId: "l2",
@@ -93,6 +101,7 @@ export const leagueStandings: Standing[] = [
     versusMarket: null,
     isYou: true,
     hasTraded: false,
+    todayPercent: -1.4,
   },
 ];
 
@@ -126,7 +135,47 @@ export const streakDone: Streak = {
   freezesAvailable: 0,
 };
 
+/*
+  A quote as the app actually holds one. Fixed, because a fixture whose
+  numbers move is a photograph that cannot be compared with yesterday's.
+*/
+function quoteFor(symbol: string, name: string, price: number): Quote {
+  return {
+    symbol,
+    price,
+    previousClose: price,
+    change: 0,
+    changePercent: 0,
+    currency: "USD",
+    marketState: "REGULAR",
+    name,
+    type: "EQUITY",
+    fetchedAt: 0,
+    stale: false,
+  };
+}
+
 export const positions: Position[] = [
+  /*
+    A position with a price and a name, which is what almost every row in
+    this panel is and which none of them was here.
+
+    Both fixtures below carry no quote, deliberately, to check the row that
+    has no price. The consequence was that the name column -- the one the
+    comment in Holdings describes tuning the whole layout around, because it
+    is the thing allowed to truncate -- was empty in every photograph ever
+    taken of this component.
+  */
+  {
+    symbol: "NVDA",
+    quantity: 210,
+    costBasis: 62_000,
+    averageCost: 295.24,
+    quote: quoteFor("NVDA", "NVIDIA Corporation", 341.2),
+    value: 71_652,
+    gain: 9_652,
+    gainPercent: 15.57,
+  },
   {
     symbol: "GOOGL",
     quantity: 1234.5678,
@@ -233,6 +282,44 @@ export const recap: Recap = {
 };
 
 /*
+  The two weeks the card was actually designed for.
+
+  card.ts opens by saying the whole share loop rests on one requirement: the
+  card has to be worth posting after a bad week too, because nobody shares
+  something that makes them look foolish. Until now the only week ever
+  photographed was up eight per cent, first of twenty-four, on a forty-one
+  day streak -- the version that needs no design at all.
+
+  One is down and still ahead of a market that fell further, which is a good
+  week wearing a minus sign and is the case the wording exists for. The other
+  is down and behind, which is simply a bad week, and it has to read as
+  neither a scolding nor a consolation prize.
+*/
+export const recapAheadOfFallingMarket: Recap = {
+  displayName: "Priya",
+  title: null,
+  monday: "2026-08-17",
+  returnPercent: -1.4,
+  benchmarkReturn: -4.9,
+  benchmarkDiff: 3.5,
+  league: { name: "The Pit", rank: 2, size: 6 },
+  streakDays: 3,
+  marks: [-0.2, -2.6, -1.9, -3.1, -1.4],
+};
+
+export const recapBadWeek: Recap = {
+  displayName: "Marcus",
+  title: null,
+  monday: "2026-08-17",
+  returnPercent: -6.2,
+  benchmarkReturn: 1.8,
+  benchmarkDiff: -8.0,
+  league: { name: "The Pit", rank: 6, size: 6 },
+  streakDays: 0,
+  marks: [1.1, -0.4, -3.8, -5.2, -6.2],
+};
+
+/*
   The rest of the rooms.
 
   Everything below lays out text or figures somebody else supplied, which is
@@ -257,6 +344,7 @@ export const notificationSettings = {
   rivalAlerts: true,
   weekResult: true,
   streakReminder: false,
+  leagueActivity: true,
   timezone: "Europe/Tallinn",
 };
 
@@ -265,3 +353,333 @@ export const weekMarks = [1.2, -0.4, 3.9, 0.1, -2.6];
 
 /** And a week that barely moved, which has to stay readable as flat. */
 export const flatMarks = [0.01, 0.0, 0.01, 0.0, 0.01];
+
+/*
+  A week in the middle of itself: two closes in the book, today still moving,
+  and the rest of the week not there yet. The dates are a real Monday and the
+  two days after it, because weekSoFar places a mark by its date and not by
+  its position.
+*/
+/*
+  A week somebody joined on the Wednesday of. Two empty days that have to keep
+  their places, because the alternative is a card that says they played the
+  Monday.
+*/
+export const joinedMidweekMarks = [null, null, 1.2, 2.8, 0.4];
+
+/*
+  A quarter that went somewhere and came back, which is the run the single
+  figure at the top of the screen cannot tell from a steady climb. Sixty-five
+  closes, which is what a quarter of trading days actually is.
+*/
+/*
+  A settled battle's books. One concentrated winner, one spread-out second,
+  and somebody who never traded at all -- which is a way of playing it, and
+  on a week the market fell it is a winning one.
+*/
+/*
+  The same table with no day in it, which is what a battle looks like -- and
+  what every league looks like on a Monday and at the weekend. A separate
+  fixture because it is a different branch of the row: with no day to give
+  the place up to, the money comes back onto the phone.
+*/
+export const battleStandings: Standing[] = leagueStandings.map((row) => ({
+  ...row,
+  todayPercent: null,
+}));
+
+export const revealedBooks = [
+  {
+    userId: "r1",
+    displayName: LONG_NAME,
+    rank: 1,
+    returnPercent: 12.4,
+    cash: 2100,
+    traded: true,
+    positions: [
+      { symbol: "NVDA", quantity: 210, costBasis: 62_000 },
+      { symbol: "AVGO", quantity: 96, costBasis: 24_500 },
+      { symbol: "AMD", quantity: 80, costBasis: 11_400 },
+    ],
+  },
+  {
+    userId: "r2",
+    displayName: "You",
+    rank: 2,
+    returnPercent: 3.1,
+    cash: 41_000,
+    traded: true,
+    positions: [
+      { symbol: "MU", quantity: 300, costBasis: 31_000 },
+      { symbol: "TSM", quantity: 120, costBasis: 28_000 },
+    ],
+  },
+  {
+    userId: "r3",
+    displayName: "Priya",
+    rank: 3,
+    returnPercent: 1.8,
+    cash: 101_800,
+    traded: true,
+    positions: [],
+  },
+  {
+    userId: "r4",
+    displayName: "Marcus",
+    rank: 4,
+    returnPercent: 0,
+    cash: 100_000,
+    traded: false,
+    positions: [],
+  },
+];
+
+export const quarterTrail = Array.from({ length: 65 }, (_, day) => {
+  const climb = Math.sin((day / 64) * Math.PI) * 18;
+  const wobble = Math.sin(day * 1.7) * 1.4 + Math.sin(day * 0.6) * 0.9;
+  return Number((climb + wobble - 2).toFixed(2));
+});
+
+/** The same length of run, spent behind the whole way. */
+export const losingTrail = quarterTrail.map((value) => Number((-6 - value / 3).toFixed(2)));
+
+export const partWeekMonday = "2026-08-17";
+export const partWeekToday = "2026-08-19";
+export const partWeekMarks = [
+  { date: "2026-08-17", returnPercent: 1.2 },
+  { date: "2026-08-18", returnPercent: -0.9 },
+];
+export const partWeekLive = 2.4;
+
+/*
+  A battle, in the shape that is hardest to lay out: the longest format name
+  against the longest league name, with the "runs through the weekend" line
+  that only one format shows.
+*/
+export const battle: Battle = {
+  cycleId: "b1",
+  leagueId: "l1",
+  leagueName: LONG_LEAGUE,
+  leagueIcon: "\u{1F3C6}",
+  format: formatById("crypto"),
+  length: lengthById("quarter"),
+  startsOn: "2026-08-17",
+  endsOn: "2026-11-13",
+  status: "open",
+  finished: false,
+  startingBalance: 100_000,
+  benchmarkSymbol: "BTC-USD",
+  benchmarkOpen: 61_240.5,
+  benchmarkClose: null,
+  isYours: true,
+  timeLeft: "About 3 months left",
+  notStarted: false,
+};
+
+/*
+  A battle made at the weekend, which does not begin until the market next
+  opens. The branch the card was getting wrong: it showed a countdown in the
+  colour that means running, so on a Saturday it read as live.
+*/
+export const battleNotStarted: Battle = {
+  ...battle,
+  format: formatById("silicon"),
+  length: lengthById("week"),
+  benchmarkSymbol: "SOXX",
+  startsOn: "2026-08-24",
+  endsOn: "2026-08-28",
+  timeLeft: "Ends in 6 days",
+  notStarted: true,
+};
+
+export const battleFinished: Battle = {
+  ...battle,
+  format: formatById("inverse"),
+  length: lengthById("week"),
+  benchmarkSymbol: "SH",
+  status: "closed",
+  finished: true,
+  benchmarkClose: 25.4,
+  timeLeft: "Finished",
+};
+
+/*
+  A lineup with one of everything: a name that could not be priced, a whole
+  number of shares wide enough to fill its column, and a company name long
+  enough to need the row to truncate rather than wrap.
+*/
+export const lineup: LineupView = {
+  monday: "2026-08-24",
+  locked: false,
+  maxOrders: 8,
+  startingBalance: 100_000,
+  estimate: 61_450,
+  orders: [
+    {
+      id: "o1",
+      symbol: "GOOGL",
+      quantity: 120,
+      name: "Alphabet Inc. Class A Capital Stock",
+      estimate: 24_600,
+      quote: null,
+      ran: false,
+      outcome: null,
+      fillPrice: null,
+      detail: null,
+    },
+    {
+      id: "o2",
+      symbol: "BRK-B",
+      quantity: 1_250,
+      name: "Berkshire Hathaway Inc. New Class B Common Stock",
+      estimate: 36_850,
+      quote: null,
+      ran: false,
+      outcome: null,
+      fillPrice: null,
+      detail: null,
+    },
+    {
+      id: "o3",
+      symbol: "NOPRICE",
+      quantity: 4,
+      name: null,
+      estimate: null,
+      quote: null,
+      ran: false,
+      outcome: null,
+      fillPrice: null,
+      detail: null,
+    },
+  ],
+};
+
+export const lineupLocked: LineupView = { ...lineup, locked: true };
+
+/** The longest reason a lineup order can give for not having run. */
+export const lineupMissed = [
+  {
+    symbol: "BRK-B",
+    detail:
+      "There was not enough cash left by the time this one came round, so nothing was bought.",
+  },
+];
+
+/*
+  A league's record, with the two shapes that break it: somebody who did not
+  play a week at all, and a week nobody in the league was scored in.
+*/
+export const recordedWeeks: RecordedWeek[] = [
+  {
+    cycleId: "w1",
+    monday: "2026-08-17",
+    players: 6,
+    benchmarkReturn: -1.35,
+    winner: { userId: "s1", displayName: LONG_NAME, returnPercent: 12.4 },
+    you: { rank: 4, returnPercent: -2.1, versusMarket: -0.75 },
+  },
+  {
+    cycleId: "w2",
+    monday: "2026-08-10",
+    players: 6,
+    benchmarkReturn: 0.9,
+    winner: { userId: "you", displayName: "You", returnPercent: 6.8 },
+    you: { rank: 1, returnPercent: 6.8, versusMarket: 5.9 },
+  },
+  {
+    cycleId: "w3",
+    monday: "2026-08-03",
+    players: 5,
+    benchmarkReturn: 2.4,
+    winner: { userId: "s2", displayName: "Bo", returnPercent: 3.1 },
+    you: null,
+  },
+  {
+    cycleId: "w4",
+    monday: "2026-07-27",
+    players: 5,
+    benchmarkReturn: null,
+    winner: { userId: "s2", displayName: "Bo", returnPercent: 128.5 },
+    you: { rank: 2, returnPercent: 0.04, versusMarket: null },
+  },
+  {
+    cycleId: "w5",
+    monday: "2026-07-20",
+    players: 4,
+    benchmarkReturn: -0.2,
+    winner: { userId: "you", displayName: "You", returnPercent: 1.2 },
+    you: { rank: 1, returnPercent: 1.2, versusMarket: 1.4 },
+  },
+];
+
+export const honours: Honour[] = [
+  {
+    userId: "s1",
+    displayName: LONG_NAME,
+    handle: LONG_HANDLE,
+    wins: 14,
+    weeks: 31,
+    weeksAhead: 19,
+    averageVersusMarket: 2.41,
+    bestWeek: 128.5,
+    isYou: false,
+  },
+  {
+    userId: "you",
+    displayName: "You",
+    handle: "you",
+    wins: 2,
+    weeks: 31,
+    weeksAhead: 12,
+    averageVersusMarket: -0.36,
+    bestWeek: 6.8,
+    isYou: true,
+  },
+  {
+    userId: "s3",
+    displayName: "Bo",
+    handle: "bo",
+    wins: 0,
+    weeks: 1,
+    weeksAhead: 0,
+    averageVersusMarket: -14.2,
+    bestWeek: null,
+    isYou: false,
+  },
+];
+
+export const headToHead: HeadToHead[] = [
+  { userId: "s1", displayName: LONG_NAME, won: 9, lost: 21, together: 30 },
+  { userId: "s2", displayName: "Bo", won: 4, lost: 4, together: 9 },
+  { userId: "s3", displayName: "Priya", won: 1, lost: 0, together: 1 },
+];
+
+/*
+  What moved, with the two rows that break it: a company name long enough to
+  need truncating, and a move wide enough to fill its own cell.
+*/
+export const movers: MoversView = {
+  anyStale: false,
+  up: [
+    { symbol: "NVDA", name: "NVIDIA Corporation", price: 1284.55, changePercent: 12.42, owned: true, stale: false },
+    { symbol: "GOOGL", name: "Alphabet Inc. Class A", price: 204.1, changePercent: 3.8, owned: false, stale: false },
+    { symbol: "BRK-B", name: "Berkshire Hathaway Inc. New", price: 486.22, changePercent: 1.05, owned: false, stale: false },
+    { symbol: "F", name: "Ford Motor Company", price: 11.4, changePercent: 0.04, owned: false, stale: false },
+  ],
+  down: [
+    { symbol: "TSLA", name: "Tesla, Inc.", price: 198.4, changePercent: -128.5, owned: true, stale: false },
+    { symbol: "COIN", name: "Coinbase Global, Inc.", price: 240.15, changePercent: -6.2, owned: false, stale: false },
+    { symbol: "PLTR", name: "Palantir Technologies Inc.", price: 71.05, changePercent: -2.1, owned: false, stale: false },
+    { symbol: "DIS", name: "The Walt Disney Company", price: 96.8, changePercent: -0.11, owned: false, stale: false },
+  ],
+};
+
+export const moversStale: MoversView = { ...movers, anyStale: true };
+
+/** A player's own weeks, including one the market was never recorded for. */
+export const playedWeeks: PlayedWeek[] = [
+  { cycleId: "p1", monday: "2026-08-17", returnPercent: 9.42, versusMarket: 10.77, finalValue: 109_420 },
+  { cycleId: "p2", monday: "2026-08-10", returnPercent: -3.1, versusMarket: -4.0, finalValue: 96_900 },
+  { cycleId: "p3", monday: "2026-08-03", returnPercent: 0.0, versusMarket: null, finalValue: 100_000 },
+  { cycleId: "p4", monday: "2026-07-27", returnPercent: -128.5, versusMarket: -129.4, finalValue: 0 },
+];

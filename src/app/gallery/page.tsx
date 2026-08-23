@@ -10,6 +10,18 @@ import { Wardrobe } from "@/components/Wardrobe";
 import { WeekRecap } from "@/components/WeekRecap";
 import { Ticker } from "@/components/Ticker";
 import { WeeklyGoal, GoalMark } from "@/components/WeeklyGoal";
+import { BattleCard } from "@/components/BattleCard";
+import { StartBattleForm } from "@/components/StartBattleForm";
+import { Lineup, LineupReport } from "@/components/Lineup";
+import {
+  FormStrip,
+  HeadToHeadTable,
+  HonoursBoard,
+  PlayedWeeks,
+  WeekLog,
+} from "@/components/LeagueRecord";
+import { Movers } from "@/components/Movers";
+import { FirstRun } from "@/components/FirstRun";
 import { Scoreboard, Score } from "@/components/Scoreboard";
 import { InviteCode } from "@/components/InviteCode";
 import { CreateLeagueForm, JoinLeagueForm } from "@/components/LeagueForms";
@@ -18,12 +30,18 @@ import { PlusControls } from "@/components/PlusControls";
 import { AccountControls } from "@/components/AccountControls";
 import { SharedCards } from "@/components/SharedCards";
 import { WeekShape } from "@/components/WeekShape";
+import { Trail } from "@/components/Trail";
+import { Reveal, revealTitle } from "@/components/Reveal";
+import { TradeForm } from "@/components/TradeForm";
+import { allowedSymbols, formatById } from "@/lib/game/formats";
+import { settledWeek, weekSoFar } from "@/lib/game/shape";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomDock } from "@/components/BottomDock";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { ErrorPreview } from "./ErrorPreview";
 import { COIN_BUNDLES } from "@/lib/billing/plan";
-import { PAGE, STACK } from "@/lib/page-shell";
+import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
 import * as fixture from "./fixtures";
 
 /*
@@ -139,6 +157,14 @@ export default function GalleryPage() {
         <WeekRecap recap={fixture.recap} />
       </Case>
 
+      <Case name="week-recap-ahead-of-falling-market">
+        <WeekRecap recap={fixture.recapAheadOfFallingMarket} />
+      </Case>
+
+      <Case name="week-recap-bad-week">
+        <WeekRecap recap={fixture.recapBadWeek} />
+      </Case>
+
       <Case name="coin-shop">
         <Panel title="Coins">
           <CoinShop
@@ -185,15 +211,100 @@ export default function GalleryPage() {
         </Scoreboard>
       </Case>
 
+      {/*
+        The table with no day in it. Reasoned about when the day column was
+        added and never actually looked at, which is the same way the reveal
+        shipped saying the wrong thing about somebody who never traded.
+      */}
+      <Case name="standings-table-no-day">
+        <Panel title="A battle, which has no day to show">
+          <StandingsTable standings={fixture.battleStandings} />
+        </Panel>
+      </Case>
+
+      <Case name="week-shape-all-down">
+        <Panel title="A week that never got above water">
+          <WeekShape days={settledWeek([-0.6, -2.1, -1.4, -3.8, -3.1])} />
+        </Panel>
+      </Case>
+
+      <Case name="reveal">
+        <Panel
+          title={revealTitle(fixture.revealedBooks)}
+          description="What everybody was holding at the end, and what it cost them. Shown now that it is over and nobody can copy it."
+        >
+          <Reveal books={fixture.revealedBooks} />
+        </Panel>
+      </Case>
+
+      <Case name="trail-quarter">
+        <Panel
+          title="How it has gone"
+          description="Each point is a day's close. The line across the middle is what everybody started with."
+        >
+          <Trail values={fixture.quarterTrail} from="17 August" to="Now" />
+        </Panel>
+      </Case>
+
+      <Case name="trail-behind">
+        <Panel title="How it has gone">
+          <Trail values={fixture.losingTrail} from="17 August" to="Now" />
+        </Panel>
+      </Case>
+
+      <Case name="trail-short">
+        <Panel title="How it has gone">
+          <Trail values={[0, 1.4, 0.9, 2.6]} from="17 August" to="Now" />
+        </Panel>
+      </Case>
+
       <Case name="week-shape">
         <Panel title="The week">
-          <WeekShape marks={fixture.weekMarks} />
+          <WeekShape days={settledWeek(fixture.weekMarks)} />
+        </Panel>
+      </Case>
+
+      <Case name="week-shape-joined-midweek">
+        <Panel title="A week someone joined on the Wednesday">
+          <WeekShape days={settledWeek(fixture.joinedMidweekMarks)} />
         </Panel>
       </Case>
 
       <Case name="week-shape-flat">
         <Panel title="A week that barely moved">
-          <WeekShape marks={fixture.flatMarks} />
+          <WeekShape days={settledWeek(fixture.flatMarks)} />
+        </Panel>
+      </Case>
+
+      <Case name="week-so-far">
+        <Panel
+          title="Your week so far"
+          description="Each bar is where the week stood at that day's close. The outlined one is today, and it can still move."
+        >
+          <WeekShape
+            days={weekSoFar({
+              monday: fixture.partWeekMonday,
+              marks: fixture.partWeekMarks,
+              today: fixture.partWeekToday,
+              liveReturnPercent: fixture.partWeekLive,
+            })}
+          />
+        </Panel>
+      </Case>
+
+      <Case name="week-so-far-behind">
+        <Panel
+          title="Your week so far"
+          description="Each bar is where the week stood at that day's close. The outlined one is today, and it can still move."
+        >
+          <WeekShape
+            days={weekSoFar({
+              monday: fixture.partWeekMonday,
+              marks: fixture.partWeekMarks,
+              today: fixture.partWeekToday,
+              liveReturnPercent: -3.1,
+            })}
+          />
         </Panel>
       </Case>
 
@@ -213,6 +324,320 @@ export default function GalleryPage() {
             <GoalMark label="Beat the market by 5% without selling anything" met={false} />
           </div>
         </Panel>
+      </Case>
+
+      {/*
+        Battles and the weekend, which are the two widest things on this page.
+
+        The format picker is twelve cards of two lines each, the lineup rows
+        carry a company name against a five-figure estimate, and the first-week
+        list is four rows of a heading over a paragraph. All three are exactly
+        the shape that cropped its own second line the last four times.
+      */}
+      <Case name="battle-running">
+        <BattleCard battle={fixture.battle} href="#" />
+      </Case>
+
+      <Case name="battle-not-started">
+        <BattleCard battle={fixture.battleNotStarted} href="#" />
+      </Case>
+
+      <Case name="battle-finished">
+        <BattleCard
+          battle={fixture.battleFinished}
+          href="#"
+          result={{ rank: 3, players: 12, returnPercent: -2.4 }}
+        />
+      </Case>
+
+      {/*
+        The form every trade in the game goes through, which had never been
+        drawn here.
+
+        Three shapes, and the middle one is the reason: a format that names
+        its companies gets a grid of them instead of a search box, and
+        twenty-four tiles is the sort of thing that is fine at 1440 and a
+        column of rubble at 390.
+      */}
+      <Case name="trade-form">
+        <Panel title="Trade">
+          <TradeForm cash={41_284.5} ownedSymbols={["AAPL", "NVDA"]} tradingOpen closedReason="" />
+        </Panel>
+      </Case>
+
+      <Case name="trade-form-named-universe">
+        <Panel title="Trade">
+          <TradeForm
+            cash={100_000}
+            ownedSymbols={[]}
+            tradingOpen
+            closedReason=""
+            battleId="b1"
+            universe={allowedSymbols(formatById("silicon"))}
+            rule={formatById("silicon").rule}
+          />
+        </Panel>
+      </Case>
+
+      <Case name="trade-form-closed">
+        <Panel title="Trade">
+          <TradeForm
+            cash={100_000}
+            ownedSymbols={[]}
+            tradingOpen={false}
+            closedReason="The market is shut. It opens at 09:30 in New York, which is half past two here."
+          />
+        </Panel>
+      </Case>
+
+      <Case name="start-battle">
+        <StartBattleForm leagueId="l1" />
+      </Case>
+
+      <Case name="lineup">
+        <Lineup view={fixture.lineup} />
+      </Case>
+
+      <Case name="lineup-locked">
+        <Lineup view={fixture.lineupLocked} />
+      </Case>
+
+      <Case name="lineup-report">
+        <LineupReport filled={2} missed={fixture.lineupMissed} />
+      </Case>
+
+      <Case name="first-week">
+        <FirstRun
+          startingBalance={100_000}
+          leagueName={fixture.LONG_LEAGUE}
+          inviteCode="ABCD2345"
+          leagueHref="#"
+          hasTraded={false}
+          hasCompany={false}
+          hasGoal={false}
+          hasBattle={false}
+        />
+      </Case>
+
+      <Case name="first-week-part-done">
+        <FirstRun
+          startingBalance={100_000}
+          leagueName={fixture.LONG_LEAGUE}
+          inviteCode="ABCD2345"
+          leagueHref="#"
+          hasTraded
+          hasCompany
+          hasGoal={false}
+          hasBattle={false}
+        />
+      </Case>
+
+      {/*
+        What a league remembers. The strip is five cells across a phone, the
+        board carries a name against two figures, and the head-to-head puts a
+        scoreline where the figures usually are -- three different ways for a
+        row to run out of room.
+      */}
+      {/*
+        The two-column room, which is the shape every screen actually ships in
+        on a wide display.
+
+        Worth a case of its own rather than trusting the panels above it. Each
+        one measured on its own gets the whole page width, which is not a width
+        any of them is ever drawn at once there is something beside it -- and a
+        row that reads fine at 1150px can be the one that wraps at 700.
+      */}
+      <Case name="room-split">
+        <div className={SPLIT}>
+          <div className={COLUMN}>
+            <Panel title="This week" description="Everyone started Monday with the same money.">
+              <StandingsTable standings={fixture.leagueStandings} />
+            </Panel>
+            <Panel title="Weeks won">
+              <HonoursBoard honours={fixture.honours} />
+            </Panel>
+          </div>
+          <div className={COLUMN}>
+            <Panel title="You against each of them">
+              <HeadToHeadTable rows={fixture.headToHead} />
+            </Panel>
+            <Panel title="What you own">
+              <Holdings positions={fixture.positions} />
+            </Panel>
+          </div>
+        </div>
+      </Case>
+
+      {/*
+        The charts at the width they are actually drawn at.
+
+        Both of these were measured on their own, which gave them the whole
+        page -- and neither is ever drawn there. A line and a row of bars are
+        exactly the components whose readability is a function of how wide
+        they are, so they want a case inside the room they ship in.
+      */}
+      <Case name="room-split-charts">
+        <div className={SPLIT}>
+          <div className={COLUMN}>
+            <Panel
+              title="Your week so far"
+              description="Each bar is where the week stood at that day's close. The outlined one is today, and it can still move."
+              action={
+                <span className="figure flex items-baseline gap-1.5 text-sm">
+                  <span className="text-muted-foreground">Today</span>
+                  <span className="text-gain">+0.8%</span>
+                </span>
+              }
+            >
+              <WeekShape
+                days={weekSoFar({
+                  monday: fixture.partWeekMonday,
+                  marks: fixture.partWeekMarks,
+                  today: fixture.partWeekToday,
+                  liveReturnPercent: fixture.partWeekLive,
+                })}
+              />
+              <p className="text-sm text-muted-foreground">
+                Up <span className="figure">$812</span> since last night&rsquo;s close.
+              </p>
+            </Panel>
+
+            <Panel
+              title="How it has gone"
+              description="Each point is a day's close. The line across the middle is what everybody started with."
+            >
+              <Trail values={fixture.quarterTrail} from="17 August" to="Now" />
+            </Panel>
+          </div>
+
+          <div className={COLUMN}>
+            <Panel title="The table">
+              <StandingsTable standings={fixture.leagueStandings} />
+            </Panel>
+            <Panel title="What you own">
+              <Holdings positions={fixture.positions} />
+            </Panel>
+          </div>
+        </div>
+      </Case>
+
+      {/*
+        The first week's room, at the width where the two columns are not two
+        columns.
+
+        Home puts "what to do next" in the second column, and on a phone a
+        second column is not beside the first, it is after all of it. For one
+        week that ordering is wrong, so that column takes order-first below
+        lg -- and a class that only does anything at one breakpoint is exactly
+        the sort of claim worth photographing rather than believing.
+      */}
+      <Case name="room-split-first-week">
+        <div className={SPLIT}>
+          <div className={COLUMN}>
+            <Panel title="What you own" description="Nothing yet. Your money is all sitting in cash, which earns nothing." />
+            <Movers movers={fixture.movers} />
+          </div>
+
+          <div className={`${COLUMN} max-lg:order-first`}>
+            <FirstRun
+              startingBalance={100_000}
+              leagueName={fixture.LONG_LEAGUE}
+              inviteCode="ABCD2345"
+              leagueHref="#"
+              hasTraded={false}
+              hasCompany={false}
+              hasGoal={false}
+              hasBattle={false}
+            />
+          </div>
+        </div>
+      </Case>
+
+      <Case name="form-strip">
+        <FormStrip weeks={fixture.recordedWeeks} you={fixture.honours[1]} href="#" />
+      </Case>
+
+      <Case name="honours-board">
+        <Panel title="Weeks won">
+          <HonoursBoard honours={fixture.honours} />
+        </Panel>
+      </Case>
+
+      <Case name="head-to-head">
+        <Panel title="You against each of them">
+          <HeadToHeadTable rows={fixture.headToHead} />
+        </Panel>
+      </Case>
+
+      <Case name="week-log">
+        <Panel title="Every week">
+          <WeekLog weeks={fixture.recordedWeeks} />
+        </Panel>
+      </Case>
+
+      {/*
+        A league row on the index. Four things compete for one row: an icon, a
+        name long enough to need truncating, a battle badge, and a placing --
+        which is the row most likely to run out of width on a phone, and the
+        reason the badge is held back until there is room for it.
+      */}
+      <Case name="league-row">
+        <Panel title="Your leagues">
+          <div className="flex flex-col gap-2">
+            <span className="glass-well flex min-h-16 items-center gap-3 rounded-lg px-4 py-2">
+              <span className="shrink-0 text-lg" aria-hidden="true">
+                {"\u{1F3C6}"}
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-sm font-medium">
+                  {fixture.LONG_LEAGUE}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">
+                  Aleksandra Wiśniewska-Rodríguez is top
+                </span>
+              </span>
+              <Badge variant="outline" className="hidden shrink-0 sm:inline-flex">
+                <span aria-hidden="true">{"\u{1F9E0}"}</span>
+                Silicon
+              </Badge>
+              <span className="flex shrink-0 flex-col items-end">
+                <span className="figure text-sm font-semibold">12th of 20</span>
+                <span className="figure text-xs text-loss">-128.5%</span>
+              </span>
+            </span>
+
+            <span className="glass-well flex min-h-16 items-center gap-3 rounded-lg px-4 py-2">
+              <span className="shrink-0 text-lg" aria-hidden="true">
+                {"\u{1F525}"}
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-sm font-medium">Sunday Roasters</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  Nobody else yet — send them the code
+                </span>
+              </span>
+            </span>
+          </div>
+        </Panel>
+      </Case>
+
+      <Case name="played-weeks">
+        <Panel title="Every week you have played">
+          <PlayedWeeks weeks={fixture.playedWeeks} />
+        </Panel>
+      </Case>
+
+      {/*
+        Eight cells two across a phone, each with a ticker, a percentage and a
+        price. The widest thing on it is a three figure move, which is the one
+        that decides whether the cell holds.
+      */}
+      <Case name="movers">
+        <Movers movers={fixture.movers} />
+      </Case>
+
+      <Case name="movers-stale">
+        <Movers movers={fixture.moversStale} />
       </Case>
 
       <Case name="invite-code">
