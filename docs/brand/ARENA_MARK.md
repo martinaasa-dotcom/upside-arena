@@ -234,7 +234,8 @@ What it deliberately does **not** carry:
 | Preset | Corner | Mark scale | Where it goes |
 |---|---|---|---|
 | `app` | square | 0.66 | Apple touch icon, App Store master |
-| `tile` | 22.5% | 0.70 | favicons, bookmark tiles, PWA `any` |
+| `tile` | 22.5% | 0.70 | bookmark tiles, PWA `any` |
+| `favicon` | 22.5% | 0.80 | the 16, 32 and 48 favicons |
 | `maskable` | square | 0.52 | Android adaptive icons |
 | `consent` | 22.5% | 0.54 | Google's OAuth dialogue |
 
@@ -251,8 +252,14 @@ around it is doing as much work as the symbol. This was 0.80 for one round
 because bigger sounded better; in a grid beside real icons it read as crowded
 rather than as confident.
 
-`tile` carries its own rounded shape because nothing masks a favicon, and the
-mark sits larger for the same reason.
+`tile` carries its own rounded shape because nothing masks it, and the mark
+sits larger for the same reason.
+
+`favicon` is `tile` with more of the plate given to the mark, and it exists
+because a favicon is the one place the icon is smaller than the thing it has
+to say. At 16px the plate is sixteen pixels and the mark inside it is eleven;
+every one of them has to carry meaning, and the margin that makes a
+home-screen icon look composed is just wasted room.
 
 `maskable` is pulled well inside Android's 80-percent circle rather than to
 its edge, because some launchers crop closer to a squircle than to a circle.
@@ -297,10 +304,12 @@ That writes:
 | File | Use |
 |---|---|
 | `public/arena-mark.svg` | The bare mark, transparent |
+| `public/favicon.svg` | Scalable favicon |
 | `public/favicon.png` | 32px favicon |
 | `public/favicon.ico` | 16 + 32, for browsers that ask by habit |
-| `public/icons/icon-{16,32,48,192,512}.png` | Favicons, bookmark tiles, PWA `any` |
-| `public/icons/icon-180.png` | Apple touch icon: square, opaque, full-bleed |
+| `public/icons/icon-{16,32,48}.png` | Favicons |
+| `public/icons/icon-{192,512}.png` | Bookmark tiles, PWA `any` |
+| `public/icons/icon-180.png`, `public/apple-touch-icon.png` | Apple touch icon: square, opaque, full-bleed |
 | `public/icons/icon-1024.png` | App Store master |
 | `public/icons/maskable-{192,512}.png` | PWA `maskable` |
 | `public/icons/consent-120.png` | Google's OAuth dialogue |

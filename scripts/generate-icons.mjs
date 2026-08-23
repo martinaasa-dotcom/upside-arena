@@ -140,14 +140,26 @@ written.push("public/arena-mark.svg");
   rounded shape, and the cut is set from the size each one is written at.
 */
 const tiles = {};
-for (const size of [16, 32, 48, 192, 512]) {
+for (const size of [16, 32, 48]) {
   tiles[size] = await shaped(
+    arenaIconSvg("favicon", size),
+    size,
+    path.join(iconDir, `icon-${size}.png`)
+  );
+  written.push(`public/icons/icon-${size}.png`);
+}
+for (const size of [192, 512]) {
+  await shaped(
     arenaIconSvg("tile", size),
     size,
     path.join(iconDir, `icon-${size}.png`)
   );
   written.push(`public/icons/icon-${size}.png`);
 }
+
+/* The scalable one, for a tab that can take it. */
+await writeFile(path.join(outDir, "favicon.svg"), arenaIconSvg("favicon", 64));
+written.push("public/favicon.svg");
 
 await writeFile(path.join(outDir, "favicon.png"), tiles[32]);
 written.push("public/favicon.png");
@@ -174,6 +186,15 @@ for (const size of [180, 1024]) {
   );
   written.push(`public/icons/icon-${size}.png`);
 }
+
+/*
+  And the same 180 at the root path. The document's own <link> is what iOS
+  actually reads, but scrapers, share sheets and a handful of browsers still
+  probe /apple-touch-icon.png by convention, and a 404 there is a missing
+  icon in whichever of them does.
+*/
+await opaque(arenaIconSvg("app", 180), 180, path.join(outDir, "apple-touch-icon.png"));
+written.push("public/apple-touch-icon.png");
 
 /* Android adaptive icons: full-bleed, and the mark well inside the crop. */
 for (const size of [192, 512]) {

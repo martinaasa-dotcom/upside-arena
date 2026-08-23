@@ -316,6 +316,14 @@ export const ICON_PRESETS = {
   */
   tile: { radius: 0.225, glyph: 0.7 },
   /*
+    The true favicons, 16 to 48. Same shape as `tile` and a fuller mark,
+    because these are the one place the icon is smaller than the thing it has
+    to say. At 16px the plate is 16 pixels and the mark inside it is eleven;
+    every one of them has to carry meaning, and the margin that makes a
+    home-screen icon look composed is just wasted room here.
+  */
+  favicon: { radius: 0.225, glyph: 0.8 },
+  /*
     Android's adaptive icons. The launcher crops to a circle of 80 percent of
     the side, and on some it is closer to a squircle, so the mark is pulled
     well inside that circle rather than to its edge.

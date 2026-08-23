@@ -6,7 +6,7 @@
   quote shown as live would be worse than no quote at all.
 */
 
-const VERSION = "arena-v5";
+const VERSION = "arena-v6";
 const SHELL_CACHE = `${VERSION}-shell`;
 
 const SHELL_ASSETS = ["/offline", "/icons/icon-192.png", "/manifest.webmanifest"];
@@ -19,6 +19,8 @@ const SHELL_ASSETS = ["/offline", "/icons/icon-192.png", "/manifest.webmanifest"
 const STATIC_FILES = new Set([
   "/favicon.png",
   "/favicon.ico",
+  "/favicon.svg",
+  "/apple-touch-icon.png",
   "/arena-mark.svg",
   "/og.png",
 ]);
