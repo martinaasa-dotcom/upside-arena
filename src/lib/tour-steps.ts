@@ -70,7 +70,7 @@ export const STEPS: Step[] = [
       },
       {
         term: "It is free, and it stays free",
-        text: "Nothing you can buy changes a result. Anything paid is more leagues and things to wear next to your name.",
+        text: "Nothing you can buy changes a result. Anything paid — Plus, in the top corner — is more leagues and things to wear next to your name.",
       },
     ],
   },
@@ -107,7 +107,7 @@ export const STEPS: Step[] = [
   {
     key: "Rooms",
     title: "Where everything is",
-    lede: "Five rooms, on the bar along the bottom of the screen. That bar is the whole navigation — there is nothing hidden behind a menu.",
+    lede: "Five rooms, on the bar along the bottom of the screen. Nothing is hidden behind a menu — the only two things not on that bar are your profile, which is also the picture in the top corner, and Plus beside it.",
     rows: ROOMS.map((room) => ({
       icon: room.icon,
       term: room.label,
