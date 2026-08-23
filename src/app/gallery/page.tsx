@@ -30,6 +30,7 @@ import { CreateLeagueForm, JoinLeagueForm } from "@/components/LeagueForms";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { PlusControls } from "@/components/PlusControls";
 import { AccountControls } from "@/components/AccountControls";
+import { SignInAddresses } from "@/components/SignInAddresses";
 import { SharedCards } from "@/components/SharedCards";
 import { WeekShape } from "@/components/WeekShape";
 import { Trail } from "@/components/Trail";
@@ -686,6 +687,34 @@ export default function GalleryPage() {
             until="2026-09-30"
             cadences={["monthly", "yearly"]}
             canManage
+          />
+        </Panel>
+      </Case>
+
+      {/*
+        Two addresses on one account, with a long one and a pending one in it.
+        The row truncates rather than pushing the badges off a phone, and the
+        add form drops to two lines under sm.
+      */}
+      <Case name="sign-in-addresses">
+        <Panel title="Ways to sign in">
+          <SignInAddresses
+            primaryEmail="martin.aasa@upthink.ee"
+            addresses={[
+              {
+                id: "a",
+                email: "aasamartinaasa@gmail.com",
+                verified: true,
+                addedAt: "2026-08-20T10:00:00.000Z",
+              },
+              {
+                id: "b",
+                email: "martin.aasa.the.longer.one@somewhere.example.co.uk",
+                verified: false,
+                addedAt: "2026-08-23T10:00:00.000Z",
+              },
+            ]}
+            googleEnabled
           />
         </Panel>
       </Case>

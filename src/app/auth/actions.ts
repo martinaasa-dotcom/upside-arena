@@ -9,6 +9,7 @@ import {
   STATE_COOKIE,
   STATE_MAX_AGE_SECONDS,
   stateFor,
+  type GoogleIntent,
 } from "@/lib/auth/google-state";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
 import { safeNext } from "@/lib/redirects";
@@ -27,6 +28,14 @@ import { safeNext } from "@/lib/redirects";
   of who agreed to what is the `terms_acceptances` table, written by
   `recordAcceptance` at the end of onboarding for everybody however they
   signed in, and it is what an account export returns.
+
+  One account can still hold more than one address, which is what 0025 is
+  for. What changed is how a second one gets there and what it opens:
+  `connectGoogle` below, and the Google callback, which reads the linked
+  list before it decides whose account an address belongs to. The half of
+  that feature that mailed a confirmation link to an arbitrary mailbox is on
+  its way out with the magic link, because an address nobody can sign in
+  with is not worth confirming.
 */
 
 /**
@@ -38,12 +47,35 @@ import { safeNext } from "@/lib/redirects";
  * costs instead.
  */
 export async function signInWithGoogle(formData: FormData) {
+  return startGoogleHandshake(
+    safeNext(formData.get("next")?.toString()),
+    "sign-in"
+  );
+}
+
+/**
+ * The same handshake, used to add the address on another Google account to the
+ * account already signed in here.
+ *
+ * Nothing about the trip to Google differs. What differs is what the callback
+ * does with the token that comes back, and that is decided here, before the
+ * browser leaves, because on the way back nothing but this server's own cookie
+ * can say what the sign-in was for.
+ *
+ * This is now the only way a second address reaches an account. The other one
+ * mailed a confirmation link, and it went with the magic link above: an
+ * address nobody can sign in with is not worth confirming.
+ */
+export async function connectGoogle() {
+  return startGoogleHandshake("/profile", "link");
+}
+
+async function startGoogleHandshake(next: string, intent: GoogleIntent) {
   if (!isSupabaseConfigured || !googleConfigured()) {
     redirect("/auth/error?reason=not-configured");
   }
 
-  const next = safeNext(formData.get("next")?.toString());
-  const state = stateFor(next);
+  const state = stateFor(next, intent);
 
   /*
     The half of the state that stays with the browser. Http-only so no script

@@ -384,6 +384,27 @@ export type TermsAcceptanceRow = {
   accepted_at: string;
 };
 
+/*
+  Another address that opens one account.
+
+  Supabase still holds one auth user with one primary email. These rows are
+  what a sign-in link and a Google identity are checked against before either
+  one is turned into a session, so a second mailbox reaches the account it was
+  added to rather than making a new one. See
+  supabase/migrations/0025_one_account_more_than_one_address.sql.
+*/
+export type AccountEmailRow = {
+  id: string;
+  user_id: string;
+  email: string;
+  /** The sha256 of the token that was mailed, never the token. Null once confirmed. */
+  token_hash: string | null;
+  token_expires_at: string | null;
+  /** Null while the confirmation is still sitting in that mailbox. */
+  verified_at: string | null;
+  created_at: string;
+};
+
 type Table<Row> = {
   Row: Row;
   Insert: Partial<Row>;
@@ -396,6 +417,7 @@ export type Database = {
     Tables: {
       profiles: Table<ProfileRow>;
       terms_acceptances: Table<TermsAcceptanceRow>;
+      account_emails: Table<AccountEmailRow>;
       weekly_cycles: Table<WeeklyCycleRow>;
       weekly_goals: Table<WeeklyGoalRow>;
       lineup_orders: Table<LineupOrderRow>;
@@ -427,6 +449,16 @@ export type Database = {
     };
     Views: Record<never, never>;
     Functions: {
+      /** The account that signs in with an address today, or null. Service role only. */
+      account_for_login_email: {
+        Args: { p_email: string };
+        Returns: string | null;
+      };
+      /** Whether an account has ever been used for anything. Service role only. */
+      account_never_played: {
+        Args: { p_user: string };
+        Returns: boolean;
+      };
       ensure_cycle: {
         Args: {
           p_monday: string;
