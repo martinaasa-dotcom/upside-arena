@@ -1,7 +1,13 @@
 import "server-only";
 
 import { cacheLife } from "next/cache";
-import { hasOpenedToday, lineupMonday, nyDate } from "@/lib/market/session";
+import {
+  hasOpenedToday,
+  isLineupWindow,
+  isWeekend,
+  lineupMonday,
+  nyDate,
+} from "@/lib/market/session";
 
 /*
   The clock, read once and cached, so a room does not have to wait to be drawn.
@@ -46,4 +52,18 @@ export async function lineupWeekMonday(): Promise<string> {
   "use cache";
   cacheLife({ stale: 300, revalidate: 60, expire: 3600 });
   return lineupMonday();
+}
+
+/** Whether the lineup window is open, which decides what Trade offers. */
+export async function inLineupWindow(): Promise<boolean> {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 60, expire: 3600 });
+  return isLineupWindow();
+}
+
+/** Whether it is the weekend, which changes how Trade explains itself. */
+export async function isWeekendNow(): Promise<boolean> {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 60, expire: 3600 });
+  return isWeekend();
 }
