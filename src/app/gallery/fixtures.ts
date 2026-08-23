@@ -293,6 +293,45 @@ export const joinedMidweekMarks = [null, null, 1.2, 2.8, 0.4];
   figure at the top of the screen cannot tell from a steady climb. Sixty-five
   closes, which is what a quarter of trading days actually is.
 */
+/*
+  A settled battle's books. One concentrated winner, one spread-out second,
+  and somebody who never traded at all -- which is a way of playing it, and
+  on a week the market fell it is a winning one.
+*/
+export const revealedBooks = [
+  {
+    userId: "r1",
+    displayName: LONG_NAME,
+    rank: 1,
+    returnPercent: 12.4,
+    cash: 2100,
+    positions: [
+      { symbol: "NVDA", quantity: 210, costBasis: 62_000 },
+      { symbol: "AVGO", quantity: 96, costBasis: 24_500 },
+      { symbol: "AMD", quantity: 80, costBasis: 11_400 },
+    ],
+  },
+  {
+    userId: "r2",
+    displayName: "You",
+    rank: 2,
+    returnPercent: 3.1,
+    cash: 41_000,
+    positions: [
+      { symbol: "MU", quantity: 300, costBasis: 31_000 },
+      { symbol: "TSM", quantity: 120, costBasis: 28_000 },
+    ],
+  },
+  {
+    userId: "r3",
+    displayName: "Marcus",
+    rank: 3,
+    returnPercent: -0.2,
+    cash: 100_000,
+    positions: [],
+  },
+];
+
 export const quarterTrail = Array.from({ length: 65 }, (_, day) => {
   const climb = Math.sin((day / 64) * Math.PI) * 18;
   const wobble = Math.sin(day * 1.7) * 1.4 + Math.sin(day * 0.6) * 0.9;

@@ -9,6 +9,7 @@ import { Holdings } from "@/components/Holdings";
 import { Score, Scoreboard } from "@/components/Scoreboard";
 import { StandingsTable } from "@/components/StandingsTable";
 import { Trail } from "@/components/Trail";
+import { Reveal, revealTitle } from "@/components/Reveal";
 import { TradeForm } from "@/components/TradeForm";
 import { TrackView } from "@/components/TrackView";
 import { getSession } from "@/lib/profile";
@@ -246,7 +247,7 @@ async function Rest({ params }: Params) {
   const view = await getBattleView(user.id, summary.cycleId);
   if (!view) notFound();
 
-  const { battle, standings, you, positions, trail } = view;
+  const { battle, standings, you, positions, trail, reveal } = view;
   const format = battle.format;
   const ahead = you && you.rank > 1 ? standings[you.rank - 2] : null;
 
@@ -378,6 +379,24 @@ async function Rest({ params }: Params) {
       >
         <StandingsTable standings={standings} />
       </Panel>
+
+      {/*
+        The reveal, which only exists because it is over.
+
+        A league could see who won and nothing at all about how, and "how were
+        you up nine per cent" is the first thing anybody asks. Running, this
+        panel would be a copying machine and the league would converge on one
+        book by Wednesday. Settled, it is the conversation the whole contest
+        was for.
+      */}
+      {reveal.length > 0 ? (
+        <Panel
+          title={revealTitle(reveal)}
+          description="What everybody was holding at the end, and what it cost them. Shown now that it is over and nobody can copy it."
+        >
+          <Reveal books={reveal} />
+        </Panel>
+      ) : null}
 
         </div>
 

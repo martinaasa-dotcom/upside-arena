@@ -186,6 +186,16 @@ export default function HowPage() {
               thing. <strong>All hours</strong> is coins, and its market never
               shuts — it is the only contest here that runs on a Saturday.
             </p>
+
+            <p>
+              When a battle ends, everybody who was in it is told where they
+              finished, and <strong>everybody&rsquo;s book is opened</strong> —
+              what each of you was holding at the end and what it cost. Only
+              then. While a contest is running, seeing the leader&rsquo;s
+              positions would be a copying machine and a league would converge
+              on one book by Wednesday; once it is settled, it is the
+              conversation the whole thing was for.
+            </p>
           </Section>
 
           <Section title="6. The weekend is for deciding, not for waiting">

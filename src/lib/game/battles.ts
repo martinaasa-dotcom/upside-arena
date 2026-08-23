@@ -135,6 +135,31 @@ export type BattleResult = {
   present: string[];
 };
 
+/**
+ * What one player was holding when a contest ended.
+ *
+ * Only ever for a contest that has ended, which is the whole of why this can
+ * exist at all. Live, it would be a copying machine: the person in front is
+ * visible to everybody behind them, and a league would converge on one book
+ * by Wednesday. Settled, it is the opposite -- it is the conversation the
+ * game is actually for. "How were you up nine per cent" is the first thing
+ * anybody asks, and until now Arena could not answer it.
+ *
+ * Facts only. Symbols, share counts and what they cost, which are what they
+ * were and cannot change. No current value and no gain: settling does not
+ * clear holdings and the rooms price them live, so a "worth" here would
+ * drift every day after a contest nobody can trade in any more.
+ */
+export type RevealedBook = {
+  userId: string;
+  displayName: string;
+  rank: number;
+  returnPercent: number;
+  /** What they never put to work. A story in itself, when it is most of it. */
+  cash: number;
+  positions: { symbol: string; quantity: number; costBasis: number }[];
+};
+
 export type BattleView = {
   battle: Battle;
   standings: BattleStanding[];
@@ -145,6 +170,11 @@ export type BattleView = {
   positions: BattlePosition[];
   /** Null when the viewer was not in this contest, and has no figure in it. */
   cash: number | null;
+
+  /**
+   * Everybody's book, best first. Empty while the contest is still running.
+   */
+  reveal: RevealedBook[];
 
   /*
     The viewer's own run: every close recorded for them in this contest,
@@ -801,6 +831,35 @@ export const getBattleView = cache(async function getBattleView(
   const myMarks = mine ? (marksByPortfolio.get(mine.id) ?? []).map((m) => m.returnPercent) : [];
   const trail = you == null ? [] : runTrail(myMarks, you.returnPercent, battle.finished);
 
+  /*
+    And what everybody turned out to be holding, once it can no longer be
+    copied. Built from the holdings already read for the table rather than
+    from a second query -- the rows are all here, they were simply being
+    thrown away after being totalled.
+  */
+  const reveal: RevealedBook[] = battle.finished
+    ? standings.map((row) => {
+        const portfolio = portfolioByUser.get(row.userId);
+        const held = portfolio ? (holdingsByPortfolio.get(portfolio.id) ?? []) : [];
+
+        return {
+          userId: row.userId,
+          displayName: row.displayName,
+          rank: row.rank,
+          returnPercent: row.returnPercent,
+          cash: portfolio ? num(portfolio.cash) : battle.startingBalance,
+          positions: held
+            .map((position) => ({
+              symbol: position.symbol,
+              quantity: position.quantity,
+              costBasis: position.costBasis,
+            }))
+            // Biggest bet first, which is the order somebody reads a book in.
+            .sort((a, b) => b.costBasis - a.costBasis),
+        };
+      })
+    : [];
+
   return {
     battle,
     standings,
@@ -817,6 +876,7 @@ export const getBattleView = cache(async function getBattleView(
     */
     cash: mine ? num(mine.cash) : you ? battle.startingBalance : null,
     trail,
+    reveal,
     tradingOpen: trading.open,
     closedReason: trading.reason,
     marketState: benchmarkQuote?.marketState ?? null,

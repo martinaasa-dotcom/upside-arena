@@ -31,6 +31,7 @@ import { AccountControls } from "@/components/AccountControls";
 import { SharedCards } from "@/components/SharedCards";
 import { WeekShape } from "@/components/WeekShape";
 import { Trail } from "@/components/Trail";
+import { Reveal, revealTitle } from "@/components/Reveal";
 import { settledWeek, weekSoFar } from "@/lib/game/shape";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomDock } from "@/components/BottomDock";
@@ -198,6 +199,15 @@ export default function GalleryPage() {
             value={<Ticker value={128.4} format="percent" />}
           />
         </Scoreboard>
+      </Case>
+
+      <Case name="reveal">
+        <Panel
+          title={revealTitle(fixture.revealedBooks)}
+          description="What everybody was holding at the end, and what it cost them. Shown now that it is over and nobody can copy it."
+        >
+          <Reveal books={fixture.revealedBooks} />
+        </Panel>
       </Case>
 
       <Case name="trail-quarter">
