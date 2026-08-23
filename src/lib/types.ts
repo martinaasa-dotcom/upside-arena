@@ -13,6 +13,14 @@ export type Profile = {
   equipped_flair: string | null;
   equipped_theme: string | null;
   onboarded_at: string | null;
+  /**
+   * Highest walkthrough version finished. 0 = never.
+   *
+   * Optional because a profile read from a database that has not had
+   * migration `0024` applied has no such key at all -- `readProfile` selects
+   * `*`. `needsTour` treats that as "no walkthrough" rather than as zero.
+   */
+  tour_version?: number;
   created_at: string;
   updated_at: string;
 };

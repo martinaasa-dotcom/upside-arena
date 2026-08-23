@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ProfileForm } from "@/components/ProfileForm";
 import { AccountControls } from "@/components/AccountControls";
 import { ConsentControl } from "@/components/ConsentControl";
+import { ReplayTour } from "@/components/ReplayTour";
 import { Wardrobe } from "@/components/Wardrobe";
 import { flairRing } from "@/components/Flair";
 import { NotificationSettings } from "@/components/NotificationSettings";
@@ -273,9 +274,12 @@ async function Player() {
         title="How Arena works"
         description="What the money is, how a week is scored, what a battle is, and what none of this is. Two minutes."
       >
-        <Button asChild variant="outline" size="sm">
-          <Link href="/how">Read the rules</Link>
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/how">Read the rules</Link>
+          </Button>
+          <ReplayTour />
+        </div>
       </Panel>
 
       <Panel

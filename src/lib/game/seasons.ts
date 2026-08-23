@@ -1,6 +1,7 @@
 import "server-only";
 
 import { canWriteGame } from "@/lib/env";
+import { MIN_WEEKS_TO_RANK } from "@/lib/game/season-rules";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { SeasonResultRow, SeasonRow } from "@/lib/supabase/database.types";
 import { playerCache } from "@/lib/game/cache";
@@ -15,11 +16,12 @@ import { playerCache } from "@/lib/game/cache";
   of the same result is the fastest way to lose somebody's trust in both.
 */
 
-/** How many weeks of a quarter somebody has to play to be ranked in it. */
-export const MIN_WEEKS_TO_RANK = 3;
-
-/** And how many make them a season regular, whoever they finished above. */
-export const WEEKS_FOR_REGULAR = 8;
+/*
+  Re-exported rather than defined here, so a client component can name a
+  threshold without pulling this file's admin client into the browser bundle.
+  See season-rules.ts.
+*/
+export { MIN_WEEKS_TO_RANK, WEEKS_FOR_REGULAR } from "@/lib/game/season-rules";
 
 export type SeasonStanding = {
   userId: string;

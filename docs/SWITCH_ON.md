@@ -446,7 +446,11 @@ deploy. Redeploy after saving.
    a `supabase.co` host, the redirect URI in 7a is pointing at Supabase rather
    than at Arena.
 3. You should land back on Arena, signed in, and go through onboarding.
-4. Check the profile page carries your Google name and picture.
+4. After the name step, the walkthrough should open over Home — eight screens
+   starting with "Arena is a game, and the money is not real". Finish or skip
+   it; either way it should not come back on the next room. Profile › How
+   Arena works has **Show me around again** if you want it a second time.
+5. Check the profile page carries your Google name and picture.
 
 ### One thing worth knowing about existing accounts
 

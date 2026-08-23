@@ -189,7 +189,21 @@ test("reports a row that crops its own second line", async ({ page }) => {
 */
 const CASES = [
   ...readFileSync("src/app/gallery/page.tsx", "utf8").matchAll(/<Case name="([^"]+)"/g),
-].map((m) => m[1]);
+]
+  .map((m) => m[1])
+  /*
+    The walkthrough's cases are named from its own data rather than written
+    out, because there is one per screen and a ninth screen should not be able
+    to arrive without being measured. That is one `<Case>` in TourCases.tsx
+    with a template literal in it, which the regex above cannot read -- so the
+    names are derived here the same way the component derives them, from the
+    same file. Still read out of the source, still not counted by hand.
+  */
+  .concat(
+    [
+      ...readFileSync("src/lib/tour-steps.ts", "utf8").matchAll(/^    key: "([^"]+)",$/gm),
+    ].map((m) => `tour-${m[1]!.toLowerCase()}`)
+  );
 
 test("the gallery is rendering the components it claims to", async ({ page }) => {
   expect(CASES.length, "cases were read out of the gallery source").toBeGreaterThan(10);

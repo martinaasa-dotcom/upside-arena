@@ -22,6 +22,8 @@ import {
 } from "@/components/LeagueRecord";
 import { Movers } from "@/components/Movers";
 import { FirstRun } from "@/components/FirstRun";
+import { Case } from "./Case";
+import { TourCases } from "./TourCases";
 import { Scoreboard, Score } from "@/components/Scoreboard";
 import { InviteCode } from "@/components/InviteCode";
 import { CreateLeagueForm, JoinLeagueForm } from "@/components/LeagueForms";
@@ -69,15 +71,6 @@ import * as fixture from "./fixtures";
 */
 
 export const metadata = { title: "Gallery", robots: { index: false, follow: false } };
-
-function Case({ name, children }: { name: string; children: React.ReactNode }) {
-  return (
-    <section data-case={name} className="flex flex-col gap-2">
-      <h2 className="text-xs uppercase tracking-wide text-muted-foreground">{name}</h2>
-      {children}
-    </section>
-  );
-}
 
 export default function GalleryPage() {
   if (!process.env.ARENA_UI_GALLERY) notFound();
@@ -405,6 +398,8 @@ export default function GalleryPage() {
       <Case name="lineup-report">
         <LineupReport filled={2} missed={fixture.lineupMissed} />
       </Case>
+
+      <TourCases />
 
       <Case name="first-week">
         <FirstRun
