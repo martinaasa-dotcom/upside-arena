@@ -25,8 +25,27 @@ export const TOUR_VERSION = 1;
  * arriving, and interrupting it would put the tour in front of a screen that
  * has not painted. The layout's own gate sends anybody genuinely profileless
  * to onboarding first.
+ *
+ * ## Zero and undefined are different answers
+ *
+ * `0` is a row that has the column and has never finished a walkthrough: owed
+ * one. `undefined` is a row read from a database where the column does not
+ * exist yet, because `readProfile` selects `*` and simply gets no such key.
+ * Those must not be the same answer.
+ *
+ * docs/DEPLOY.md is explicit that deploying does not apply migrations and that
+ * every feature after `0010` degrades rather than breaks. Treating `undefined`
+ * as `0` would make this the exception: the tour would open for everybody,
+ * `finishTour` would fail on the same missing column, and it would open again
+ * on the very next room -- on every page load, for every player, until
+ * somebody noticed and ran the SQL. So a database that has never heard of the
+ * walkthrough gets no walkthrough, which is exactly the old behaviour, and the
+ * migration is what switches it on.
  */
 export function needsTour(profile: Profile | null): boolean {
   if (!profile) return false;
-  return (profile.tour_version ?? 0) < TOUR_VERSION;
+  if (profile.tour_version === undefined || profile.tour_version === null) {
+    return false;
+  }
+  return profile.tour_version < TOUR_VERSION;
 }

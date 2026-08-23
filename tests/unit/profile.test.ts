@@ -68,4 +68,18 @@ describe("needsTour", () => {
   it("is true again for anybody behind a newer one", () => {
     expect(needsTour(profile({ tour_version: TOUR_VERSION - 1 }))).toBe(true);
   });
+
+  /*
+    The case that keeps the walkthrough honest about docs/DEPLOY.md.
+
+    Deploying does not apply migrations, so the app can run against a database
+    with no `tour_version` column, and `readProfile` selects `*` -- the key is
+    simply absent. Read as zero that would open the tour for everybody, fail
+    to write on the same missing column, and open again on the next room, for
+    every player, every page load. A feature that has not had its migration
+    applied is supposed to be off, not stuck on.
+  */
+  it("shows nothing at all when the column is not there yet", () => {
+    expect(needsTour(profile({ tour_version: undefined }))).toBe(false);
+  });
 });
