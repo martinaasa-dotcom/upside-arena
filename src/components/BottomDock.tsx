@@ -11,16 +11,31 @@ import { ROOMS } from "@/lib/rooms";
   with black type. Rooms are added here as later phases land, never before the
   room exists: a dead tab is worse than a short dock.
 
-  The labels hide below LABELS_FIT rather than below a stock breakpoint,
-  because what decides whether they fit is the width the row actually needs,
-  and that changes every time a room is added. Measured with the labels on:
-  five cells come to 526px, so anything narrower has to drop to icons or the
-  dock runs off the side of the screen. A fifth room is what pushed it past
-  the 30rem it used to hide at, which nothing caught because a dock that
-  overflows still renders. Re-measure when a sixth lands.
-*/
-const LABELS_FIT = "max-[544px]:sr-only";
+  It is two shapes, not one, and the breakpoint is `md` in both apps.
 
+  Below it the dock is the phone's: the full width of the screen inside the
+  page gutter, equal cells, the glyph above the label. That is the shape a
+  phone tab bar has, and the width matters as much as the stacking -- a
+  content-hugging pill on a 390px screen leaves dead bands either side of it
+  and reads as a control that happens to be near the bottom rather than as the
+  floor of the app.
+
+  At `md` and up it is the desktop's: content-hugging, centred, glyph beside
+  label. Stretching five cells across a 1440px column would leave each label
+  floating in the middle of a 230px chip and turn the active one into a slab
+  of accent the width of a paragraph.
+
+  Concentric corners, both ways round: the pill is `rounded-xl` (12px) with
+  `p-1` (4px), so the cells inside it are `rounded-lg` (8px). 12 - 4 = 8. A
+  cell with the same radius as the shell around it reads as a sticker on it.
+
+  The labels used to hide below 544px, which is to say on every phone anyone
+  owns, leaving five unlabelled glyphs. A trophy is not a word: nothing about
+  it says Leagues rather than Season, and a tab bar is the one place in an app
+  where a person has to be right first time. They are on at every width now,
+  which is what the stacked cell is for -- the width a label needs beside a
+  glyph is what forced the choice, and above it there is none to force.
+*/
 
 /*
   A tap has to be answered on the frame it lands on.
@@ -86,10 +101,28 @@ export function BottomDock() {
        * click along the bottom of the page -- including the "Make your first
        * trade" button that sits in the bottom-right corner of /home, which
        * simply did nothing. The pill turns them back on.
+       *
+       * The gutter is the page's own 16px on a phone and nothing at `md`,
+       * where the pill sizes itself and centres instead.
        */
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[max(1rem,env(safe-area-inset-bottom))]"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-0"
     >
-      <div className="card-sheen glass pointer-events-auto flex items-center gap-1 rounded-xl p-1 ring-1 ring-foreground/20">
+      <div
+        /*
+         * `glass-dock` after `card-sheen glass`: the same pane, with the
+         * chrome fill and a harder blur in place of the card veil. It
+         * overrides the body and the blur only, so the rim, the ring and the
+         * lift shadow are still the ones every other pane in the app carries.
+         * The measurement, and where the 50% comes from, is in globals.css.
+         */
+        className={cn(
+          "card-sheen glass glass-dock pointer-events-auto mx-auto grid w-full gap-1 rounded-xl p-1 ring-1 ring-foreground/20",
+          "md:flex md:w-fit md:items-center"
+        )}
+        style={{
+          gridTemplateColumns: `repeat(${ROOMS.length}, minmax(0, 1fr))`,
+        }}
+      >
         <Suspense fallback={<Tabs pathname={null} />}>
           <ActiveTabs />
         </Suspense>
@@ -114,7 +147,8 @@ function Tabs({ pathname }: { pathname: string | null }) {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative flex h-11 items-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors",
+              "relative flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-0.5 text-xs font-medium transition-colors",
+              "md:h-11 md:flex-row md:gap-2 md:px-4 md:text-sm",
               "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
               active
                 ? "bg-primary text-primary-foreground"
@@ -122,8 +156,8 @@ function Tabs({ pathname }: { pathname: string | null }) {
             )}
           >
             {active ? null : <PressedFill />}
-            <Icon className="relative size-4" aria-hidden="true" />
-            <span className={cn("relative", LABELS_FIT)}>{label}</span>
+            <Icon className="relative size-4 shrink-0" aria-hidden="true" />
+            <span className="relative max-w-full leading-none">{label}</span>
           </Link>
         );
       })}
