@@ -11,8 +11,8 @@ import { describe, expect, it } from "vitest";
   pixels is a step every twenty-odd pixels, and a 1/255 step twenty pixels
   wide is a contour line, not a gradient. Eight bits cannot hold that ramp
   and no arrangement of stops changes it, so the answer is a dither and the
-  filter in `AmbientDither` is it. Arena's lobes are two stop ramps, colour
-  straight to transparent, so they had it worse than Lab's five stop ones.
+  filter in `AmbientDither` is it. Arena's lobes are two and three stop
+  ramps, so they had it worse than Lab's five stop ones.
 
   Two things about it fail silently, which is why they are asserted here
   rather than left to a look at the page.
@@ -41,10 +41,14 @@ import { describe, expect, it } from "vitest";
 const FILTER = readFileSync("src/components/AmbientDither.tsx", "utf8");
 const CSS = readFileSync("src/app/globals.css", "utf8");
 const LAYOUT = readFileSync("src/app/layout.tsx", "utf8");
-const HOME = readFileSync("src/app/page.tsx", "utf8");
+const LANDING = readFileSync("src/components/SignedOutLanding.tsx", "utf8");
 
 /** Every surface that has to ramp through the bottom of the range. */
-const DITHERED = [".page-frame::before", ".ambient-glow"];
+const DITHERED = [
+  ".page-frame::before",
+  ".landing-field::after",
+  ".ambient-glow",
+];
 
 function alphaRowOf(matrixValues: string): number {
   const n = matrixValues.trim().split(/\s+/).map(Number);
@@ -112,8 +116,8 @@ describe("surfaces that ramp through near-black", () => {
   });
 
   it("the sample card uses .ambient-glow rather than its own ramp", () => {
-    expect(HOME).toContain("ambient-glow");
-    expect(HOME, "a hand-rolled two stop glow").not.toMatch(
+    expect(LANDING).toContain("ambient-glow");
+    expect(LANDING, "a hand-rolled two stop glow").not.toMatch(
       /bg-gradient-to-\w+[^"]*to-transparent/
     );
   });

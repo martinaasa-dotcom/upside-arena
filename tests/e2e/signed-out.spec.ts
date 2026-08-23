@@ -5,12 +5,108 @@ test.describe("landing", () => {
   test("shows the game, the age gate and the legal line", async ({ page }) => {
     await page.goto("/");
 
+    /*
+      The hero names the problem before it names the product, which is the
+      whole shape of the page. If this heading is ever the product again, the
+      page has been rebuilt as a sign-in box with a tour bolted under it.
+    */
     await expect(
-      page.getByRole("heading", { name: "Pick stocks with friends. Play money only." })
+      page.getByRole("heading", {
+        name: "Everyone has a stock pick. Nobody keeps score.",
+        level: 1,
+      })
     ).toBeVisible();
-    await expect(page.getByText("Not financial advice.")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Terms" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Privacy policy" })).toBeVisible();
+    /*
+      The consent sentence sits with the button that constitutes consenting,
+      and there are two such buttons, so there are two of it. `.first()` rather
+      than a count, because where it appears is a layout decision and this
+      test is about it being on the page at all.
+    */
+    await expect(
+      page.getByRole("link", { name: "Terms", exact: true }).first()
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Privacy policy" }).first()
+    ).toBeVisible();
+  });
+
+  test("puts the consent sentence beside every button that signs you in", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    /*
+      Somebody who signs up from the closing ask has to have been told the same
+      thing as somebody who signed up from the hero.
+
+      The buttons stream in behind a Suspense boundary, so counting them
+      straight after `goto` counted zero on a phone and passed vacuously on a
+      desktop. Wait for one to exist before asking how many there are.
+    */
+    const google = page.getByRole("button", { name: "Continue with Google" });
+    await expect(google.first()).toBeVisible();
+
+    const buttons = await google.count();
+    expect(buttons).toBeGreaterThan(0);
+    await expect(
+      page.getByText(/By continuing you confirm you are 16 or older/)
+    ).toHaveCount(buttons);
+  });
+
+  /*
+    The two questions every visitor has after "what is it", in the order they
+    are asked. Both were answered nowhere on the page this one replaced, and
+    a free game that does not say what the paid thing buys reads as one with
+    something to hide.
+  */
+  test("answers what it costs and what is at stake, without signing in", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    await expect(
+      page.getByText("Nothing. The free game is the whole game.")
+    ).toBeVisible();
+    await expect(
+      page.getByText(/It cannot move a score, a ranking or what anybody is allowed to trade/)
+    ).toBeVisible();
+    await expect(page.getByText(/The money is pretend/)).toBeVisible();
+    await expect(page.getByText(/Arena is not a broker/)).toBeVisible();
+  });
+
+  /*
+    Google is the only way in, and it is the whole of the way in.
+
+    The magic link went on 2026-08-23. Everything it needed existed to get an
+    address right that Google already has right, and every one of those steps
+    was a way for somebody to fail to reach their own account.
+  */
+  test("offers Google and nothing else", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(
+      page.getByRole("button", { name: "Continue with Google" }).first()
+    ).toBeEnabled();
+
+    // No address field, no "email me a link", nowhere to mistype anything.
+    await expect(page.getByLabel("Email")).toHaveCount(0);
+    await expect(page.locator('input[type="email"]')).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /link/i })).toHaveCount(0);
+  });
+
+  test("repeats the ask at the bottom, and it is the real button", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    /*
+      Two, and both of them sign you in. Nobody who has read to the end of the
+      page should have to scroll back up to act on it, and with one button
+      there is nothing to duplicate: no second form, no second field.
+    */
+    await expect(
+      page.getByRole("button", { name: "Continue with Google" })
+    ).toHaveCount(2);
   });
 
   test("states the 16 age rule where it is read, not behind a tick box", async ({
@@ -20,15 +116,157 @@ test.describe("landing", () => {
 
     // Asserted in the same sentence as the terms, the way Upside Lab does it.
     // A separate checkbox only puts a dead button in front of a new visitor.
+    // One per sign-in button, so this names the first; the test below is the
+    // one that cares how many there are.
     await expect(
-      page.getByText(/By continuing you confirm you are 16 or older/)
+      page.getByText(/By continuing you confirm you are 16 or older/).first()
     ).toBeVisible();
     await expect(page.getByRole("checkbox")).toHaveCount(0);
   });
 
   test("sign-in is usable the moment the page loads", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("button", { name: /Email me a link/ })).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: "Continue with Google" }).first()
+    ).toBeEnabled();
+  });
+
+  /*
+    Scrolling. The feedback: somebody scrolls a landing page, lands in
+    black, and concludes it is over, so they scroll back up and never see
+    the rest of it.
+
+    This page inherited both causes from Upside Lab, which is where it and
+    `Arrive` were ported from. `Arrive` armed its observer with a *negative*
+    rootMargin, which shrinks the observer's root rather than growing it, so
+    a section did not begin arriving until it was already 116px to 185px
+    inside the window and only then started a half-second fade. And each
+    section was two Arrives, the cards on a delay, so a heading could sit
+    above a hole.
+
+    These walk the real page rather than reading a class name, because the
+    page renders identically once everything has arrived. That is the whole
+    problem: there is nothing to see in a snapshot.
+  */
+
+  test("never leaves a section arriving where it can be watched", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "No thanks" }).click();
+
+    const height = await page.evaluate(
+      () => document.documentElement.scrollHeight - window.innerHeight
+    );
+
+    const caught: string[] = [];
+    /*
+      100px steps. A section used to spend about 140px of scrolling visible
+      and unpainted, and every interval that long contains a multiple of
+      100, so a return of that fault cannot slip between two stops.
+    */
+    for (let y = 0; y <= height; y += 100) {
+      const at = Math.min(y, height);
+      await page.evaluate((v) => window.scrollTo(0, v), at);
+      await page.waitForTimeout(60);
+
+      const showing = await page.evaluate(() => {
+        const vh = window.innerHeight;
+        return [...document.querySelectorAll('[data-reveal="out"]')]
+          .filter((el) => {
+            const r = el.getBoundingClientRect();
+            return r.bottom > 0 && r.top < vh;
+          })
+          .map((el) => (el.textContent ?? "").trim().slice(0, 40));
+      });
+      for (const label of showing) caught.push(`at y=${at}: ${label}`);
+    }
+
+    expect(caught, "sections still unpainted while on screen").toEqual([]);
+  });
+
+  test("leaves no empty band a reader could mistake for the end", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // Answer the cookie question first. The room it needs is real, occupied
+    // space, and it is not what this is about.
+    await page.getByRole("button", { name: "No thanks" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Optional measurement" })
+    ).toBeHidden();
+
+    // Settle every section, so this measures the page rather than the fade.
+    await page.evaluate(() => {
+      for (const el of document.querySelectorAll("[data-reveal]"))
+        el.setAttribute("data-reveal", "in");
+    });
+
+    const { worst, viewport } = await page.evaluate(() => {
+      const doc = Math.round(document.documentElement.scrollHeight);
+      const painted = new Uint8Array(doc + 2);
+      const TEXT = "p,h1,h2,h3,h4,li,button,input,img,svg,span,td,th";
+      const drawn = (cs: CSSStyleDeclaration) =>
+        (cs.backgroundColor !== "rgba(0, 0, 0, 0)" &&
+          cs.backgroundColor !== "transparent") ||
+        cs.backgroundImage !== "none" ||
+        cs.borderTopWidth !== "0px" ||
+        cs.boxShadow !== "none";
+
+      for (const el of document.querySelectorAll("*")) {
+        if (el.tagName === "HTML" || el.tagName === "BODY") continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < 1 || r.height < 1) continue;
+        // The ambient field is the room's light, not content.
+        if (r.height > window.innerHeight * 3) continue;
+        const cs = getComputedStyle(el);
+        if (cs.visibility === "hidden" || cs.opacity === "0") continue;
+        if (!el.matches(TEXT) && !drawn(cs)) continue;
+        const top = Math.max(0, Math.round(r.top + window.scrollY));
+        const bottom = Math.min(doc, Math.round(r.bottom + window.scrollY));
+        for (let y = top; y < bottom; y++) painted[y] = 1;
+      }
+
+      let run = 0;
+      let worst = 0;
+      for (let y = 0; y <= doc; y++) {
+        run = painted[y] ? 0 : run + 1;
+        if (run > worst) worst = run;
+      }
+      return { worst, viewport: window.innerHeight };
+    });
+
+    // A quarter of a screen. Past that, one flick can put a reader somewhere
+    // with nothing at all in front of them.
+    expect(
+      worst,
+      `${worst}px of nothing in a ${viewport}px window`
+    ).toBeLessThan(viewport / 4);
+  });
+
+  test("visibly runs past the fold rather than ending flush with it", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "No thanks" }).click();
+
+    // Content severed by the bottom edge is this page's whole scroll
+    // affordance, and it beats an arrow that would have to sit off-screen to
+    // be seen. It only works while something is really cut.
+    const cut = await page.evaluate(() => {
+      const vh = window.innerHeight;
+      if (document.documentElement.scrollHeight <= vh + 1) return "fits";
+      for (const el of document.querySelectorAll("main .glass, main li, main p")) {
+        const r = el.getBoundingClientRect();
+        if (r.top < vh - 24 && r.bottom > vh + 24) return "cut";
+      }
+      return "flush";
+    });
+
+    expect(cut, "a page that scrolls but ends flush with the fold").not.toBe(
+      "flush"
+    );
   });
 
   test("the sign-in button is not covered by the cookie notice", async ({ page }) => {
@@ -38,7 +276,7 @@ test.describe("landing", () => {
     // do is worse than no notice at all. This caught exactly that on a phone.
     const clear = await page.evaluate(() => {
       const button = [...document.querySelectorAll("button")].find((b) =>
-        /Email me a link/.test(b.textContent ?? "")
+        /Continue with Google/.test(b.textContent ?? "")
       );
       const notice = document.querySelector('[role="dialog"]');
       if (!button || !notice) return true;
@@ -48,6 +286,22 @@ test.describe("landing", () => {
     });
 
     expect(clear).toBe(true);
+  });
+
+  /*
+    The page has an end to it. A landing page that simply stops is a page with
+    nothing behind it, and this is also where the advice disclaimer moved to
+    when it came out of the hero.
+  */
+  test("ends in a footer that says what Arena is not", async ({ page }) => {
+    await page.goto("/");
+    const footer = page.getByRole("contentinfo");
+
+    await expect(footer.getByText(/Play money only/)).toBeVisible();
+    await expect(footer.getByText(/Not financial advice/)).toBeVisible();
+    await expect(footer.getByRole("link", { name: "How Arena works" })).toBeVisible();
+    await expect(footer.getByRole("link", { name: "Terms of use" })).toBeVisible();
+    await expect(footer.getByRole("link", { name: "Privacy" })).toBeVisible();
   });
 });
 
@@ -173,7 +427,7 @@ test.describe("protected routes", () => {
       await page.goto(path);
       await expect(page).toHaveURL(/\/(\?|$)/);
       await expect(
-        page.getByRole("heading", { name: /Pick stocks with friends/ })
+        page.getByRole("heading", { name: /Everyone has a stock pick/ })
       ).toBeVisible();
     });
   }
@@ -319,7 +573,9 @@ test.describe("the numbers page", () => {
     // Sent to sign in, carrying where they were headed, like any other
     // signed-in page. Nothing on the way says whether that page exists.
     await expect(page).toHaveURL(/\?next=%2Fmetrics$/);
-    await expect(page.getByLabel("Email")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Continue with Google" }).first()
+    ).toBeVisible();
   });
 });
 
@@ -531,11 +787,12 @@ test.describe("accessibility basics", () => {
     await expect(page.locator("h1")).toHaveCount(1);
   });
 
-  test("the email field is labelled and typed", async ({ page }) => {
+  test("the sign-in button is a real button with a real name", async ({ page }) => {
     await page.goto("/");
-    const email = page.getByLabel("Email");
-    await expect(email).toHaveAttribute("type", "email");
-    await expect(email).toHaveAttribute("autocomplete", "email");
+    const button = page.getByRole("button", { name: "Continue with Google" }).first();
+    await expect(button).toHaveAttribute("type", "submit");
+    // The mark beside the label is decoration, so the name is the words alone.
+    await expect(button).toHaveAccessibleName("Continue with Google");
   });
 });
 
@@ -562,7 +819,9 @@ test.describe("a shared week", () => {
 
     // A card that has gone is a card that has gone. It must not become a
     // sign-in wall, which is what a missing public path rule would produce.
-    await expect(page.getByLabel("Email")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Continue with Google" })
+    ).toHaveCount(0);
   });
 
   test("says plainly when a link no longer works, and blames nobody", async ({

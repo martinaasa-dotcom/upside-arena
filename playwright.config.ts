@@ -49,6 +49,19 @@ export default defineConfig({
         404s in production.
       */
       ARENA_UI_GALLERY: "1",
+      /*
+        Google is the only way in since the magic link went, so a signed-out
+        suite with no client id configured is a suite where the sign-in button
+        does not render and half the landing tests fail for a reason that has
+        nothing to do with the change under review. The same trade the
+        Supabase placeholders above make.
+
+        They do not have to be real, and nothing here ever reaches Google:
+        every test in this suite stops at the button. What they do is make
+        `googleConfigured()` true, which is the only thing the page reads.
+      */
+      GOOGLE_CLIENT_ID: "placeholder.apps.googleusercontent.com",
+      GOOGLE_CLIENT_SECRET: "placeholder-secret-no-client-behind-it",
     },
   },
 });

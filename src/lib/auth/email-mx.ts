@@ -1,3 +1,16 @@
+/*
+  Kept for the profile page's "add an address" flow, and for nothing else.
+
+  This existed for the magic-link sign-in, which is gone: Google is the only
+  way into an account now. The other caller arrived independently in 0025,
+  where adding a second address to your account mails a confirmation link and
+  checks the domain accepts mail first.
+
+  That flow is itself on its way out, for the same reason the magic link went:
+  an address you cannot sign in with is not worth confirming, and the Google
+  handshake in `connectGoogle` is the way a second address reaches an account
+  now. When it goes, this file goes with it.
+*/
 import "server-only";
 
 /*

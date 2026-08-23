@@ -132,11 +132,18 @@ jobs:
       # file was written to stop. Written here they cannot be unset.
       - run: npx playwright install --with-deps chromium
 
+      # Google is the only way in since the magic link went, so the same
+      # argument applies to a client id: with none set, the sign-in button
+      # does not render and the landing tests fail for a reason that has
+      # nothing to do with the change under review. Nothing here reaches
+      # Google; every test stops at the button.
       - run: npx playwright test
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-no-project-behind-it
           NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3100
+          GOOGLE_CLIENT_ID: placeholder.apps.googleusercontent.com
+          GOOGLE_CLIENT_SECRET: placeholder-secret-no-client-behind-it
 
       - uses: actions/upload-artifact@v7
         if: failure()
