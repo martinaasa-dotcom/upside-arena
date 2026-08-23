@@ -90,7 +90,7 @@ async function fetchSessionOpen(
   symbol: string,
   isoDate: string
 ): Promise<number | null> {
-  "use cache";
+  "use cache: remote";
   cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
 
   const key = `${symbol}:${isoDate}`;
