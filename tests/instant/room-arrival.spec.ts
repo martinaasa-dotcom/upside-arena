@@ -20,12 +20,31 @@ import { instant } from "@next/playwright";
 
 const NAME = "Probe"; // The invented player's display name. See lib/profile.
 
+/*
+  The consent notice decides for itself when to appear and is not part of a
+  room, so it is taken out before two frames are compared.
+*/
+function room(text: string) {
+  return text
+    .split("\n")
+    .filter(
+      (line) =>
+        !line.includes("Measuring page views") &&
+        line.trim() !== "Allow" &&
+        line.trim() !== "No thanks"
+    )
+    .join("\n")
+    .trim();
+}
+
 test.describe("a room arrives whole", () => {
   test("home is complete in the first frame of a tap from profile", async ({
     page,
   }) => {
     await page.goto("/profile");
     await page.waitForLoadState("networkidle");
+
+    let firstFrame = "";
 
     await instant(page, async () => {
       await page.click('a[href="/home"]');
@@ -35,8 +54,8 @@ test.describe("a room arrives whole", () => {
         The player's own name. It comes from the session, which is read from a
         cookie, and a cookie read outside a cached scope cannot be prerendered
         -- so this is the first thing to go when the root of the room turns
-        dynamic again. With the regression in place the greeting reads "Hi"
-        and stops.
+        dynamic again. With that regression in place the greeting reads "Hi"
+        and stops there.
       */
       await expect(page.getByRole("heading", { level: 1 })).toContainText(NAME);
 
@@ -49,7 +68,25 @@ test.describe("a room arrives whole", () => {
       await expect(
         page.getByText("Your first week has not started yet")
       ).toBeVisible();
+
+      firstFrame = room(await page.locator("body").innerText());
     });
+
+    /*
+      And the assertion that does not depend on knowing what to look for.
+
+      Naming things that must be present only catches the regions somebody
+      thought to name. This says the room does not change after the frame the
+      tap painted -- which is the whole of what was asked for, and the only
+      form of it that covers a region nobody has thought of yet.
+    */
+    await page.waitForLoadState("networkidle");
+    const settled = room(await page.locator("body").innerText());
+
+    expect(
+      settled,
+      "something arrived after the first frame, which is a region streaming in"
+    ).toBe(firstFrame);
   });
 
   test("and so does trade, which reads the same session and portfolio", async ({
@@ -58,10 +95,16 @@ test.describe("a room arrives whole", () => {
     await page.goto("/home");
     await page.waitForLoadState("networkidle");
 
+    let firstFrame = "";
+
     await instant(page, async () => {
       await page.click('a[href="/trade"]');
       await page.waitForURL((url) => url.pathname === "/trade");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      firstFrame = room(await page.locator("body").innerText());
     });
+
+    await page.waitForLoadState("networkidle");
+    expect(room(await page.locator("body").innerText())).toBe(firstFrame);
   });
 });
