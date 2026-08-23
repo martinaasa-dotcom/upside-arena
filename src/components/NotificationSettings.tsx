@@ -19,34 +19,19 @@ import {
   subscribeToPush,
   unsubscribeFromPush,
 } from "@/app/(app)/profile/notification-actions";
+import { DAILY_CAP, QUIET_HOURS } from "@/lib/notify/timing";
+import { KINDS } from "@/lib/notify/kinds";
 import type { NotificationSettings as Settings } from "@/lib/notify/settings";
 
 /*
   What Arena is allowed to interrupt you for.
 
   Each kind is separately refusable and every switch takes effect the moment it
-  is moved, with no save button to forget. The three kinds are named for what
-  they are rather than by channel, because "someone passed you" is a thing a
+  is moved, with no save button to forget. The kinds are named for what they
+  are rather than by channel, because "someone passed you" is a thing a
   person has an opinion about and "push notifications" is not.
 */
 
-const KINDS = [
-  {
-    key: "rivalAlerts" as const,
-    label: "When somebody passes you",
-    detail: "Only while the market is open, and only in a league you are in.",
-  },
-  {
-    key: "weekResult" as const,
-    label: "When your week is scored",
-    detail: "Once, on Friday evening, whatever the result was.",
-  },
-  {
-    key: "streakReminder" as const,
-    label: "When your streak needs today",
-    detail: "Late afternoon, and only if you already have a streak going.",
-  },
-];
 
 export function NotificationSettings({
   initial,
@@ -258,9 +243,15 @@ export function NotificationSettings({
         ))}
       </div>
 
+      {/*
+        The two numbers come from the module that enforces them rather than
+        from this sentence. They were written out here in words, which meant
+        the promise and the rule were two separate things that happened to
+        agree, and only one of them was tested.
+      */}
       <p className="text-sm text-muted-foreground">
-        Never more than three a day, and never between nine at night and eight in
-        the morning where you are. We do not send anything about a losing week.
+        Never more than {DAILY_CAP} a day, and never between {QUIET_HOURS} where
+        you are. We do not send anything about a losing week.
       </p>
     </div>
   );

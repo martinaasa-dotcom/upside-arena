@@ -25,7 +25,16 @@ export function Holdings({ positions }: { positions: Position[] }) {
               {position.symbol}
             </span>
 
-            <span className="figure hidden w-20 shrink-0 text-sm text-muted-foreground sm:block">
+            {/*
+              Sized to its own text rather than to a fixed twenty. The column
+              is fixed-height and this used to be a fixed width, so a four
+              figure holding wrapped onto a second line inside it -- which the
+              wide-screen layout made ordinary rather than rare, because a
+              panel in the narrower column is half the width the fixed number
+              was chosen at. Now the name beside it truncates instead, which is
+              the thing that can afford to.
+            */}
+            <span className="figure hidden shrink-0 whitespace-nowrap text-sm text-muted-foreground sm:block">
               {position.quantity} {position.quantity === 1 ? "share" : "shares"}
             </span>
 

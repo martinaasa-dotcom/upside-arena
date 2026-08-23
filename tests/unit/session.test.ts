@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  addDays,
+  beforeContestEnd,
   cycleMonday,
   isTradingDay,
   isTradingOpen,
+  isLineupWindow,
   isWeekend,
+  lineupLocked,
+  lineupMonday,
+  lineupReady,
   nyDate,
   previousTradingDay,
   sessionLabel,
@@ -221,5 +227,203 @@ describe("trading days", () => {
   it("treats a date at or before itself as nothing missed", () => {
     expect(tradingDaysBetween("2026-08-20", "2026-08-20")).toBe(0);
     expect(tradingDaysBetween("2026-08-21", "2026-08-20")).toBe(0);
+  });
+});
+
+/*
+  The lineup clock.
+
+  The whole fairness of a lineup is one comparison: is Monday's opening price
+  known yet? Before the bell nobody knows it, so an order may still be changed.
+  From the bell it exists, and an order that could still be changed would be a
+  trade placed with hindsight. These are that comparison.
+*/
+describe("lineupLocked", () => {
+  const MONDAY = "2026-08-24";
+
+  it("is open all weekend before it", () => {
+    expect(lineupLocked(MONDAY, at("2026-08-22T15:00:00Z"))).toBe(false); // Sat
+    expect(lineupLocked(MONDAY, at("2026-08-23T23:00:00Z"))).toBe(false); // Sun
+  });
+
+  it("is open on the Monday morning until the bell", () => {
+    // 13:00 UTC is 09:00 in New York in August. Half an hour to go.
+    expect(lineupLocked(MONDAY, at("2026-08-24T13:00:00Z"))).toBe(false);
+  });
+
+  it("locks at the bell, not at midnight", () => {
+    // 13:30 UTC is 09:30 in New York in August.
+    expect(lineupLocked(MONDAY, at("2026-08-24T13:30:00Z"))).toBe(true);
+    expect(lineupLocked(MONDAY, at("2026-08-24T18:00:00Z"))).toBe(true);
+  });
+
+  it("stays locked for the rest of the week", () => {
+    expect(lineupLocked(MONDAY, at("2026-08-26T15:00:00Z"))).toBe(true);
+    expect(lineupLocked(MONDAY, at("2026-08-28T15:00:00Z"))).toBe(true);
+  });
+});
+
+describe("lineupMonday", () => {
+  it("is the Monday about to arrive, at the weekend", () => {
+    expect(lineupMonday(at("2026-08-22T15:00:00Z"))).toBe("2026-08-24"); // Sat
+    expect(lineupMonday(at("2026-08-23T15:00:00Z"))).toBe("2026-08-24"); // Sun
+  });
+
+  it("is still this Monday before the bell on it", () => {
+    expect(lineupMonday(at("2026-08-24T13:00:00Z"))).toBe("2026-08-24");
+  });
+
+  /*
+    Once this week's opening price exists, the earliest week whose does not is
+    the next one. A lineup queued on a Wednesday is for the Monday after.
+  */
+  it("rolls to next Monday once this week has opened", () => {
+    expect(lineupMonday(at("2026-08-24T13:30:00Z"))).toBe("2026-08-31");
+    expect(lineupMonday(at("2026-08-26T15:00:00Z"))).toBe("2026-08-31");
+    expect(lineupMonday(at("2026-08-28T21:00:00Z"))).toBe("2026-08-31");
+  });
+
+  it("crosses a month boundary without drifting", () => {
+    expect(lineupMonday(at("2026-08-29T15:00:00Z"))).toBe("2026-08-31");
+    expect(lineupMonday(at("2026-09-02T15:00:00Z"))).toBe("2026-09-07");
+  });
+});
+
+describe("lineupReady", () => {
+  const MONDAY = "2026-08-24";
+
+  it("waits for the bell", () => {
+    expect(lineupReady(MONDAY, at("2026-08-24T13:00:00Z"))).toBe(false);
+    expect(lineupReady(MONDAY, at("2026-08-23T15:00:00Z"))).toBe(false);
+  });
+
+  /*
+    And then waits a further half hour. The daily bar an opening price is read
+    from arrives a few minutes into the session, so filling at 09:30:20 would
+    record "we had no opening price" for a name that had one perfectly well by
+    09:35 -- and that is written into somebody's week and cannot be undone.
+  */
+  it("waits half an hour past it, so the opening price exists to be read", () => {
+    expect(lineupReady(MONDAY, at("2026-08-24T13:35:00Z"))).toBe(false);
+    expect(lineupReady(MONDAY, at("2026-08-24T14:00:00Z"))).toBe(true);
+  });
+
+  it("is ready any time later in the week", () => {
+    // Somebody who did not open Arena until Wednesday still fills at Monday's
+    // open, so there is nothing to wait for.
+    expect(lineupReady(MONDAY, at("2026-08-26T02:00:00Z"))).toBe(true);
+  });
+});
+
+/*
+  When the lineup is the thing to show.
+
+  The panel promises a lineup can be changed until the bell on Monday, and the
+  screen used to offer it at the weekend only -- so somebody opening Arena at
+  eight on a Monday morning could neither trade nor see the thing that was
+  about to spend their money.
+*/
+describe("isLineupWindow", () => {
+  it("is open all weekend", () => {
+    expect(isLineupWindow(at("2026-08-22T15:00:00Z"))).toBe(true); // Sat
+    expect(isLineupWindow(at("2026-08-23T23:00:00Z"))).toBe(true); // Sun
+  });
+
+  it("is open on the Monday itself until the bell", () => {
+    expect(isLineupWindow(at("2026-08-24T13:00:00Z"))).toBe(true); // 09:00 NY
+    expect(isLineupWindow(at("2026-08-24T13:29:00Z"))).toBe(true);
+  });
+
+  it("closes at the bell, because from then the trade screen is the answer", () => {
+    expect(isLineupWindow(at("2026-08-24T13:30:00Z"))).toBe(false);
+    expect(isLineupWindow(at("2026-08-24T18:00:00Z"))).toBe(false);
+  });
+
+  /*
+    Not on a Tuesday evening. The market is shut and there is a week ahead to
+    queue for, but the trade screen is what somebody wants then, and a room
+    that turned into the lineup every evening would be a room that had moved.
+  */
+  it("is shut on a weekday that is not the Monday being filled", () => {
+    expect(isLineupWindow(at("2026-08-25T13:00:00Z"))).toBe(false);
+    expect(isLineupWindow(at("2026-08-26T23:00:00Z"))).toBe(false);
+    expect(isLineupWindow(at("2026-08-21T21:00:00Z"))).toBe(false);
+  });
+});
+
+/*
+  Whether somebody arrived in time to have been in a contest.
+
+  This is the comparison that decides who is in a battle's field, and it has
+  now been wrong in both directions. Reading the timestamp in UTC dropped
+  anybody who joined after the New York day had rolled over there; comparing
+  dates alone admitted somebody who joined at nine in the evening of a day
+  whose last trade was taken at four.
+*/
+describe("beforeContestEnd", () => {
+  const ENDS = "2026-08-21"; // A Friday.
+
+  it("is true for any day before the last one", () => {
+    expect(beforeContestEnd(at("2026-08-20T23:00:00Z"), ENDS)).toBe(true);
+    expect(beforeContestEnd(at("2026-08-17T13:30:00Z"), ENDS)).toBe(true);
+  });
+
+  it("is false for any day after it", () => {
+    expect(beforeContestEnd(at("2026-08-22T04:00:00Z"), ENDS)).toBe(false);
+    expect(beforeContestEnd(at("2026-09-01T13:30:00Z"), ENDS)).toBe(false);
+  });
+
+  it("is true on the last day until the close", () => {
+    // 19:59 UTC is 15:59 in New York in August. One minute of trading left.
+    expect(beforeContestEnd(at("2026-08-21T19:59:00Z"), ENDS)).toBe(true);
+  });
+
+  it("and false from the close, however the date is written", () => {
+    // 20:00 UTC is 16:00 in New York. The last trade has been taken.
+    expect(beforeContestEnd(at("2026-08-21T20:00:00Z"), ENDS)).toBe(false);
+
+    /*
+      The one this was got wrong on twice. Nine in the evening in New York is
+      already tomorrow in UTC, so reading the date in UTC excluded them for the
+      wrong reason and reading it in New York included them for no reason. They
+      arrived five hours after the last trade either way.
+    */
+    expect(beforeContestEnd(at("2026-08-22T01:00:00Z"), ENDS)).toBe(false);
+  });
+
+  /*
+    Unless the market never shuts, which is the whole of one format. There the
+    last trade is taken at midnight, so the evening counts.
+  */
+  it("gives an all-day contest the whole of its last day", () => {
+    expect(beforeContestEnd(at("2026-08-21T20:00:00Z"), ENDS, true)).toBe(true);
+    expect(beforeContestEnd(at("2026-08-22T01:00:00Z"), ENDS, true)).toBe(true);
+    expect(beforeContestEnd(at("2026-08-22T05:00:00Z"), ENDS, true)).toBe(false);
+  });
+});
+
+describe("addDays", () => {
+  it("walks forwards and backwards through a week", () => {
+    expect(addDays("2026-08-17", 0)).toBe("2026-08-17");
+    expect(addDays("2026-08-17", 4)).toBe("2026-08-21");
+    expect(addDays("2026-08-17", -3)).toBe("2026-08-14");
+  });
+
+  it("crosses a month and a year", () => {
+    expect(addDays("2026-08-31", 1)).toBe("2026-09-01");
+    expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
+    expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
+  });
+
+  /*
+    The reason it works at noon. Adding a day across a clock change at
+    midnight lands on the same date or two days on, depending on which way it
+    went, and a week drawn from that has two Tuesdays in it.
+  */
+  it("is not moved by a daylight saving change", () => {
+    expect(addDays("2026-03-07", 1)).toBe("2026-03-08");
+    expect(addDays("2026-03-08", 1)).toBe("2026-03-09");
+    expect(addDays("2026-10-31", 1)).toBe("2026-11-01");
+    expect(addDays("2026-11-01", 1)).toBe("2026-11-02");
   });
 });

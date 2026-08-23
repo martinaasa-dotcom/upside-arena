@@ -2,6 +2,7 @@ import "server-only";
 
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { compareResults } from "@/lib/game/ranking";
 import type { PodRow, PodMemberRow } from "@/lib/supabase/database.types";
 
 /*
@@ -439,7 +440,7 @@ export async function getPodView(
   if (settled && scored.every((row) => row.finalRank != null)) {
     scored.sort((a, b) => (a.finalRank ?? 0) - (b.finalRank ?? 0));
   } else {
-    scored.sort((a, b) => b.returnPercent - a.returnPercent);
+    scored.sort(compareResults);
   }
 
   const standings: PodStanding[] = scored.map(({ finalRank, ...row }, index) => ({

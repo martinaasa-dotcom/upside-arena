@@ -34,13 +34,29 @@ function migrationSql() {
 function callableFunctions(sql: string) {
   const granted = new Set<string>();
 
-  const grants = /grant execute on function public\.([a-z_]+)\s*\(/gi;
-  let match: RegExpExecArray | null;
-  while ((match = grants.exec(sql))) granted.add(match[1]);
+  /*
+    Grants and drops in the order they are written, not all of one and then
+    all of the other.
 
-  // "drop function if exists" included: a conditional drop still removes it.
-  const drops = /drop function (?:if exists )?public\.([a-z_]+)\s*\(/gi;
-  while ((match = drops.exec(sql))) granted.delete(match[1]);
+    Sorting them by kind was wrong in one direction that has now come up: a
+    migration that replaces a function with a wider signature drops the old
+    one and grants the new one, and reading every drop last took the function
+    out of the set although the schema still has it. The check then quietly
+    stopped covering execute_trade, which is the single most important
+    function in the app to have a correct type for.
+
+    "drop function if exists" is included on purpose: a conditional drop still
+    removes it.
+  */
+  const pattern =
+    /(grant execute on function|drop function(?: if exists)?)\s+public\.([a-z_]+)\s*\(/gi;
+
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(sql))) {
+    const [, verb, name] = match;
+    if (verb.startsWith("grant")) granted.add(name);
+    else granted.delete(name);
+  }
 
   return granted;
 }

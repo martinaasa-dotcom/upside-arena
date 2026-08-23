@@ -19,6 +19,7 @@ export type NotificationSettings = {
   rivalAlerts: boolean;
   weekResult: boolean;
   streakReminder: boolean;
+  leagueActivity: boolean;
   timezone: string;
 };
 
@@ -28,6 +29,7 @@ export const DEFAULT_SETTINGS: NotificationSettings = {
   rivalAlerts: true,
   weekResult: true,
   streakReminder: true,
+  leagueActivity: true,
   timezone: "America/New_York",
 };
 
@@ -38,6 +40,7 @@ function fromRow(row: NotificationSettingsRow): NotificationSettings {
     rivalAlerts: row.rival_alerts,
     weekResult: row.week_result,
     streakReminder: row.streak_reminder,
+    leagueActivity: row.league_activity,
     timezone: row.timezone,
   };
 }
@@ -81,6 +84,7 @@ export async function saveNotificationSettings(
     p_rival_alerts: next.rivalAlerts ?? null,
     p_week_result: next.weekResult ?? null,
     p_streak_reminder: next.streakReminder ?? null,
+    p_league_activity: next.leagueActivity ?? null,
     p_timezone: next.timezone ?? null,
   });
 

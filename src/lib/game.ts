@@ -39,6 +39,15 @@ export const QUOTE_TTL_SECONDS = 60;
 export const WHOLE_SHARES_ONLY = true;
 
 /**
+ * How many companies one weekend's lineup may hold.
+ *
+ * Eight, because a lineup is a decision rather than a portfolio. Somebody who
+ * wants twenty positions wants the trade screen on Monday, and a list long
+ * enough to run out of cash halfway down is a list that will.
+ */
+export const MAX_LINEUP_ORDERS = 8;
+
+/**
  * Anti-cheat. A person cannot click this fast, so anything above it is a
  * script trying to game a leaderboard.
  */

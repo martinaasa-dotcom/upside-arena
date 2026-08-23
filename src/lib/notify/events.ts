@@ -4,15 +4,21 @@ import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLeagueStandings } from "@/lib/game/leagues";
 import {
+  settledBattles,
+  startedBattles,
+  type BattleResult,
+  type StartedBattle,
+} from "@/lib/game/battles";
+import {
   TIER_NAMES,
   podOutcomesFor,
   settleDuePods,
   type PodOutcome,
 } from "@/lib/game/pods";
 import { isTradingDay, isTradingOpen, nyDate } from "@/lib/market/session";
-import { formatGap, ordinal } from "@/lib/format";
+import { formatDate, formatGap, ordinal } from "@/lib/format";
 import { emailConfigured, pushConfigured, sendEmail, sendPush } from "@/lib/notify/send";
-import { isAwakeHour, isStreakReminderHour } from "@/lib/notify/timing";
+import { DAILY_CAP, isAwakeHour, isStreakReminderHour } from "@/lib/notify/timing";
 
 /*
   Deciding what is worth interrupting someone for.
@@ -33,8 +39,6 @@ import { isAwakeHour, isStreakReminderHour } from "@/lib/notify/timing";
     rather than here, so a bug in this file cannot spam anyone.
 */
 
-const DAILY_CAP = 3;
-
 type Settings = {
   user_id: string;
   push_enabled: boolean;
@@ -42,6 +46,7 @@ type Settings = {
   rival_alerts: boolean;
   week_result: boolean;
   streak_reminder: boolean;
+  league_activity: boolean;
   timezone: string;
 };
 
@@ -109,7 +114,12 @@ async function emailsFor(userIds: string[]): Promise<Map<string, string>> {
 async function deliver(
   userId: string,
   settings: Settings | undefined,
-  kind: "rival_passed" | "week_result" | "streak_reminder",
+  kind:
+    | "rival_passed"
+    | "week_result"
+    | "streak_reminder"
+    | "battle_result"
+    | "battle_started",
   dedupeKey: string,
   title: string,
   body: string,
@@ -124,15 +134,32 @@ async function deliver(
     rival_alerts: true,
     week_result: true,
     streak_reminder: true,
+    league_activity: true,
     timezone: "America/New_York",
   };
 
+  /*
+    Two of these share a switch and one has its own, and the difference is
+    worth stating because it looks arbitrary.
+
+    A settled battle is gated by week_result. "Do you want to be told a
+    contest you were in has been scored" is the question that toggle already
+    asks, and asking it twice would be two switches for one preference.
+
+    A battle starting is not that question. The switch it sits nearest is
+    rival_alerts, which fires while the market is open and can fire often,
+    where a league starting a contest is rare. Folding it in would mean
+    somebody turning off the noisy one lost the rare one with it -- far more
+    than they said with that tap. See 0023.
+  */
   const kindEnabled =
     kind === "rival_passed"
       ? prefs.rival_alerts
-      : kind === "week_result"
+      : kind === "week_result" || kind === "battle_result"
         ? prefs.week_result
-        : prefs.streak_reminder;
+        : kind === "battle_started"
+          ? prefs.league_activity
+          : prefs.streak_reminder;
 
   if (!kindEnabled) return "off";
   if (!isAwakeHour(prefs.timezone)) return "asleep";
@@ -295,6 +322,9 @@ export async function notifyWeekResults(): Promise<NotifyResult> {
     .from("weekly_cycles")
     .select("id, monday")
     .eq("status", "closed")
+    // The house week. "Your week is in" is about the race everybody is in,
+    // and a league's battle settling on a Wednesday must not send it.
+    .is("league_id", null)
     .order("monday", { ascending: false })
     .limit(1);
 
@@ -485,4 +515,202 @@ export async function notifyStreaksAtRisk(): Promise<NotifyResult> {
   }
 
   return result;
+}
+
+/*
+  Telling a league that its battle has been settled.
+
+  A battle can run for a year and used to end in silence: the only way to find
+  out you had won one was to happen to open the room afterwards. A contest
+  whose result nobody is told is a contest people play once.
+
+  The same three rules the rest of this file follows still hold. It describes
+  something that actually happened, with a name attached. It says nothing about
+  doing anything about it -- no "start another", no "get your own back", which
+  would be a loss messaged as fixable by playing again. And it goes to everyone
+  who was scored in it, winner and last alike, because a result is a result
+  whichever end of it you are on.
+*/
+export async function notifyBattleResults(): Promise<NotifyResult> {
+  const result: NotifyResult = { considered: 0, sent: 0, skipped: {} };
+  if (!canWriteGame) return result;
+
+  const battles = await settledBattles();
+  if (battles.length === 0) return result;
+
+  const everybody = [
+    ...new Set(battles.flatMap((battle) => battle.finished.map((row) => row.userId))),
+  ];
+
+  const [prefs, emails, devices] = await Promise.all([
+    settingsFor(everybody),
+    emailConfigured ? emailsFor(everybody) : Promise.resolve(new Map<string, string>()),
+    devicesFor(everybody),
+  ]);
+
+  for (const battle of battles) {
+    const present = new Set(battle.present);
+
+    for (const [index, player] of battle.finished.entries()) {
+      /*
+        Everybody who was in it counts towards the field, so a winner who has
+        since left the league does not have their win handed to second place.
+        Only the people still in it are told, because the message links to a
+        room that league membership is what opens.
+      */
+      if (!present.has(player.userId)) continue;
+
+      result.considered++;
+
+      const message = battleResultMessage(battle, index + 1);
+
+      /*
+        Keyed on the battle rather than on the day. This runs on a schedule
+        that may fire twice, or a week late, and the key is the only thing
+        that decides whether somebody hears about a result twice.
+      */
+      const outcome = await deliver(
+        player.userId,
+        prefs.get(player.userId),
+        "battle_result",
+        `battle:${battle.cycleId}`,
+        message.title,
+        message.body,
+        message.href,
+        emails.get(player.userId),
+        devices.has(player.userId)
+      );
+
+      if (outcome === "sent") result.sent++;
+      else result.skipped[outcome] = (result.skipped[outcome] ?? 0) + 1;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Tells a league that one of its members has started a contest.
+ *
+ * Everybody in the league is in it from the moment it is made, so this is not
+ * an invitation and does not pretend to be one. It is the difference between
+ * playing a battle and finding out afterwards that you came last in it.
+ *
+ * The person who started it is not told. They know.
+ */
+export async function notifyBattlesStarted(now = new Date()): Promise<NotifyResult> {
+  const result: NotifyResult = { considered: 0, sent: 0, skipped: {} };
+  if (!canWriteGame) return result;
+
+  const battles = await startedBattles(now);
+  if (battles.length === 0) return result;
+
+  const everybody = [
+    ...new Set(
+      battles.flatMap((battle) =>
+        battle.players.filter((userId) => userId !== battle.createdBy)
+      )
+    ),
+  ];
+  if (everybody.length === 0) return result;
+
+  const [prefs, emails, devices] = await Promise.all([
+    settingsFor(everybody),
+    emailConfigured ? emailsFor(everybody) : Promise.resolve(new Map<string, string>()),
+    devicesFor(everybody),
+  ]);
+
+  for (const battle of battles) {
+    const message = battleStartedMessage(battle);
+
+    for (const userId of battle.players) {
+      if (userId === battle.createdBy) continue;
+
+      result.considered++;
+
+      /*
+        Keyed on the cycle. A battle is announced once however often this
+        runs, and a league that starts a second battle after the first
+        finishes gets a second announcement because it is a different cycle.
+      */
+      const outcome = await deliver(
+        userId,
+        prefs.get(userId),
+        "battle_started",
+        `battle-started:${battle.cycleId}`,
+        message.title,
+        message.body,
+        message.href,
+        emails.get(userId),
+        devices.has(userId)
+      );
+
+      if (outcome === "sent") result.sent++;
+      else result.skipped[outcome] = (result.skipped[outcome] ?? 0) + 1;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * What a started battle says.
+ *
+ * Ordered for a lock screen rather than for a page. Every one of these bodies
+ * is longer than a phone will show, so the order is the message: how long it
+ * runs, when it ends, and that they are in it whether they do anything or
+ * not. All of that inside the first eighty characters.
+ *
+ * The rule goes last and is the part allowed to be cut. It matters -- turning
+ * up to a short-only fortnight and buying what you think will rise is losing
+ * on a misunderstanding rather than on a call -- but it is also the one part
+ * that is waiting for them in the room when they tap through, and the longest
+ * rule in the catalogue is a hundred and thirteen characters on its own.
+ */
+export function battleStartedMessage(battle: StartedBattle): {
+  title: string;
+  body: string;
+  href: string;
+} {
+  return {
+    title: `${battle.leagueName} started ${battle.format.name}`,
+    // The date said the way a person says it. This is a push notification, not
+    // a log line, and "ending 2026-08-28" is the app talking to itself.
+    body: `${battle.length.name}, ending ${formatDate(battle.endsOn)}. You are in it, so it counts either way. ${battle.format.rule}`,
+    href: `/leagues/${battle.leagueId}/battle`,
+  };
+}
+
+/**
+ * What a settled battle says to one player.
+ *
+ * Pure and separate from sending it, like the week's, because this is the
+ * whole of what somebody actually receives and it is worth reading back in a
+ * test rather than off a phone.
+ */
+export function battleResultMessage(
+  battle: BattleResult,
+  place: number
+): { title: string; body: string; href: string } {
+  const href = `/leagues/${battle.leagueId}/battle`;
+  const where = `${battle.formatName} in ${battle.leagueName}`;
+
+  if (place === 1) {
+    return {
+      title: `You won ${battle.formatName}`,
+      body:
+        battle.players === 1
+          ? `${where} is settled. You were the only one who played it.`
+          : `${where} is settled, and you finished first of ${battle.players}.`,
+      href,
+    };
+  }
+
+  return {
+    title: `${where} is settled`,
+    body: `${battle.winner?.displayName ?? "Somebody"} won it. You finished ${ordinal(
+      place
+    )} of ${battle.players}.`,
+    href,
+  };
 }

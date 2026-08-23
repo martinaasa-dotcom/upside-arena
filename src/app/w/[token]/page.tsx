@@ -5,6 +5,7 @@ import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
 import { Panel, Well } from "@/components/Panel";
 import { Button } from "@/components/ui/button";
 import { WeekShape } from "@/components/WeekShape";
+import { settledWeek } from "@/lib/game/shape";
 import { TrackView } from "@/components/TrackView";
 import { ShareCta } from "@/components/ShareCta";
 import { getSharedCard, shareUrl } from "@/lib/game/share";
@@ -184,7 +185,7 @@ async function Week({ params }: Props) {
         </div>
 
         {recap.marks.length > 0 ? (
-          <WeekShape marks={recap.marks} />
+          <WeekShape days={settledWeek(recap.marks)} />
         ) : null}
 
         {recap.league || recap.streakDays > 0 ? (

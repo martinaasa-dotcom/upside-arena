@@ -15,6 +15,26 @@ export const AWAKE_FROM = 8;
 /** First hour, local to the player, that nothing may arrive. */
 export const AWAKE_UNTIL = 21;
 
+/**
+ * The most anything may be sent to one person in one day.
+ *
+ * Here rather than beside the code that decides what to say, because it is a
+ * rule about when it is acceptable to interrupt somebody and because the page
+ * that promises it to a stranger has to be able to read it. A number in prose
+ * that nothing checks is a promise that quietly stops being true.
+ */
+export const DAILY_CAP = 3;
+
+/**
+ * The quiet hours, said the way a person says them.
+ *
+ * A string rather than something derived from the two numbers above, because
+ * "nine at night" is a translation and not a calculation. It lives here so
+ * there is one of it: change the hours and this changes with them, in the one
+ * place both the settings screen and the public rules page read from.
+ */
+export const QUIET_HOURS = "nine at night and eight in the morning";
+
 /** The window in New York during which a streak reminder makes sense. */
 export const STREAK_FROM = 14;
 export const STREAK_UNTIL = 20;

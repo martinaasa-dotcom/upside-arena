@@ -51,6 +51,19 @@ export type AnalyticsEvent =
   | "standings_viewed"
   | "goal_declared"
   | "goal_withdrawn"
+  // Battles: which rule books and which lengths people actually pick. The
+  // format and the length are the whole point of measuring these, and neither
+  // is a person: they are two choices from two fixed lists.
+  | "battle_started"
+  | "battle_viewed"
+  | "battle_cancelled"
+  // The weekend
+  | "lineup_viewed"
+  | "lineup_order_queued"
+  | "lineup_order_cleared"
+  | "lineup_filled"
+  // Reading the rules
+  | "how_it_works_viewed"
   // The long arc
   | "season_viewed"
   // Coming back

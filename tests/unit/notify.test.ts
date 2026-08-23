@@ -8,7 +8,14 @@ import {
 } from "@/lib/notify/timing";
 import { emailHtml, emailText, escapeHtml } from "@/lib/notify/email-template";
 import { decodeVapidKey } from "@/lib/notify/browser";
-import { weekResultMessage } from "@/lib/notify/events";
+import {
+  battleResultMessage,
+  battleStartedMessage,
+  weekResultMessage,
+} from "@/lib/notify/events";
+import { FORMATS, formatById } from "@/lib/game/formats";
+import { lengthById } from "@/lib/game/lengths";
+import type { BattleResult } from "@/lib/game/battles";
 
 /*
   The rules about when and what, tested on their own.
@@ -260,5 +267,118 @@ describe("the week result message", () => {
     const { body } = weekResultMessage(0, { ...pod, tierNow: null });
     expect(body).not.toContain("You are in");
     expect(body).toContain("and go up.");
+  });
+});
+
+describe("what a settled battle says", () => {
+  const battle: BattleResult = {
+    cycleId: "b1",
+    leagueId: "l1",
+    leagueName: "The Pit",
+    formatName: "Silicon",
+    players: 5,
+    winner: { userId: "s1", displayName: "Bo", returnPercent: 8.2 },
+    finished: [
+      { userId: "s1", displayName: "Bo", returnPercent: 8.2 },
+      { userId: "you", displayName: "You", returnPercent: 1.1 },
+    ],
+    present: ["s1", "you"],
+  };
+
+  it("tells the winner they won, and where", () => {
+    const { title, body, href } = battleResultMessage(battle, 1);
+    expect(title).toBe("You won Silicon");
+    expect(body).toBe("Silicon in The Pit is settled, and you finished first of 5.");
+    expect(href).toBe("/leagues/l1/battle");
+  });
+
+  it("tells everybody else who won and where they came", () => {
+    const { title, body } = battleResultMessage(battle, 4);
+    expect(title).toBe("Silicon in The Pit is settled");
+    expect(body).toBe("Bo won it. You finished 4th of 5.");
+  });
+
+  /*
+    The same rule the week's message follows. A result with "start another" or
+    "get your own back" attached is a loss messaged as fixable by playing
+    again, which is the mechanic behind chasing losses.
+  */
+  it("never asks for anything back", () => {
+    for (const place of [1, 2, 9]) {
+      const { body, title } = battleResultMessage(battle, place);
+      expect(`${title} ${body}`).not.toMatch(
+        /again|another|back|revenge|hurry|last chance|don't miss|still time/i
+      );
+    }
+  });
+
+  it("does not claim a field of one was a field", () => {
+    const alone: BattleResult = {
+      ...battle,
+      players: 1,
+      finished: [battle.finished[0]],
+    };
+
+    const { body } = battleResultMessage(alone, 1);
+    expect(body).toBe("Silicon in The Pit is settled. You were the only one who played it.");
+    expect(body).not.toContain("first of 1");
+  });
+});
+
+describe("being told your league has started something", () => {
+  const battle = {
+    cycleId: "c1",
+    leagueId: "l1",
+    leagueName: "The Pit",
+    format: formatById("inverse"),
+    length: lengthById("fortnight"),
+    startsOn: "2026-08-17",
+    endsOn: "2026-08-28",
+    createdBy: "u9",
+    players: ["u9", "u1", "u2"],
+  };
+
+  it("says which league and which rule book", () => {
+    const { title, body, href } = battleStartedMessage(battle);
+    expect(title).toContain("The Pit");
+    expect(title).toContain(battle.format.name);
+    expect(href).toBe("/leagues/l1/battle");
+    expect(body).toContain(battle.length.name);
+  });
+
+  /*
+    The rule is in the body on purpose. Turning up to a short-only fortnight
+    and buying what you think will rise is losing on a misunderstanding
+    rather than on a call, and the message is the one place somebody who
+    never opens the league page will read it.
+  */
+  it("says what the rule actually is, not just its name", () => {
+    expect(battleStartedMessage(battle).body).toContain(battle.format.rule);
+  });
+
+  it("says it counts whether or not they do anything", () => {
+    // Everybody in the league is in it from the moment it is made, so this
+    // is not an invitation and must not read as one.
+    expect(battleStartedMessage(battle).body).toContain("You are in it");
+  });
+
+  /*
+    Ordered for a lock screen. Every one of these bodies is longer than a
+    phone will show, and the first version put the rule first, which pushed
+    "you are in it" past a hundred and eighty characters -- so the one
+    sentence that says why the message matters was the one being cut.
+  */
+  it("says the part that matters inside what a phone will show", () => {
+    for (const format of FORMATS) {
+      const body = battleStartedMessage({ ...battle, format }).body;
+      expect(body.indexOf("You are in it"), format.id).toBeLessThan(80);
+    }
+  });
+
+  it("says when it ends, in words rather than in an ISO date", () => {
+    // A push is somebody's lock screen, not a log line.
+    const { body } = battleStartedMessage(battle);
+    expect(body).not.toContain("2026-08-28");
+    expect(body).toMatch(/ending \d+ \w+/);
   });
 });

@@ -18,6 +18,7 @@ function standing(overrides: Partial<Standing> = {}): Standing {
     totalValue: 100_000,
     returnPercent: 0,
     versusMarket: null,
+    todayPercent: null,
     isYou: true,
     hasTraded: true,
     ...overrides,

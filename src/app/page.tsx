@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Trophy, Users } from "lucide-react";
+import { Shuffle, Trophy, Users } from "lucide-react";
 import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
 import { SignInCard } from "@/components/SignInCard";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,20 @@ const POINTS = [
   {
     icon: Trophy,
     text: "Everyone starts Monday with the same play money, so it is a fair race.",
+  },
+  /*
+    The third one is the part that is actually unusual, and it was missing
+    while the app grew it.
+
+    Named rules rather than "different game modes", because "only companies
+    that make chips" is a thing somebody can picture and want, and the
+    category word it belongs to is not. It is last because it is the second
+    thing to know: the week is the game, and this is what the game turns into
+    once there are people to play it with.
+  */
+  {
+    icon: Shuffle,
+    text: "Then change the rules: only shorts, only chip makers, only coins. For a day, or for a year.",
   },
 ];
 
@@ -98,6 +112,24 @@ export default function LandingPage({
               <p className="text-base leading-relaxed text-muted-foreground">
                 You get pretend money, you pick real companies, and on Friday
                 you find out who did best. Nothing real is ever at stake.
+              </p>
+              {/*
+                The rules, before the sign-in box rather than after it.
+
+                Somebody deciding whether to hand over an email address to a
+                thing involving share prices has one question, and it is "what
+                is this". Two lines and a headline is the answer for most of
+                them; this is for the rest, and it is readable without an
+                account on purpose.
+              */}
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                <Link
+                  href="/how"
+                  className="text-foreground underline underline-offset-4"
+                >
+                  How Arena works
+                </Link>{" "}
+                — the whole game in two minutes, no account needed.
               </p>
             </div>
 
