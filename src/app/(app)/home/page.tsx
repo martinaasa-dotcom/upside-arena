@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import Link from "next/link";
 import { Panel } from "@/components/Panel";
 import { Score, Scoreboard } from "@/components/Scoreboard";
@@ -33,7 +34,8 @@ import { considerHandoff, labUrl } from "@/lib/billing/handoff";
 import { plural } from "@/lib/format";
 import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
 import { formatGap, formatMoney, formatPercent } from "@/lib/format";
-import { hasOpenedToday, nyDate, sessionLabel } from "@/lib/market/session";
+import { sessionLabel } from "@/lib/market/session";
+import { marketHasOpened, today as todayInNewYork } from "@/lib/market/clock";
 
 export const metadata = { title: "Home" };
 
@@ -215,6 +217,23 @@ async function CashScore() {
   once a day, a number going up.
 */
 async function Visit({ userId }: { userId: string }) {
+  /*
+    Says out loud that this region is request-time, which it always was.
+
+    Crediting a visit reads the clock to know what day it is, and reading the
+    clock is a runtime value under Cache Components in the same way reading a
+    cookie is. Without this line the framework tries to prerender it anyway,
+    hits new Date(), and gives up on prerendering the route -- so Home had no
+    App Shell at all, and every region of it arrived after the tap rather than
+    with it. One uncached clock read at the bottom of the page cost the whole
+    room its shell.
+
+    connection() is the documented way to say "not at build time, and I mean
+    it". The Suspense boundary above already holds this region's place with
+    the streak card drawn from a cached read, so nothing here is waited on.
+  */
+  await connection();
+
   const activity = await recordVisit(userId);
   if (!activity) return null;
 
@@ -324,7 +343,7 @@ async function Rest() {
     build time, and "today" is the player's today rather than the day the
     site was compiled.
   */
-  const today = nyDate();
+  const today = await todayInNewYork();
 
   const days = weekSoFar({
     monday: view.cycle.monday,
@@ -347,7 +366,7 @@ async function Rest() {
     that today has not done anything, and "Today +0.0%" is a figure invented
     to fill a line.
   */
-  const move = hasOpenedToday()
+  const move = (await marketHasOpened())
     ? dayMove(view.totalValue, lastCloseBefore(marks, today))
     : null;
 

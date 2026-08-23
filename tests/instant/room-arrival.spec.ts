@@ -41,6 +41,15 @@ test.describe("a room arrives whole", () => {
   test("home is complete in the first frame of a tap from profile", async ({
     page,
   }) => {
+    /*
+      Home once first, so what is measured is a room arriving rather than a
+      cold cache filling. A player who has opened Home before is the case
+      being asked about; the very first open of all is allowed to be slow and
+      is a different question.
+    */
+    await page.goto("/home");
+    await page.waitForLoadState("networkidle");
+
     await page.goto("/profile");
     await page.waitForLoadState("networkidle");
 
@@ -64,10 +73,16 @@ test.describe("a room arrives whole", () => {
         whose fallback is null, so when it is not prefetched the room is a
         heading, four dashes and nothing else -- an empty page that fills in
         afterwards, which is exactly what was being reported.
+
+        The panel that holds the holdings, because the invented player has
+        some. It used to look for the empty-account panel instead, which a
+        populated room does not draw at all -- a test written against the
+        account the probe used to have rather than the one it has now.
       */
-      await expect(
-        page.getByText("Your first week has not started yet")
-      ).toBeVisible();
+      await expect(page.getByText("What you own")).toBeVisible();
+
+      // And a holding in it, so an empty panel cannot pass for a full one.
+      await expect(page.getByText("AAPL")).toBeVisible();
 
       firstFrame = room(await page.locator("body").innerText());
     });
