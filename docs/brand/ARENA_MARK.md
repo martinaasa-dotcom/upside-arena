@@ -1,6 +1,6 @@
 # The Arena mark
 
-Arena's mark is two peaks in aqua, a near one and a far one, parted by a
+Arena's mark is two heavy peaks in aqua, a near one and a far one, parted by a
 hairline. It is called **Rally**. It ships in
 `src/components/brand/ArenaMark.tsx`, drawn from `src/lib/brand/mark.ts`.
 
@@ -11,9 +11,9 @@ have to reconstruct it from the branch history.
 
 ## What it is
 
-Two solid peaks sharing one baseline. The near one is taller, sits left, and
-takes the light. The far one is shorter, sits right, and is two steps darker,
-so it reads as behind rather than beside. A hairline cut parts them.
+Two heavy peaks sharing one baseline. The near one is taller, sits left, takes
+the light, and has a single counter cut through it. The far one is shorter,
+sits right, is two steps darker, and is **solid**. A hairline parts them.
 
 The pair is the whole idea. Arena is a game you play against people you know,
 one week at a time, and a week in it looks exactly like this: somebody ahead,
@@ -24,31 +24,56 @@ It is also what separates Arena from Lab without a colour swatch doing all the
 work. **Lab draws one peak. Arena draws two.** One product is your own
 portfolio, where there is nobody else. The other is the game.
 
+### Two things it had to learn
+
+**It has to occupy its icon.** The first version drew the same two peaks with
+legs half this width, and it was correct as a drawing and wrong as a mark: on
+a home screen it read as two thin strokes floating in the middle of a tile,
+like a logo somebody had forgotten to finish. The legs are 16 units either
+side of a 46-unit span now, so the mass is most of the drawing and the counter
+is a slot through it rather than the shape itself.
+
+**One aperture is enough.** The far peak had a counter too, and the middle of
+the mark was four edges deep — the near peak's slot, the far peak's slot, and
+the hairline between them. At any size below a poster that reads as clutter
+rather than as depth. Solid is what makes the far peak unmistakably the one
+behind, and it is the only difference between the two shapes that does not
+need a second glance.
+
 ### Construction, shared with Lab
 
-Deliberately identical to Lab's mark and must stay that way:
+What the two marks share, and must go on sharing:
 
-- one flat drawing, no strokes, no bevel, no facet mosaic
-- the 64 grid
-- a light ramp that runs top-left to bottom-right
-- hairline cuts between masses, widened optically as the drawing shrinks
+- flat fills, no strokes, no bevel, no baked shadow
+- a light ramp that runs across the whole drawing rather than per shape
+- hairline cuts between the masses, resolved optically as the drawing shrinks
+- the same icon plate, the same four-preset safe-area system, and the same
+  refusal to bake a corner radius into anything the system will mask
 
-Only the count, the silhouette and the metal differ. Lab is one solid standing
-"A" in warm gold; Arena is two peaks in aqua. Siblings, not twins.
+Everything else differs, and deliberately. Lab is one standing "A" in warm
+gold, cut into **ten** facets, and the hairlines there *close* as it shrinks
+(`facetScale`). Arena is **two** peaks in aqua and its one hairline *widens*
+(`cutForSize`). Both rules exist for the same reason — a cut has to survive as
+roughly a pixel on screen — and they point in opposite directions because one
+drawing has nine cuts to lose and the other has one to keep. Siblings, not
+twins.
 
 ### Geometry
 
-Both peaks are the same construction, in `peakPath()`: an apex, two feet on a
-shared baseline at `y = 58`, a leg width measured horizontally at the foot,
-and an inner apex.
+Both peaks are the same construction, in `peakPath()`: an apex and two feet on
+a shared baseline at `y = 60`. A peak with a `leg` gets a counter cut through
+it, sized by that leg width measured horizontally at the foot; a peak without
+one is a plain triangle.
 
 | | Apex | Half-span | Leg | Fill |
 |---|---|---|---|---|
-| Near | `(24, 6)` | 19 | 9.5 | `arena-near` |
-| Far | `(42, 16)` | 17 | 8.5 | `arena-far` |
+| Near | `(24, 4)` | 23 | 16 | `arena-near` |
+| Far | `(44, 16)` | 19 | — solid | `arena-far` |
 
-The drawing spans x 5–59 and y 6–58: 54 by 52 in a 64 grid, near enough square
-to sit in an icon tile without a nudge.
+The drawing spans x 1–63 and y 4–60: 62 by 56 in a 64 grid, centred exactly on
+(32, 32). It fills its own box, which is why `MARK_ZOOM` is 1 — it was 1.1
+back when the peaks were thin enough to look lost in a browser tab. Making the
+mark heavier is what removed the need for the lift.
 
 `INNER_APEX` is `0.62`. At `1` the notch between a peak's legs falls exactly
 where two lines parallel to the outer edges would meet, the legs are a
@@ -158,9 +183,16 @@ where the Apple rules live.
 
 Full-bleed, opaque, and lit from the same two directions the app itself is:
 the near lobe in the accent aqua at the top left, the far one in the magenta
-counter-accent at the bottom right, over a field that runs `#0d1c20` to true
-black. An icon lit like the product is what makes the home screen and the app
-feel like one thing rather than two.
+counter-accent at the bottom right, over a field that runs `#10353d` to
+`#010a0c`. An icon lit like the product is what makes the home screen and the
+app feel like one thing rather than two.
+
+The field is a deep teal rather than the app's true black, and that followed
+from the mark getting heavier. Once the peaks fill most of the tile the ground
+is a setting rather than a stage: near-black behind them read as a hole with a
+logo in it, where a deep teal reads as air. Arena is a game, and it is allowed
+to have some colour in it — this is the one place the product's chrome rule
+(true black, everywhere) deliberately does not reach.
 
 What it deliberately does **not** carry:
 
@@ -182,7 +214,7 @@ What it deliberately does **not** carry:
 | `app` | square | 0.80 | Apple touch icon, App Store master |
 | `tile` | 22.5% | 0.88 | favicons, bookmark tiles, PWA `any` |
 | `maskable` | square | 0.56 | Android adaptive icons |
-| `consent` | 22.5% | 0.66 | Google's OAuth dialogue |
+| `consent` | 22.5% | 0.60 | Google's OAuth dialogue |
 
 Each of them crops differently, which is why one safe area would be wrong for
 all of them.
@@ -200,8 +232,20 @@ its edge, because some launchers crop closer to a squircle than to a circle.
 `consent` is its own shape of problem: 120px, on a surface whose colour we do
 not control, cropped to a circle in some of Google's dialogues and left square
 in others. So it keeps a plate and a rounded shape, and sits inside the circle
-— but less inset than Android's, which reserves more room than Google needs
-and would leave the mark looking lost in the middle of a 120px tile.
+— which is what pulled it from 0.66 to 0.60 when the mark grew: the drawing's
+diagonal, not its width, is what has to fit a circular crop.
+
+### The optical lift
+
+The plated icons sit the mark 2.5 percent above the geometric centre of the
+plate. A pair of peaks is a triangular mass: nearly all of its area is along
+the baseline and the apexes are points, so its perceived centre is well below
+the middle of its bounding box, and centred by the numbers it reads as having
+sagged.
+
+It applies to the plated icons only. The bare mark is placed by whatever is
+around it — a flex row in the lockup, a host's own tile padding — and a
+drawing that is secretly off-centre would fight all of them.
 
 ---
 
@@ -264,16 +308,22 @@ introduced, then replaced, the first mark.
    header. **Rift** replaced it — one six-sided stone with a chevron channel
    cut through — keeping the construction and the aqua.
 6. Rift was rejected in turn, on two counts. It read as one object broken
-   rather than as anything anybody wanted; and the cut-stone facet mosaic it
-   shared with Lab was a decade-old idiom that neither Apple nor anyone else
-   still ships. Rally replaced it: no facets, no bevel, two solid masses, and
-   a plate built to Apple's current icon rules rather than to a favicon
-   exporter's defaults.
+   rather than as anything anybody wanted; and its bevelled cut-stone
+   treatment was a decade-old idiom. Rally replaced it: no bevel, two solid
+   masses, and a plate built to Apple's current icon rules rather than to a
+   favicon exporter's defaults.
+7. Rally shipped thin and was sent back the same day. The direction was right
+   and the drawing did not carry its tile — two small strokes with most of the
+   icon empty around them. The legs roughly doubled, the far peak lost its
+   counter, the field came up to a deep teal, and the whole thing got an
+   optical lift. Same mark, finally the right weight.
 
-The lesson worth keeping is from round five. A mark that reviews well as a
+Two lessons worth keeping. From round five: a mark that reviews well as a
 specimen can still fail in the lockup, so judge the next one in the header at
 20px and on the landing page at hero size before deciding — and, since round
-six, at 16px on a plate as well.
+six, at 16px on a plate as well. From round seven: judge it as an app icon at
+full size too, on a home screen among other icons, because "does this drawing
+own its tile" is a question a contact sheet of marks never asks.
 
 The earlier exploration is kept in `docs/brand/concepts/`. It is a record, not
 a dependency: nothing in the app imports from it.

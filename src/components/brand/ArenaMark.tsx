@@ -5,10 +5,10 @@
 
   Shared family DNA: one flat drawing on the same 64 grid, no strokes, a light
   ramp that runs top-left to bottom-right, and hairline cuts between the
-  masses. What differs is the story. Lab draws one peak, a solid gold "A",
-  because your own portfolio has nobody else in it. Arena draws two in aqua,
-  a near one ahead and a far one behind, because Arena is a game against
-  people you know.
+  masses. What differs is the story. Lab draws one peak -- a standing gold "A"
+  cut into ten facets -- because your own portfolio has nobody else in it.
+  Arena draws two in aqua, a near one ahead and a far one behind, because
+  Arena is a game against people you know.
 
   The geometry lives in src/lib/brand/mark.ts, because the share card and the
   icon rasters have to draw the same thing through different renderers and a

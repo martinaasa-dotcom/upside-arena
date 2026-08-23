@@ -8,14 +8,15 @@
   this file directly rather than holding a second copy.
 
   What the mark is, and why, is recorded in docs/brand/ARENA_MARK.md. In short:
-  two peaks in aqua, a near one and a far one, parted by a hairline. Arena is a
-  game you play against people you know, so the mark is a pair rather than a
-  single object: one peak ahead, one behind, the way a week in the game
-  actually looks.
+  two heavy peaks in aqua, a near one and a far one, parted by a hairline.
+  Arena is a game you play against people you know, so the mark is a pair
+  rather than a single object: one peak ahead, one behind, the way a week in
+  the game actually looks.
 
   Related to Lab's mark by construction rather than by colour. Lab draws one
-  peak, a solid gold "A", because Lab is your own portfolio and there is
-  nobody else in it. Arena draws two, in aqua. Same family, different story.
+  peak -- a standing gold "A" cut into ten facets -- because Lab is your own
+  portfolio and there is nobody else in it. Arena draws two, in aqua. Same
+  family, different story.
 */
 
 export type Peak = {
@@ -25,8 +26,11 @@ export type Peak = {
   span: number;
   /** Where both feet sit. */
   baseline: number;
-  /** Leg width, measured horizontally at the baseline. */
-  leg: number;
+  /**
+   * Leg width, measured horizontally at the baseline. Omitted for a solid
+   * peak with no counter cut out of it.
+   */
+  leg?: number;
   /** The gradient it is filled with, by id. */
   fill: string;
 };
@@ -45,36 +49,53 @@ const INNER_APEX = 0.62;
 /*
   The near peak: taller, further left, and the bright one. It is the one the
   eye lands on, so it takes the light.
+
+  The legs are heavy — 16 units either side of a 46-unit span, so the mass is
+  most of the drawing and the counter is a slot through it rather than the
+  shape itself.
+  They were half that at first, and the mark was two thin strokes floating in
+  the middle of a tile: correct as a drawing, and on a home screen it read as
+  a logo somebody had forgotten to finish. A mark has to occupy its icon.
 */
 export const NEAR_PEAK: Peak = {
-  apex: [24, 6],
-  span: 19,
-  baseline: 58,
-  leg: 9.5,
+  apex: [24, 4],
+  span: 23,
+  baseline: 60,
+  leg: 16,
   fill: "arena-near",
 };
 
 /*
-  The far peak: shorter, further right, and darker, so it sits behind rather
-  than beside. The two feet share a baseline; only the apexes differ, which is
-  what makes the pair read as one drawing seen in depth rather than as two
-  drawings side by side.
+  The far peak: shorter, further right, darker, and solid.
+
+  Solid is the whole difference between the two, and it is what makes the pair
+  read at a glance. When the far peak also had a counter, the middle of the
+  mark was four edges deep -- the near peak's slot, the far peak's slot, and
+  the hairline between them -- and at any size below a poster it read as
+  clutter rather than as depth. One aperture in the whole drawing is enough,
+  and the peak without one is unmistakably the one behind.
+
+  The two feet share a baseline; only the apexes differ, which is what makes
+  the pair read as one drawing seen in depth rather than as two drawings side
+  by side.
 */
 export const FAR_PEAK: Peak = {
-  apex: [42, 16],
-  span: 17,
-  baseline: 58,
-  leg: 8.5,
+  apex: [44, 16],
+  span: 19,
+  baseline: 60,
   fill: "arena-far",
 };
 
 /** Painting order: the far peak first, then the near one over it. */
 export const MARK_PEAKS: Peak[] = [FAR_PEAK, NEAR_PEAK];
 
-/** The near peak's outline, which is also the shape the hairline is cut with. */
+/** A peak's outline. The near one's is also the shape the hairline is cut with. */
 export function peakPath(peak: Peak): string {
   const [ax, ay] = peak.apex;
   const { span, baseline, leg } = peak;
+  if (leg == null) {
+    return `M ${ax} ${ay} L ${ax + span} ${baseline} L ${ax - span} ${baseline} Z`;
+  }
   const inner = ay + ((leg * (baseline - ay)) / span) * INNER_APEX;
   return [
     `M ${ax} ${ay}`,
@@ -108,19 +129,19 @@ export const MARK_GRADIENTS: {
   */
   {
     id: "arena-near",
-    x1: "6",
-    y1: "6",
-    x2: "46",
-    y2: "58",
+    x1: "2",
+    y1: "2",
+    x2: "48",
+    y2: "60",
     from: "#d0fbff",
     to: "#1ec8d0",
   },
   {
     id: "arena-far",
-    x1: "26",
-    y1: "16",
-    x2: "60",
-    y2: "58",
+    x1: "24",
+    y1: "12",
+    x2: "64",
+    y2: "60",
     from: "#00a6b4",
     to: "#00616f",
   },
@@ -146,13 +167,18 @@ export function cutForSize(size: number): number {
 }
 
 /*
-  How much of the 64 grid the bare mark fills. The drawing is 54 wide and 52
-  tall inside a 64 grid, and in a browser tab or a bookmark tile the host adds
-  padding of its own on top of that, which leaves an unzoomed mark looking
-  lost. The plated compositions below set their own scale instead, because
-  there the padding is the safe area and is not the host's to add.
+  How much of the 64 grid the bare mark fills.
+
+  It is 1 now, and that is the point: the drawing is 62 by 56 in a 64 grid, so
+  it already fills its box and a lift would push a foot off the edge. It used
+  to be 1.1, back when the peaks were thin and the drawing was small enough to
+  look lost in a browser tab with the host's own padding around it. Making the
+  mark heavier is what removed the need for the lift.
+
+  The plated compositions below set their own scale instead, because there the
+  padding is the safe area and is not the host's to add.
 */
-export const MARK_ZOOM = 1.1;
+export const MARK_ZOOM = 1;
 
 function gradientDefs(): string {
   return MARK_GRADIENTS.map(
@@ -173,8 +199,15 @@ function gradientDefs(): string {
 */
 function cutMask(id: string, cut: number): string {
   return (
-    `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">` +
-    `<rect width="64" height="64" fill="#fff"/>` +
+    /*
+      The mask box reaches well past the 64 grid. The near peak's foot sits at
+      x = 1, and the outline is *stroked* to cut the hairline, so half the
+      stroke falls outside the grid -- a mask clipped to 0..64 would trim that
+      overhang and leave a nick of far peak showing through at the bottom
+      corner.
+    */
+    `<mask id="${id}" maskUnits="userSpaceOnUse" x="-8" y="-8" width="80" height="80">` +
+    `<rect x="-8" y="-8" width="80" height="80" fill="#fff"/>` +
     `<path d="${peakPath(NEAR_PEAK)}" fill="#000" stroke="#000" stroke-width="${cut}" stroke-linejoin="round"/>` +
     `</mask>`
   );
@@ -187,9 +220,27 @@ function peaksMarkup(maskId: string): string {
   );
 }
 
+/*
+  How far to lift the drawing above the geometric centre of its plate, as a
+  fraction of the plate.
+
+  A pair of peaks is a triangular mass: nearly all of its area sits along the
+  baseline and the apexes are points, so its perceived centre is well below
+  the middle of its bounding box. Centred by the numbers, it reads as having
+  sagged. Two and a half percent is enough to look centred and small enough
+  that nothing measures as off.
+
+  It applies to the plated icons only. The bare mark is placed by whatever is
+  around it -- a flex row in the lockup, a host's own tile padding -- and a
+  drawing that is secretly off-centre would fight all of them.
+*/
+const OPTICAL_LIFT = 0.025;
+
 /** Scale the drawing about the centre of the 64 grid. */
-function zoom(scale: number, inner: string): string {
-  return `<g transform="translate(32 32) scale(${scale}) translate(-32 -32)">${inner}</g>`;
+function zoom(scale: number, inner: string, lift = 0): string {
+  const dy = -(64 * lift);
+  const shift = dy === 0 ? "" : `translate(0 ${dy.toFixed(3)}) `;
+  return `<g transform="${shift}translate(32 32) scale(${scale}) translate(-32 -32)">${inner}</g>`;
 }
 
 /**
@@ -228,13 +279,13 @@ export function arenaMarkDataUri(size = 64): string {
 */
 export const PLATE = {
   /** The field, top-left to bottom-right. */
-  field: ["#0d1c20", "#000000"],
+  field: ["#10353d", "#010a0c"],
   /** The near lobe, behind the mark. */
   glow: "#11c0d3",
-  glowOpacity: 0.3,
+  glowOpacity: 0.24,
   /** The far lobe, the counter-accent. */
   counter: "#e380e0",
-  counterOpacity: 0.12,
+  counterOpacity: 0.13,
 } as const;
 
 /*
@@ -271,7 +322,7 @@ export const ICON_PRESETS = {
     reserves more room than Google needs and would leave the mark looking lost
     in the middle of a 120px tile.
   */
-  consent: { radius: 0.225, glyph: 0.66 },
+  consent: { radius: 0.225, glyph: 0.6 },
 } as const;
 
 export type IconPreset = keyof typeof ICON_PRESETS;
@@ -307,7 +358,7 @@ export function arenaIconSvg(preset: IconPreset, size: number): string {
     `<rect width="64" height="64"${rx} fill="url(#arena-field)"/>` +
     `<rect width="64" height="64"${rx} fill="url(#arena-counter)"/>` +
     `<rect width="64" height="64"${rx} fill="url(#arena-glow)"/>` +
-    zoom(glyph, peaksMarkup("arena-cut")) +
+    zoom(glyph, peaksMarkup("arena-cut"), OPTICAL_LIFT) +
     `</svg>`
   );
 }
