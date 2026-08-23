@@ -93,7 +93,17 @@ const server = spawn("npx", ["next", "dev", "--port", String(PORT)], {
   cwd: process.cwd(),
   env: {
     ...process.env,
-    NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co",
+    /*
+      A port nothing listens on, rather than a hostname nothing answers.
+
+      This renders rooms whose data layer is switched on but has nowhere to
+      go, and how long "nowhere" takes is the difference between this check
+      taking a minute and taking ten: a placeholder hostname is a DNS lookup
+      and then a connection that may simply wait, while a closed local port is
+      refused on the spot. The rooms render either way; only the waiting
+      differs, and the waiting is what made this unusable in CI.
+    */
+    NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:1",
     NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-anon-key-no-project-behind-it",
     SUPABASE_SERVICE_ROLE_KEY: "placeholder-service-role-key",
     NEXT_PUBLIC_SITE_URL: `http://127.0.0.1:${PORT}`,
@@ -116,6 +126,20 @@ server.stderr.on("data", (d) => (log += d.toString()));
 function stop(code) {
   process.exitCode = code;
   server.kill("SIGKILL");
+
+  /*
+    And then actually leave.
+
+    Setting an exit code is not the same as exiting: node waits for the event
+    loop to empty, and a spawned dev server with pipes attached can keep it
+    from emptying however dead the child is. This step sat "in progress" in CI
+    long after it had decided its answer.
+
+    A short delay first, because process.exit can truncate output that has
+    been written but not yet flushed -- and the output is the whole point,
+    since it names the line that cannot be prerendered.
+  */
+  setTimeout(() => process.exit(code), 500);
 }
 
 async function ready() {

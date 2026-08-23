@@ -49,7 +49,8 @@ export default defineConfig({
         nothing and the rooms draw their empty state, which is all this probe
         needs. What it measures is when the room appears, not what is in it.
       */
-      NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co",
+      // A closed local port, refused instantly. See scripts/prerender-check.mjs.
+      NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:1",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-anon-key-no-project-behind-it",
       NEXT_PUBLIC_SITE_URL: baseURL,
       SUPABASE_SERVICE_ROLE_KEY: "placeholder-service-role-key",
