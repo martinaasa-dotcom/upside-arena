@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { recordDailyActive } from "@/lib/metrics";
 import { hasPlus } from "@/lib/billing/entitlements";
 import { limitsFor } from "@/lib/billing/plan";
+import { cycleCache, playerCache } from "@/lib/game/cache";
 import {
   cycleMonday,
   isTradingDay,
@@ -266,11 +267,25 @@ export async function recordVisit(userId: string): Promise<VisitResult | null> {
  * days of it that have happened. Somebody whose last visit was last week
  * counts as none, however long their streak was.
  */
-export async function getWeekStreaks(
+/*
+  Entries rather than a Map, and cached under the week.
+
+  A Map does not survive a cache -- what comes back is what could be
+  serialised -- and one that arrived empty would quietly show a league where
+  nobody has a streak. So the entries are cached and the Map is built by the
+  caller below.
+
+  The week rather than a player, because this is every member of a league at
+  once and no single player owns it.
+*/
+async function weekStreakEntries(
   userIds: string[]
-): Promise<Map<string, number>> {
-  const empty = new Map<string, number>();
-  if (!canWriteGame || userIds.length === 0) return empty;
+): Promise<[string, number][]> {
+  "use cache";
+  cycleCache();
+
+  const found = new Map<string, number>();
+  if (!canWriteGame || userIds.length === 0) return [];
 
   const admin = createAdminClient();
   const monday = cycleMonday();
@@ -287,14 +302,25 @@ export async function getWeekStreaks(
     last_active_date: string | null;
   }[]) {
     if (!row.last_active_date || row.last_active_date < monday) continue;
-    empty.set(row.user_id, Math.min(row.current_streak, soFar));
+    found.set(row.user_id, Math.min(row.current_streak, soFar));
   }
 
-  return empty;
+  return [...found];
+}
+
+/** The streak each of these players is on this week, capped at days elapsed. */
+export async function getWeekStreaks(
+  userIds: string[]
+): Promise<Map<string, number>> {
+  // Sorted so the same members in a different order are one cache entry.
+  return new Map(await weekStreakEntries([...userIds].sort()));
 }
 
 /** The streak as it stands, without crediting anything. */
 export async function readStreak(userId: string): Promise<VisitResult | null> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return null;
 
   const admin = createAdminClient();
@@ -376,6 +402,9 @@ const NOTHING_WORN: Record<CosmeticSlot, string | null> = {
 };
 
 export async function getRewards(userId: string): Promise<Wardrobe> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) {
     return { owned: [], locked: [], forSale: [], equipped: { ...NOTHING_WORN } };
   }

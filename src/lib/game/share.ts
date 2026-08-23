@@ -8,6 +8,7 @@ import { getDailyMarks } from "@/lib/game/marks";
 import { positionedWeek } from "@/lib/game/shape";
 import type { Recap } from "@/lib/share/card";
 import type { ShareCardRow } from "@/lib/supabase/database.types";
+import { playerCache } from "@/lib/game/cache";
 
 /*
   Turning a finished week into something a person can post.
@@ -80,9 +81,12 @@ function toCard(row: ShareCardRow): ShareCard {
  * Returns null when they have no finished week yet, which is the normal state
  * for anyone in their first few days.
  */
-export async function getLatestRecap(userId: string): Promise<
-  { recap: Recap; cycleId: string } | null
-> {
+export async function getLatestRecap(
+  userId: string
+): Promise<{ recap: Recap; cycleId: string } | null> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return null;
 
   const admin = createAdminClient();
@@ -373,6 +377,9 @@ export async function getSharedCard(token: string): Promise<ShareCard | null> {
 
 /** Every card this player has made, newest first. */
 export async function getMyCards(userId: string): Promise<ShareCard[]> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return [];
 
   const admin = createAdminClient();

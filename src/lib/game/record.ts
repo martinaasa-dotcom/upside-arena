@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { whoWasHere } from "@/lib/game/roster";
 import { compareResults } from "@/lib/game/ranking";
 import type { LeagueRow, WeeklyCycleRow } from "@/lib/supabase/database.types";
+import { playerCache } from "@/lib/game/cache";
 
 /*
   What a league remembers.
@@ -102,6 +103,9 @@ export const getLeagueRecord = cache(async function getLeagueRecord(
   userId: string,
   leagueId: string
 ): Promise<LeagueRecord | null> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return null;
 
   const admin = createAdminClient();
@@ -355,6 +359,9 @@ export async function getPlayedWeeks(
   userId: string,
   limit = 26
 ): Promise<PlayedWeek[]> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return [];
 
   const admin = createAdminClient();

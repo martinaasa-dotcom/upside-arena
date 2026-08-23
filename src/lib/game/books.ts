@@ -4,6 +4,7 @@ import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { whoWasHere } from "@/lib/game/roster";
 import { compareResults } from "@/lib/game/ranking";
+import { playerCache } from "@/lib/game/cache";
 
 /*
   What everybody turned out to be holding, once a contest is over.
@@ -86,6 +87,9 @@ export async function getLastWeekBooks(
   userId: string,
   leagueId: string
 ): Promise<WeekBooks | null> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return null;
 
   const admin = createAdminClient();

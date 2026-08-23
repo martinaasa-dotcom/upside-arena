@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cancelBattle, startBattle } from "@/lib/game/battles";
 import { isFormatId } from "@/lib/game/formats";
 import { isLengthId } from "@/lib/game/lengths";
+import { playerChanged } from "@/lib/game/cache";
 
 /*
   Starting and calling off a battle.
@@ -59,7 +60,9 @@ export async function submitStartBattle(
 
   if (!result.ok) return { error: result.error };
 
+  playerChanged(user.id);
   revalidatePath("/leagues", "layout");
+  playerChanged(user.id);
   revalidatePath("/home");
   redirect(`/leagues/${parsed.data.leagueId}/battle`);
 }
@@ -73,7 +76,9 @@ export async function submitCancelBattle(formData: FormData) {
 
   await cancelBattle(user.id, cycleId);
 
+  playerChanged(user.id);
   revalidatePath("/leagues", "layout");
+  playerChanged(user.id);
   revalidatePath("/home");
   redirect(`/leagues/${leagueId}`);
 }

@@ -4,6 +4,7 @@ import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { compareResults } from "@/lib/game/ranking";
 import type { PodRow, PodMemberRow } from "@/lib/supabase/database.types";
+import { playerCache } from "@/lib/game/cache";
 
 /*
   Public matchmade pods, from section 2.2.
@@ -322,6 +323,9 @@ export async function getPodView(
   cycleId: string,
   benchmarkReturnPercent: number | null
 ): Promise<PodView | null> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return null;
 
   const admin = createAdminClient();

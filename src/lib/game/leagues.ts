@@ -15,6 +15,7 @@ import { getMarksFor } from "@/lib/game/marks";
 import { dayMove, lastCloseBefore } from "@/lib/game/shape";
 import { hasOpenedToday, nyDate } from "@/lib/market/session";
 import type { LeagueRow } from "@/lib/supabase/database.types";
+import { playerCache } from "@/lib/game/cache";
 
 /*
   Private leagues, and the standings inside them.
@@ -98,6 +99,9 @@ function toLeague(row: LeagueRow, memberCount: number, viewerId: string): League
 
 /** Every league a player is in, with how many people are in each. */
 export async function getLeagues(userId: string): Promise<League[]> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return [];
 
   const admin = createAdminClient();
@@ -144,6 +148,9 @@ export const getLeagueStandings = cache(async function getLeagueStandings(
   userId: string,
   leagueId: string
 ): Promise<LeagueStandings | null> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return null;
 
   const admin = createAdminClient();
@@ -476,6 +483,9 @@ export async function getLeaguePositions(
   userId: string,
   leagueIds: readonly string[]
 ): Promise<Map<string, LeaguePosition>> {
+  "use cache";
+  playerCache(userId);
+
   const out = new Map<string, LeaguePosition>();
   if (!canWriteGame || leagueIds.length === 0) return out;
 

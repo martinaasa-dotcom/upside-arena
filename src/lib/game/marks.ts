@@ -8,6 +8,7 @@ import { getQuotes } from "@/lib/market/quotes";
 import { positionValue } from "@/lib/game/formats";
 import { isTradingDay, nyDate } from "@/lib/market/session";
 import type { DailyMark } from "@/lib/game/shape";
+import { cycleCache } from "@/lib/game/cache";
 
 /*
   What every portfolio was worth at the end of each trading day.
@@ -244,6 +245,16 @@ export async function needsMarkToday(now = new Date()): Promise<boolean> {
 export const getDailyMarks = cache(async function getDailyMarks(
   portfolioId: string
 ): Promise<DailyMark[]> {
+  /*
+    Cached under the week rather than under a player, because the argument
+    here is a portfolio id and the tag a mutation drops is a user id -- and a
+    tag that can never match is worse than no tag, since it reads as
+    invalidation that is not happening. Marks are written once a day by the
+    first person to look, so the refresh below is what keeps them current.
+  */
+  "use cache";
+  cycleCache();
+
   if (!canWriteGame) return [];
 
   const admin = createAdminClient();

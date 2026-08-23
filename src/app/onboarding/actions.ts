@@ -8,6 +8,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { sessionTag } from "@/lib/profile";
 import { recordAcceptance } from "@/app/auth/actions";
+import { playerChanged } from "@/lib/game/cache";
 
 export type OnboardingState = { error?: string };
 
@@ -111,6 +112,14 @@ export async function completeOnboarding(
   } catch {
     // Nothing to recover. They are onboarded either way.
   }
+
+  /*
+    And the league that was just made for them, which Home reads through a
+    cached list. Dropped after the league rather than with the session tag
+    above, so that whichever of the two writes happened last is the one this
+    is standing behind.
+  */
+  playerChanged(user.id);
 
   revalidatePath("/", "layout");
   redirect("/home");

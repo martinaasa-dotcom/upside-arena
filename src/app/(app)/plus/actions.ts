@@ -10,6 +10,7 @@ import {
 } from "@/lib/billing/stripe";
 import { buyReward } from "@/lib/billing/entitlements";
 import { PLUS_CADENCES, type PlusCadence } from "@/lib/billing/plan";
+import { playerChanged } from "@/lib/game/cache";
 
 /*
   Starting a payment, and managing one already running.
@@ -81,7 +82,9 @@ export async function purchaseReward(
   const user = await requireUser();
   const result = await buyReward(user.id, rewardId);
 
+  playerChanged(user.id);
   revalidatePath("/plus");
+  playerChanged(user.id);
   revalidatePath("/profile");
 
   return result.ok

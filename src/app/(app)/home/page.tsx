@@ -16,7 +16,7 @@ import { TrackView } from "@/components/TrackView";
 import { LabHandoff } from "@/components/LabHandoff";
 import { getSession } from "@/lib/profile";
 import { getPortfolioView } from "@/lib/game/portfolio";
-import { recordVisit } from "@/lib/game/streaks";
+import { readStreak, recordVisit } from "@/lib/game/streaks";
 import { getLeagues } from "@/lib/game/leagues";
 import { getLatestRecap } from "@/lib/game/share";
 import { getLiveBattles, hasEverPlayedBattle } from "@/lib/game/battles";
@@ -203,13 +203,45 @@ async function CashScore() {
   scroll: the market line, the streak, what you own. It streams as a piece
   rather than flickering in six.
 */
+/*
+  Counting the visit, which is the only thing on this screen that writes.
+
+  Deliberately the smallest region on the page: everything around it is a
+  cached read and arrives with the tap, and this is the one thing that cannot,
+  because a prefetch must never credit a day nobody opened.
+
+  What it draws is a card that is already on screen and two toasts that are
+  almost always nothing, so there is no gap here for a player to see -- only,
+  once a day, a number going up.
+*/
+async function Visit({ userId }: { userId: string }) {
+  const activity = await recordVisit(userId);
+  if (!activity) return null;
+
+  return (
+    <>
+      <EarnedToast earned={activity.earned} />
+      <BonusToast bonuses={activity.bonuses} />
+      <TrackView
+        event="streak_viewed"
+        properties={{ counted: activity.streak.countedToday }}
+      />
+      <StreakCard streak={activity.streak} />
+    </>
+  );
+}
+
 async function Rest() {
   const { user, profile } = await getSession();
 
   /*
-    Opening Home and looking at your portfolio is what a streak counts, which
-    is the trigger the plan says to start with. Crediting it here and nowhere
-    else keeps the streak meaning the one thing it claims to mean.
+    The streak as it stands, read rather than credited.
+
+    Crediting it is a write, and a write cannot be prefetched: this region is
+    fetched before the tap so that it can arrive complete, and a prefetch that
+    credited a visit would count a day the player never opened. So the number
+    shown here comes from a cached read, and the crediting happens in its own
+    small region below, on a real visit only.
   */
   const [
     view,
@@ -224,7 +256,7 @@ async function Rest() {
   ] = user
     ? await Promise.all([
         getPortfolioView(user.id),
-        recordVisit(user.id),
+        readStreak(user.id),
         getLeagues(user.id),
         getLatestRecap(user.id),
         // Almost always null. Only for somebody it is actually true of, and
@@ -345,8 +377,6 @@ async function Rest() {
 
   return (
     <>
-      {activity ? <EarnedToast earned={activity.earned} /> : null}
-      {activity ? <BonusToast bonuses={activity.bonuses} /> : null}
 
       {/*
         How the week is going on the left, what to do about it on the right.
@@ -436,15 +466,22 @@ async function Rest() {
             />
           ) : null}
 
-          {activity ? (
-            <>
-              <TrackView
-                event="streak_viewed"
-                properties={{ counted: activity.streak.countedToday }}
-              />
-              <StreakCard streak={activity.streak} />
-            </>
-          ) : null}
+          {/*
+            The streak, and the one write Home still does.
+
+            The fallback is the card itself, drawn from the read above, so
+            this space is filled from the first frame rather than empty. What
+            streams in behind it is the same card with today's visit counted,
+            plus whatever that visit earned. On every view but the first of a
+            day the two are identical and nothing appears to happen; on that
+            one the number ticks up, which is the card doing its job rather
+            than the page still loading.
+          */}
+          <Suspense
+            fallback={activity ? <StreakCard streak={activity.streak} /> : null}
+          >
+            <Visit userId={user.id} />
+          </Suspense>
 
           {movers ? <Movers movers={movers} /> : null}
 

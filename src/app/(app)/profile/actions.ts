@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { sessionTag } from "@/lib/profile";
+import { playerChanged } from "@/lib/game/cache";
 
 export type ProfileState = { error?: string; saved?: boolean };
 
@@ -67,7 +68,9 @@ export async function updateProfile(
     from this row is not only the session.
   */
   updateTag(sessionTag(user.id));
+  playerChanged(user.id);
   revalidatePath("/profile");
+  playerChanged(user.id);
   revalidatePath("/home");
   return { saved: true };
 }

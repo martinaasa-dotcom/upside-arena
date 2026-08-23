@@ -5,6 +5,7 @@ import { getCurrentCycle } from "@/lib/game/portfolio";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { WeeklyGoalRow } from "@/lib/supabase/database.types";
 import type { GoalKind } from "@/lib/game/goal-kinds";
+import { cycleCache, playerCache } from "@/lib/game/cache";
 
 /*
   Reading and writing what somebody said they would do this week.
@@ -27,12 +28,25 @@ export type DeclaredGoal = {
   met: boolean | null;
 };
 
-/** Every goal declared to one league this week. */
-export async function getGoals(
+/*
+  Every goal declared to one league this week.
+
+  Cached as entries and turned into a Map by the caller, because a Map does
+  not survive a cache: what comes back is what could be serialised, and a Map
+  that arrives empty would read as a league where nobody declared anything.
+
+  Tagged with the week rather than with a player. It is one row per member and
+  the reader is looking at all of them, so there is no single player whose
+  changes should drop it -- declaring a goal drops the week instead.
+*/
+async function goalEntries(
   leagueId: string,
   cycleId: string
-): Promise<Map<string, WeeklyGoalRow>> {
-  if (!canWriteGame) return new Map();
+): Promise<[string, WeeklyGoalRow][]> {
+  "use cache";
+  cycleCache();
+
+  if (!canWriteGame) return [];
 
   const admin = createAdminClient();
   const { data } = await admin
@@ -41,9 +55,15 @@ export async function getGoals(
     .eq("league_id", leagueId)
     .eq("cycle_id", cycleId);
 
-  return new Map(
-    ((data ?? []) as WeeklyGoalRow[]).map((row) => [row.user_id, row])
-  );
+  return ((data ?? []) as WeeklyGoalRow[]).map((row) => [row.user_id, row]);
+}
+
+/** Every goal declared to one league this week. */
+export async function getGoals(
+  leagueId: string,
+  cycleId: string
+): Promise<Map<string, WeeklyGoalRow>> {
+  return new Map(await goalEntries(leagueId, cycleId));
 }
 
 /**
@@ -58,6 +78,9 @@ export async function getGoals(
  * request, so asking for it again costs nothing.
  */
 export async function hasDeclaredGoalThisWeek(userId: string): Promise<boolean> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return false;
 
   const cycle = await getCurrentCycle();

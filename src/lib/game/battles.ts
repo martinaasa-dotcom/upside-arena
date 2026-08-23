@@ -39,6 +39,7 @@ import { byResult, compareResults } from "@/lib/game/ranking";
 import type { RevealedBook } from "@/lib/game/books";
 import { dayMove, lastCloseBefore, runTrail } from "@/lib/game/shape";
 import type { LeagueRow, WeeklyCycleRow } from "@/lib/supabase/database.types";
+import { playerCache } from "@/lib/game/cache";
 
 /*
   Battles: a league's own contest, beside the house week.
@@ -234,6 +235,9 @@ export async function getLeagueBattle(
   userId: string,
   leagueId: string
 ): Promise<Battle | null> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return null;
 
   const admin = createAdminClient();
@@ -266,6 +270,9 @@ export async function getLeagueBattle(
 
 /** Every battle running in any of the viewer's leagues. For the home screen. */
 export async function getLiveBattles(userId: string): Promise<Battle[]> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return [];
 
   const admin = createAdminClient();
@@ -308,6 +315,9 @@ export async function getLiveBattles(userId: string): Promise<Battle[]> {
  * somebody who has played one does not need to be told it exists.
  */
 export async function hasEverPlayedBattle(userId: string): Promise<boolean> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return false;
 
   const admin = createAdminClient();
@@ -507,6 +517,9 @@ export const getBattleView = cache(async function getBattleView(
   userId: string,
   cycleId: string
 ): Promise<BattleView | null> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return null;
 
   const admin = createAdminClient();

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { equipCosmetic } from "@/lib/game/streaks";
 import type { CosmeticSlot } from "@/lib/supabase/database.types";
+import { playerChanged } from "@/lib/game/cache";
 
 const SLOTS: CosmeticSlot[] = ["title", "flair", "theme"];
 
@@ -30,7 +31,10 @@ export async function submitEquip(formData: FormData) {
   const raw = String(formData.get("rewardId") ?? "");
   await equipCosmetic(user.id, raw === "" ? null : raw, slot);
 
+  playerChanged(user.id);
   revalidatePath("/profile");
+  playerChanged(user.id);
   revalidatePath("/home");
+  playerChanged(user.id);
   revalidatePath("/leagues");
 }
