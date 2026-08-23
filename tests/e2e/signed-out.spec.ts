@@ -637,9 +637,10 @@ test.describe("brand shell", () => {
       the accent is that same aqua, so the accent and the mark are one colour
       rather than two competing ones;
 
-      every accent sits at the same lightness, so gain, loss and warning read
-      as three meanings at one volume rather than as a hierarchy nobody
-      intended.
+      the aqua, gain and warning sit at the same lightness, so they read as
+      meanings at one volume rather than as a hierarchy nobody intended, and
+      the two reds sit lower because at that lightness sRGB has no red, only
+      a salmon.
 
     Everything else is still Lab's, and the point of this test is that it
     stays that way. Divergences somebody wrote down are divergences; one
@@ -670,19 +671,39 @@ test.describe("brand shell", () => {
           ["--primary", "oklch(0.74 0.125 207)"],
           ["--ring", "oklch(0.74 0.125 207)"],
           /*
-            All three at the accent's lightness. Lab's originals sat at three
-            different ones, which made a loss read louder than a gain for a
-            reason nobody chose.
+            The green and the amber at the accent's lightness. Lab's originals
+            sat at three different ones, which made a loss read louder than a
+            gain for a reason nobody chose.
+
+            The reds are lower and that is deliberate: at L 0.74 the most
+            chromatic red sRGB has is a salmon, and a losing number that reads
+            as pink is the wrong colour whatever the row does. Hue 25, chroma
+            just inside the gamut. See the semantic block in globals.css.
           */
           ["--gain", "oklch(0.74 0.155 162.5)"],
-          ["--loss", "oklch(0.74 0.155 16.4)"],
+          ["--loss", "oklch(0.66 0.22 25)"],
           ["--warning", "oklch(0.74 0.16 45)"],
+          ["--destructive", "oklch(0.58 0.232 25)"],
         ] as [string, string][],
       }
     );
 
+    /*
+      One byte of slack per channel, and no more.
+
+      The build ships these as lab(), not as the oklch() written in
+      globals.css, so a token read back off the document has been through a
+      colour space the literal beside it has not. --loss lands on rgb(252,
+      69, 71) that way and on rgb(252, 68, 71) direct: the same colour, one
+      unit apart in one channel, and nothing a person can see. A palette that
+      actually moved moves by tens.
+    */
     for (const { token, actual, expected } of results) {
-      expect(actual, `${token} has moved off the locked palette`).toEqual(expected);
+      const drift = actual.map((channel, index) => Math.abs(channel - expected[index]));
+      expect(
+        Math.max(...drift),
+        `${token} has moved off the locked palette: ${actual} against ${expected}`
+      ).toBeLessThanOrEqual(1);
     }
   });
 

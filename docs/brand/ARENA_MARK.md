@@ -213,15 +213,41 @@ Why the icon is not simply the app: see the plate below.
 
 `--primary` is **`oklch(0.74 0.125 207)`** (`#11c0d3`), the mark's aqua.
 
-**Every accent in the app sits at L 0.74** — the brand aqua, the counter-accent,
-gain, loss, warning and destructive alike. They used to run from 0.63 to 0.79,
-a visible sixth of the lightness range, and it showed: the brand shouted over
-the semantics and the loss red sank into the field. One lightness means a
-green, a red and the brand carry the same weight and differ only in hue, which
-is the job hue is supposed to do. Chroma is set per hue to just inside the sRGB
-gamut, because the reds and the cyan reach their limits at different points.
+**The brand aqua, the counter-accent, gain and warning sit at L 0.74.** They
+used to run from 0.63 to 0.79, a visible sixth of the lightness range, and it
+showed: the brand shouted over the semantics and the loss red sank into the
+field. One lightness means a green, an amber and the brand carry the same
+weight and differ only in hue, which is the job hue is supposed to do. Chroma
+is set per hue to just inside the sRGB gamut, because each hue reaches its
+limit at a different point.
 
-It is an accessibility gain too: loss went from 5.74:1 on black to 8.8:1.
+**The reds are the exception, and sRGB is the reason.** Red is the one hue
+where the lightness a palette picks decides whether the colour exists at all.
+At L 0.74 the most chromatic red in gamut is `oklch(0.74 0.16 25)`, `#ff716b`,
+which is a salmon: not a red held quietly, a different colour, and the one
+thing a losing number must not read as. Chroma comes back with every step
+down, so both reds drop to where a red is available and hold hue 25, a degree
+off pure red's 29 and 20 clear of the amber at 45.
+
+They land at two lightnesses, because they do two jobs.
+
+| Token | Value | sRGB | Measured |
+| --- | --- | --- | --- |
+| `--loss` | `oklch(0.66 0.22 25)` | `#fc4447` | 6.1:1 on black |
+| `--destructive` | `oklch(0.58 0.232 25)` | `#e30a28` | white on it 4.8:1 |
+
+`--loss` is text on the field, set at the lightest point that is still
+unmistakably red. 6.1:1 is short of the 8.5:1 the salmon measured and well
+past the 4.5:1 AA asks of body text, and a number nobody reads as a loss is
+the worse failure of the two.
+
+`--destructive` is a fill under white text, so it is measured the other way
+round: at L 0.74 white on it was **2.46:1**, a real failure that was shipping,
+and at L 0.58 it is 4.83:1 and passes. As the invalid input's border it
+measures 4.3:1 on black, clear of the 3:1 non-text bar.
+
+Do not raise either back to 0.74 for the sake of the row. A palette rule that
+turns the loss colour into a salmon has stopped describing the product.
 
 Everything derives from this one token via `oklch(from var(--primary) ...)`, so
 there is exactly one value to change in `src/app/globals.css`.
@@ -241,7 +267,7 @@ L 0.74.
 
 It was chosen rather than picked. The true complement of the accent is hue 27,
 a coral, which would give the most chromatic contrast and is unusable here: it
-lands 5 degrees from `--destructive` and 11 from `--loss`, and in a money game
+lands 2 degrees from `--loss` and `--destructive` both, and in a money game
 an ambient coral wash reads as "you are down" before it reads as decoration.
 Yellow is Lab's and Arena should not borrow it. That leaves the violet to
 magenta band, where 328 sits 121 degrees off the accent, still far enough to

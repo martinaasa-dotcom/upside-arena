@@ -473,8 +473,9 @@ export const HEX = {
   foreground: "#fafafa",
   muted: "#a1a1a1",
   /*
-    The accent, oklch(0.74 0.125 207). The mark's aqua, held at the one
-    lightness every accent in the app shares. See docs/brand/ARENA_MARK.md.
+    The accent, oklch(0.74 0.125 207). The mark's aqua, held at the lightness
+    the aqua, the green and the amber share. The reds sit lower, because sRGB
+    has no red up here. See docs/brand/ARENA_MARK.md.
   */
   primary: "#11c0d3",
   /*
@@ -485,7 +486,12 @@ export const HEX = {
   glowSecondary: "#e380e0",
   primaryForeground: "#0a0a0a",
   gain: "#20c88d",
-  loss: "#fd7e88",
+  /*
+    oklch(0.66 0.22 25). Darker than the other accents on purpose: at their
+    lightness the reddest colour sRGB has is a salmon. See the semantic block
+    in src/app/globals.css.
+  */
+  loss: "#fc4447",
 } as const;
 
 /** The accent as rgb components, for the ambient field's near lobe. */
