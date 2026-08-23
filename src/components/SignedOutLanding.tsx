@@ -93,12 +93,21 @@ function Section({
     of centred text in the hero, which is a measure rather than an edge.
 
     Generous spacing is what makes a product page feel calm, and the mistake
-    is reading that as "more is better". What reads as calm is the ratio:
-    the gap between two sections has to be clearly smaller than the sections
-    it separates. 160px on a desktop, against sections that run 400px and up.
+    is reading that as "more is better". What reads as calm is the ratio, and
+    the ratio a scrolling reader actually experiences is against the window
+    rather than against the section: nobody sees a 480px section and a 160px
+    gap side by side and compares them, they see a screen. 160px is 18% of a
+    900px window, measured as the tallest empty band on this page, and it is
+    what a reader lands in when one flick of a wheel happens to stop on a
+    boundary. Two of those in a row read as the page having run out.
+
+    96px on a desktop, 80px on a phone. Still clearly smaller than the
+    sections it separates, which is the test the note above sets, and now
+    also small enough that no boundary can fill a fifth of the screen with
+    nothing. The other half of that fault is in `Arrive`.
   */
   return (
-    <section className={cn("px-6 py-14 sm:py-20", className)}>
+    <section className={cn("px-6 py-10 sm:py-12", className)}>
       <div className="mx-auto w-full min-w-0 max-w-5xl">{children}</div>
     </section>
   );
@@ -355,9 +364,7 @@ function WhatItDoes() {
     <Section>
       <Arrive>
         <SectionHead title="The same money on Monday. A scoreboard on Friday. An argument all week." />
-      </Arrive>
-      <Arrive delayMs={80}>
-        <div className="mt-12 grid gap-4 md:grid-cols-2">
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
           <WeekStill />
           <BattleStill />
         </div>
@@ -491,9 +498,7 @@ function HowYouStart() {
             STARTING_BALANCE
           )} of pretend money and a league with a code in it.`}
         />
-      </Arrive>
-      <Arrive delayMs={80}>
-        <ol className="mt-12 grid gap-10 sm:grid-cols-3 sm:gap-8">
+        <ol className="mt-8 grid gap-10 sm:grid-cols-3 sm:gap-8">
           {WAYS_IN.map((way, index) => (
             <li key={way.title} className="flex flex-col items-center gap-3 text-center">
               <span
@@ -530,9 +535,7 @@ function MoreRooms() {
     <Section>
       <Arrive>
         <SectionHead title="The week is only the start of it." />
-      </Arrive>
-      <Arrive delayMs={80}>
-        <div className="mt-12 grid gap-4 sm:grid-cols-3">
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {MORE_ROOMS.map((room) => {
             const Icon = MORE_ICONS[room.icon];
             return (

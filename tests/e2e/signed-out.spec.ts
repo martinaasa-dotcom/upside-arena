@@ -131,6 +131,144 @@ test.describe("landing", () => {
     ).toBeEnabled();
   });
 
+  /*
+    Scrolling. The feedback: somebody scrolls a landing page, lands in
+    black, and concludes it is over, so they scroll back up and never see
+    the rest of it.
+
+    This page inherited both causes from Upside Lab, which is where it and
+    `Arrive` were ported from. `Arrive` armed its observer with a *negative*
+    rootMargin, which shrinks the observer's root rather than growing it, so
+    a section did not begin arriving until it was already 116px to 185px
+    inside the window and only then started a half-second fade. And each
+    section was two Arrives, the cards on a delay, so a heading could sit
+    above a hole.
+
+    These walk the real page rather than reading a class name, because the
+    page renders identically once everything has arrived. That is the whole
+    problem: there is nothing to see in a snapshot.
+  */
+
+  test("never leaves a section arriving where it can be watched", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "No thanks" }).click();
+
+    const height = await page.evaluate(
+      () => document.documentElement.scrollHeight - window.innerHeight
+    );
+
+    const caught: string[] = [];
+    /*
+      100px steps. A section used to spend about 140px of scrolling visible
+      and unpainted, and every interval that long contains a multiple of
+      100, so a return of that fault cannot slip between two stops.
+    */
+    for (let y = 0; y <= height; y += 100) {
+      const at = Math.min(y, height);
+      await page.evaluate((v) => window.scrollTo(0, v), at);
+      await page.waitForTimeout(60);
+
+      const showing = await page.evaluate(() => {
+        const vh = window.innerHeight;
+        return [...document.querySelectorAll('[data-reveal="out"]')]
+          .filter((el) => {
+            const r = el.getBoundingClientRect();
+            return r.bottom > 0 && r.top < vh;
+          })
+          .map((el) => (el.textContent ?? "").trim().slice(0, 40));
+      });
+      for (const label of showing) caught.push(`at y=${at}: ${label}`);
+    }
+
+    expect(caught, "sections still unpainted while on screen").toEqual([]);
+  });
+
+  test("leaves no empty band a reader could mistake for the end", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // Answer the cookie question first. The room it needs is real, occupied
+    // space, and it is not what this is about.
+    await page.getByRole("button", { name: "No thanks" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Optional measurement" })
+    ).toBeHidden();
+
+    // Settle every section, so this measures the page rather than the fade.
+    await page.evaluate(() => {
+      for (const el of document.querySelectorAll("[data-reveal]"))
+        el.setAttribute("data-reveal", "in");
+    });
+
+    const { worst, viewport } = await page.evaluate(() => {
+      const doc = Math.round(document.documentElement.scrollHeight);
+      const painted = new Uint8Array(doc + 2);
+      const TEXT = "p,h1,h2,h3,h4,li,button,input,img,svg,span,td,th";
+      const drawn = (cs: CSSStyleDeclaration) =>
+        (cs.backgroundColor !== "rgba(0, 0, 0, 0)" &&
+          cs.backgroundColor !== "transparent") ||
+        cs.backgroundImage !== "none" ||
+        cs.borderTopWidth !== "0px" ||
+        cs.boxShadow !== "none";
+
+      for (const el of document.querySelectorAll("*")) {
+        if (el.tagName === "HTML" || el.tagName === "BODY") continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < 1 || r.height < 1) continue;
+        // The ambient field is the room's light, not content.
+        if (r.height > window.innerHeight * 3) continue;
+        const cs = getComputedStyle(el);
+        if (cs.visibility === "hidden" || cs.opacity === "0") continue;
+        if (!el.matches(TEXT) && !drawn(cs)) continue;
+        const top = Math.max(0, Math.round(r.top + window.scrollY));
+        const bottom = Math.min(doc, Math.round(r.bottom + window.scrollY));
+        for (let y = top; y < bottom; y++) painted[y] = 1;
+      }
+
+      let run = 0;
+      let worst = 0;
+      for (let y = 0; y <= doc; y++) {
+        run = painted[y] ? 0 : run + 1;
+        if (run > worst) worst = run;
+      }
+      return { worst, viewport: window.innerHeight };
+    });
+
+    // A quarter of a screen. Past that, one flick can put a reader somewhere
+    // with nothing at all in front of them.
+    expect(
+      worst,
+      `${worst}px of nothing in a ${viewport}px window`
+    ).toBeLessThan(viewport / 4);
+  });
+
+  test("visibly runs past the fold rather than ending flush with it", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "No thanks" }).click();
+
+    // Content severed by the bottom edge is this page's whole scroll
+    // affordance, and it beats an arrow that would have to sit off-screen to
+    // be seen. It only works while something is really cut.
+    const cut = await page.evaluate(() => {
+      const vh = window.innerHeight;
+      if (document.documentElement.scrollHeight <= vh + 1) return "fits";
+      for (const el of document.querySelectorAll("main .glass, main li, main p")) {
+        const r = el.getBoundingClientRect();
+        if (r.top < vh - 24 && r.bottom > vh + 24) return "cut";
+      }
+      return "flush";
+    });
+
+    expect(cut, "a page that scrolls but ends flush with the fold").not.toBe(
+      "flush"
+    );
+  });
+
   test("the sign-in button is not covered by the cookie notice", async ({ page }) => {
     await page.goto("/");
 
