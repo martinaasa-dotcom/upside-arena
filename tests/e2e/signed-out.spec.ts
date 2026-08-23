@@ -5,12 +5,69 @@ test.describe("landing", () => {
   test("shows the game, the age gate and the legal line", async ({ page }) => {
     await page.goto("/");
 
+    /*
+      The hero names the problem before it names the product, which is the
+      whole shape of the page. If this heading is ever the product again, the
+      page has been rebuilt as a sign-in box with a tour bolted under it.
+    */
     await expect(
-      page.getByRole("heading", { name: "Pick stocks with friends. Play money only." })
+      page.getByRole("heading", {
+        name: "Every group chat has a stock genius. Nobody ever finds out who was right.",
+        level: 1,
+      })
     ).toBeVisible();
     await expect(page.getByText("Not financial advice.")).toBeVisible();
     await expect(page.getByRole("link", { name: "Terms" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Privacy policy" })).toBeVisible();
+  });
+
+  /*
+    The two questions every visitor has after "what is it", in the order they
+    are asked. Both were answered nowhere on the page this one replaced, and
+    a free game that does not say what the paid thing buys reads as one with
+    something to hide.
+  */
+  test("answers what it costs and what is at stake, without signing in", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    await expect(
+      page.getByText("Free to play, and the free game is the whole game.")
+    ).toBeVisible();
+    await expect(
+      page.getByText(/it cannot change a score, a ranking or what anybody is allowed to trade/)
+    ).toBeVisible();
+    await expect(page.getByText(/The money is pretend/)).toBeVisible();
+    await expect(page.getByText(/Arena is not a broker/)).toBeVisible();
+  });
+
+  test("repeats the ask at the bottom, and it lands on the sign-in card", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // Nobody should have to scroll back up hunting for the one thing the page
+    // is asking them to do.
+    const ask = page.getByRole("link", { name: "Start a league" });
+    await expect(ask).toBeVisible();
+    await expect(ask).toHaveAttribute("href", "#start");
+
+    // And the thing it points at has to be the real card, not a dead anchor.
+    await expect(page.locator("#start").getByLabel("Email")).toBeVisible();
+  });
+
+  /*
+    One sign-in card on the page, not two.
+
+    Lab's landing repeats its button at the bottom because signing in there is
+    a single button. Arena's is a card with an email field in it, and a second
+    copy would be a second form, a second control labelled "Email", and one
+    visitor counted twice.
+  */
+  test("has exactly one sign-in card", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByLabel("Email")).toHaveCount(1);
   });
 
   test("states the 16 age rule where it is read, not behind a tick box", async ({
@@ -173,7 +230,7 @@ test.describe("protected routes", () => {
       await page.goto(path);
       await expect(page).toHaveURL(/\/(\?|$)/);
       await expect(
-        page.getByRole("heading", { name: /Pick stocks with friends/ })
+        page.getByRole("heading", { name: /Every group chat has a stock genius/ })
       ).toBeVisible();
     });
   }
