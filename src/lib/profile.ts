@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { cacheLife, cacheTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -82,42 +83,111 @@ async function identify(
 }
 
 /*
-  The profile row, cached in the browser that asked, under the account it
-  belongs to.
+  A signed-in player, invented, for looking at the rooms without a project.
 
-  Every room opens by asking who is here, so this row was fetched again on
-  every tab, and the room could not begin to paint until it came back. It is
-  the same row every time and it changes when the player changes it, which is
-  a cache with an obvious invalidation rather than a guess about freshness.
+  Behind an environment variable that no deployment sets -- the same shape as
+  ARENA_UI_GALLERY, and for the same reason. Every room in this app is behind
+  a sign-in, which is why the one thing nobody could ever watch was the thing
+  players complain about: what a room does in the moment after a tap. Four
+  attempts at making that instant were reasoned from documentation and shipped
+  without anybody seeing the screen, and all four were wrong.
 
-  Two things about the shape, both of which took a second look to get right.
-
-  It is keyed by the user id, and that is not decoration. A cache key is built
-  from a function's arguments; cookies read inside the body are not part of
-  it. Cached with no arguments, this would have had one key for everybody, and
-  two accounts used from the same browser within the stale window would have
-  been the same entry -- one player wearing another's name, and on the metrics
-  page one player seeing what only an owner may. The id comes from a verified
-  token and putting it in the signature is what makes the entry belong to
-  somebody.
-
-  And it is "private", the variant that may read cookies, which is what lets
-  the row still be read as the player rather than around them: the request
-  goes through their own session and row level security answers it, exactly as
-  it did when this was uncached. Private also means the entry is held in the
-  browser that asked and nowhere else -- never written to a server, never
-  shared between people, gone when the tab is.
-
-  This also replaces what connection() used to do here. Both say "not at build
-  time" -- connection() by refusing to resolve without a request, this by
-  being excluded from static shell generation -- and only one of them also
-  stops the row being read again on every screen. connection() is not merely
-  unnecessary now; it is forbidden inside a cached scope, which is the
-  framework saying the same thing.
+  This is what let the fifth be seen before it was sent. See
+  tests/instant/room-arrival.spec.ts, which drives a real navigation against
+  it and reads what is on screen in the first frame.
 */
-async function readProfile(userId: string): Promise<Profile | null> {
+const STUB_SESSION = process.env.ARENA_STUB_SESSION === "1";
+
+/*
+  How slow to pretend to be.
+
+  Without this the probe proves nothing. A stub answers instantly, every
+  boundary resolves in the same tick, and a room with a hole in it looks
+  exactly like a room without one -- which it did, and which nearly had the
+  broken version measured as fixed. What a player is describing is latency,
+  so latency is the thing the probe has to have.
+*/
+const STUB_LATENCY_MS = Number(process.env.ARENA_STUB_LATENCY_MS ?? "0");
+
+const slowly = <T,>(value: T): Promise<T> =>
+  STUB_LATENCY_MS > 0
+    ? new Promise((resolve) => setTimeout(() => resolve(value), STUB_LATENCY_MS))
+    : Promise.resolve(value);
+
+const STUB_USER: SessionUser = {
+  id: "00000000-0000-4000-8000-000000000001",
+  email: "probe@example.invalid",
+};
+
+const STUB_PROFILE = {
+  id: STUB_USER.id,
+  handle: "probe",
+  display_name: "Probe",
+  avatar_url: null,
+  age_confirmed_at: "2026-01-01T00:00:00Z",
+  rating: 1000,
+  weeks_played: 3,
+  best_week_return: 4.2,
+  career_alpha_avg: 1.1,
+  longest_streak: 5,
+  equipped_title: null,
+  equipped_flair: null,
+  equipped_theme: null,
+  onboarded_at: "2026-01-01T00:00:00Z",
+  created_at: "2026-01-01T00:00:00Z",
+  updated_at: "2026-01-01T00:00:00Z",
+} as Profile;
+
+/*
+  The whole session, cookies and all, inside one private cache.
+
+  This is the shape the fourth attempt got wrong. The profile row was cached
+  and settling who is asking was left outside it, on the reasoning that
+  identity must never be a moment old. That reasoning was right about identity
+  and wrong about what it cost: reading a cookie is a runtime API, so a
+  function that reads one cannot be prerendered, and every room begins by
+  awaiting this. One uncached root turned all of it back into a hole, and
+  every cached read behind it still arrived after the tap. Adding a single
+  cookies() call to this function is enough to move /home from static to
+  partially prerendered, which is how it was finally found.
+
+  "private" is the variant that may read cookies and still be carried in a
+  route's App Shell -- the thing a link prefetches -- provided its stale time
+  is at least five minutes. That is what puts a player's own name and numbers
+  in the frame the tap paints, rather than in what arrives afterwards.
+
+  On the identity worry, which is real and is answered by where this lives
+  rather than by a key. The entry is held in the browser that asked, never on
+  a server, never shared between people, and does not survive a page load.
+  Every way into this app as somebody else is a page load: a link from an
+  email, a callback from Google. So a second account cannot inherit the
+  first's entry.
+
+  And it is not the lock in any case. proxy.ts reads the cookie itself on
+  every single request and refuses every room without a valid one, and it is
+  not cached. What this decides is what a room draws for somebody already let
+  in, which is exactly the kind of thing a cache is for.
+*/
+async function readSession(): Promise<{
+  user: SessionUser | null;
+  profile: Profile | null;
+}> {
   "use cache: private";
   cacheLife({ stale: SESSION_STALE_SECONDS });
+
+  if (STUB_SESSION) {
+    // Read like the real path reads, so what is measured here is what ships.
+    await cookies();
+    return slowly({ user: STUB_USER, profile: STUB_PROFILE });
+  }
+
+  // Without a project wired up there is no session to have. Callers redirect.
+  if (!isSupabaseConfigured) return { user: null, profile: null };
+
+  const supabase = await createClient();
+
+  const user = await identify(supabase);
+  if (!user) return { user: null, profile: null };
 
   /*
     Tagged with the account rather than with a path. The two places that write
@@ -125,45 +195,26 @@ async function readProfile(userId: string): Promise<Profile | null> {
     tag is the only handle that survives being read somewhere neither of them
     has heard of.
   */
-  cacheTag(sessionTag(userId));
+  cacheTag(sessionTag(user.id));
 
-  const supabase = await createClient();
-
-  const { data } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("*")
-    .eq("id", userId)
+    .eq("id", user.id)
     .maybeSingle<Profile>();
 
-  return data ?? null;
+  return { user, profile: profile ?? null };
 }
 
 /**
  * The signed-in account and its profile row.
- *
- * Who is asking is settled on every single request and is deliberately not
- * cached: it is a signature check against a token that is already in hand,
- * it costs nothing, and it is the one answer here that must never be a
- * moment old. What is cached is the round trip that follows it.
  *
  * Wrapped in React's cache as well, so several components streaming at once
  * within one render share a single call rather than one cache lookup each.
  * Everything that needs a session comes through here, which is what makes
  * every caller right rather than every caller remembering.
  */
-export const getSession = cache(
-  async (): Promise<{ user: SessionUser | null; profile: Profile | null }> => {
-    // Without a project wired up there is no session to have. Callers redirect.
-    if (!isSupabaseConfigured) return { user: null, profile: null };
-
-    const supabase = await createClient();
-
-    const user = await identify(supabase);
-    if (!user) return { user: null, profile: null };
-
-    return { user, profile: await readProfile(user.id) };
-  }
-);
+export const getSession = cache(readSession);
 
 /** Onboarding is finished once a display name and the age gate are recorded. */
 export function isOnboarded(profile: Profile | null) {

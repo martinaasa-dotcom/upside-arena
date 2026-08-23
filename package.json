@@ -17,7 +17,8 @@
     "check": "npm run typecheck && npm run lint && npm run test",
     "test:db": "./scripts/test-db.sh",
     "gallery": "ARENA_UI_GALLERY=1 next dev",
-    "test:a11y": "playwright test tests/e2e/accessibility.spec.ts"
+    "test:a11y": "playwright test tests/e2e/accessibility.spec.ts",
+    "test:instant": "playwright test --config playwright.instant.config.ts"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.23",

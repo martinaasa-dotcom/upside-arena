@@ -73,6 +73,15 @@ export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
   response.headers.set("Content-Security-Policy", csp);
 
+  /*
+    The invented player from lib/profile, let through the door.
+
+    Same environment variable, set by nothing that deploys. Without this the
+    rooms are unreachable to look at, because this is the lock that makes them
+    unreachable.
+  */
+  if (process.env.ARENA_STUB_SESSION === "1") return response;
+
   // Without a project configured the app still renders its signed-out shell.
   if (!isSupabaseConfigured) return response;
 

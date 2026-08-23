@@ -144,3 +144,35 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  instant:
+    name: Rooms arrive whole
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      # A signed-in player, invented, and a data layer told to be slow, so a
+      # room that arrives in pieces can be told from one that arrives whole.
+      # Everything this needs is set in playwright.instant.config.ts, and
+      # nothing it needs is set by a deployment.
+      #
+      # Its own job rather than another file in the suite above, because it
+      # needs a server with the sign-in lock switched off and that suite exists
+      # to check the lock is on.
+      - run: npm run test:instant
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: instant-report
+          path: playwright-report/
+          retention-days: 7
