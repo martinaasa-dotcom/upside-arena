@@ -4,6 +4,7 @@ import {
   lastCloseBefore,
   positionedWeek,
   settledWeek,
+  trailShape,
   weekSoFar,
   worthDrawing,
 } from "@/lib/game/shape";
@@ -292,5 +293,100 @@ describe("laying a finished week out on its days", () => {
     expect(days.map((day) => day.label)).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri"]);
     expect(days[3].returnPercent).toBe(4);
     expect(days[0].returnPercent).toBeNull();
+  });
+});
+
+describe("a long contest as a line", () => {
+  it("needs somewhere to go", () => {
+    // One close is a figure, not a trajectory.
+    expect(trailShape([], 100, 50)).toBeNull();
+    expect(trailShape([3], 100, 50)).toBeNull();
+  });
+
+  it("spans the box it is given", () => {
+    const shape = trailShape([0, 5], 100, 50);
+    expect(shape?.aheadLine).toBe("M0.00,50.00L100.00,0.00");
+    expect(shape?.endX).toBeCloseTo(100, 9);
+  });
+
+  it("spaces points evenly however many there are", () => {
+    const shape = trailShape([0, 1, 2, 3, 4], 100, 50);
+    // Four gaps across a hundred: every twenty-five.
+    expect(shape?.aheadLine).toContain("25.00,");
+    expect(shape?.aheadLine).toContain("50.00,");
+    expect(shape?.aheadLine).toContain("75.00,");
+  });
+
+  /*
+    The one that decides whether the picture is honest. Scaled between its
+    own best and worst day, a run that only ever gained would look exactly
+    like one that only ever lost -- both a line from the floor to the
+    ceiling. Zero is always in the scale, so a run that never went below
+    what it started with sits entirely above the line.
+  */
+  it("always has what you started with somewhere in the box", () => {
+    expect(trailShape([1, 2, 3], 100, 60)?.zeroY).toBeCloseTo(60, 9);
+    expect(trailShape([-1, -2, -3], 100, 60)?.zeroY).toBeCloseTo(0, 9);
+    expect(trailShape([-5, 0, 5], 100, 60)?.zeroY).toBeCloseTo(30, 9);
+  });
+
+  it("draws a run that only gained as ahead, and nothing as behind", () => {
+    const shape = trailShape([1, 2, 3], 100, 60);
+    expect(shape?.aheadLine).not.toBe("");
+    expect(shape?.behindLine).toBe("");
+    expect(shape?.behindArea).toBe("");
+  });
+
+  it("draws a run that only lost as behind, and nothing as ahead", () => {
+    const shape = trailShape([-1, -2, -3], 100, 60);
+    expect(shape?.behindLine).not.toBe("");
+    expect(shape?.aheadLine).toBe("");
+  });
+
+  /*
+    The bug this was rewritten for. A quarter that climbed to sixteen and
+    came back to just under nothing was drawn entirely in the losing colour,
+    because the colour came from where it ended -- three months of being well
+    above the line, painted in the colour that means below it.
+  */
+  it("colours a run by where it was, not by where it ended", () => {
+    const shape = trailShape([1, 16, 12, -0.5], 100, 60);
+    expect(shape?.aheadLine).not.toBe("");
+    expect(shape?.behindLine).not.toBe("");
+  });
+
+  it("cuts at the crossing rather than at the nearest close", () => {
+    // From +2 to -2 across a hundred wide box: it crosses halfway.
+    const shape = trailShape([2, -2], 100, 60);
+    expect(shape?.aheadLine).toContain("50.00,");
+    expect(shape?.behindLine).toContain("50.00,");
+  });
+
+  it("meets at the crossing rather than leaving a gap", () => {
+    // Both sides own the crossing point, so the two lines touch.
+    const shape = trailShape([4, -4], 100, 60);
+    expect(shape?.aheadLine.endsWith(`50.00,${shape?.zeroY.toFixed(2)}`)).toBe(true);
+    expect(shape?.behindLine.startsWith(`M50.00,${shape?.zeroY.toFixed(2)}`)).toBe(true);
+  });
+
+  it("closes each fill down to the line rather than to the floor", () => {
+    // Otherwise a losing run is shaded from its own worst point up to the
+    // bottom of the box, which is a block of colour meaning nothing.
+    const shape = trailShape([-1, -3], 100, 60);
+    expect(shape?.behindArea.endsWith(`L100.00,${shape?.zeroY.toFixed(2)}Z`)).toBe(true);
+  });
+
+  it("does not divide by nothing when a run never moved", () => {
+    const shape = trailShape([0, 0, 0], 100, 60);
+    expect(shape).not.toBeNull();
+    expect(shape?.aheadLine).not.toContain("NaN");
+    expect(shape?.behindArea).not.toContain("NaN");
+  });
+
+  it("ends on the last point, which is where it is now", () => {
+    const shape = trailShape([0, 10, 4], 100, 60);
+    expect(shape?.endX).toBeCloseTo(100, 9);
+    // Ten is the top, zero the bottom of a ten-point span: four is 60% down.
+    expect(shape?.endY).toBeCloseTo(36, 9);
   });
 });

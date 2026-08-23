@@ -201,3 +201,156 @@ export function dayMove(totalValue: number, lastClose: DailyMark | null): DayMov
   const amount = totalValue - lastClose.value;
   return { amount, percent: (amount / lastClose.value) * 100 };
 }
+
+/*
+  A contest too long to draw as bars.
+
+  Five bars is a week. Sixty-five is a quarter, and sixty-five bars is a
+  smear -- so a long contest is drawn as a line instead. Same principle
+  underneath: zero is always in the scale, because a run that only ever went
+  up measured from its own worst day looks exactly like one that only ever
+  went down.
+
+  The geometry is here rather than in the component so it can be checked
+  against a run whose numbers are known. A chart that is quietly mis-scaled
+  is the same class of problem as a figure that is quietly wrong, and harder
+  to notice.
+*/
+
+export type TrailShape = {
+  /*
+    The run in two colours, split where it crosses what you started with.
+
+    One colour for the whole line was the first attempt and it was quietly
+    dishonest. A quarter that climbed to sixteen per cent and came back to
+    just under nothing was drawn entirely in the losing colour, because the
+    colour was taken from where it ended -- so the caption said the line
+    across the middle is what everybody started with, and then painted three
+    months of being well above it in the colour that means below.
+
+    Segments are cut at the crossing rather than at the nearest close, so the
+    colour changes exactly where the run does.
+  */
+  aheadLine: string;
+  behindLine: string;
+  aheadArea: string;
+  behindArea: string;
+
+  /** Where what you started with sits, in the same coordinates. */
+  zeroY: number;
+
+  /** The last point, for putting a mark on the end of the line. */
+  endX: number;
+  endY: number;
+};
+
+type TrailPoint = { x: number; value: number };
+
+/**
+ * Lays a run of closes out in a box.
+ *
+ * Points are spaced evenly by their position rather than by their date,
+ * which is right for closes: they are trading days, and a weekend is not a
+ * gap in a contest that does not trade over one.
+ *
+ * Null for a run with fewer than two points, because a line needs somewhere
+ * to go and a single close is not a trajectory.
+ */
+export function trailShape(
+  values: readonly number[],
+  width: number,
+  height: number
+): TrailShape | null {
+  if (values.length < 2) return null;
+
+  const high = Math.max(...values, 0);
+  const low = Math.min(...values, 0);
+  const span = high - low || 1;
+
+  const at = (index: number) => (index / (values.length - 1)) * width;
+  const y = (value: number) => ((high - value) / span) * height;
+
+  /*
+    The points, with a point added wherever the run crosses zero. Without
+    those the colour could only change at a close, so a run that went from
+    plus two to minus three would have a whole day of its line drawn in one
+    colour or the other and neither would be right for half of it.
+  */
+  const points: TrailPoint[] = [];
+  values.forEach((value, index) => {
+    if (index > 0) {
+      const previous = values[index - 1];
+      const crosses = (previous < 0 && value > 0) || (previous > 0 && value < 0);
+      if (crosses) {
+        const t = previous / (previous - value);
+        points.push({ x: at(index - 1) + t * (at(index) - at(index - 1)), value: 0 });
+      }
+    }
+    points.push({ x: at(index), value });
+  });
+
+  /*
+    Split into runs that are entirely on one side. A point sitting exactly on
+    the line belongs to the run before it and the run after it, so the two
+    meet rather than leaving a gap the width of one segment.
+  */
+  const ahead: TrailPoint[][] = [];
+  const behind: TrailPoint[][] = [];
+
+  let run: TrailPoint[] = [];
+  let side: 1 | -1 | 0 = 0;
+
+  const close = () => {
+    if (side !== 0 && run.length > 1) (side === 1 ? ahead : behind).push(run);
+  };
+
+  for (const point of points) {
+    const here = point.value > 0 ? 1 : point.value < 0 ? -1 : 0;
+
+    if (here === 0) {
+      run.push(point);
+      close();
+      run = [point];
+      side = 0;
+      continue;
+    }
+
+    if (side === 0) {
+      side = here;
+      run.push(point);
+      continue;
+    }
+
+    run.push(point);
+  }
+  close();
+
+  const path = (runs: TrailPoint[][]) =>
+    runs
+      .map((one) => `M${one.map((p) => `${p.x.toFixed(2)},${y(p.value).toFixed(2)}`).join("L")}`)
+      .join("");
+
+  const zeroY = y(0);
+
+  const area = (runs: TrailPoint[][]) =>
+    runs
+      .map((one) => {
+        const first = one[0].x.toFixed(2);
+        const last = one[one.length - 1].x.toFixed(2);
+        const along = one
+          .map((p) => `${p.x.toFixed(2)},${y(p.value).toFixed(2)}`)
+          .join("L");
+        return `M${first},${zeroY.toFixed(2)}L${along}L${last},${zeroY.toFixed(2)}Z`;
+      })
+      .join("");
+
+  return {
+    aheadLine: path(ahead),
+    behindLine: path(behind),
+    aheadArea: area(ahead),
+    behindArea: area(behind),
+    zeroY,
+    endX: at(values.length - 1),
+    endY: y(values[values.length - 1]),
+  };
+}

@@ -145,6 +145,16 @@ export type BattleView = {
   positions: BattlePosition[];
   /** Null when the viewer was not in this contest, and has no figure in it. */
   cash: number | null;
+
+  /*
+    The viewer's own run: every close recorded for them in this contest,
+    oldest first, with what it is worth right now on the end.
+
+    Empty for a contest that has not seen a close yet, and for any battle
+    that was already running before 0022, which is when closes started being
+    kept for anything but the house week.
+  */
+  trail: number[];
   tradingOpen: boolean;
   /** Why it is not, when it is not. Empty when it is. */
   closedReason: string;
@@ -759,6 +769,18 @@ export const getBattleView = cache(async function getBattleView(
   const trading = battleTrading(battle);
   const you = standings.find((row) => row.isYou) ?? null;
 
+  /*
+    The closes behind the viewer's own figure, with the figure itself on the
+    end. The live point goes last so the line reaches now rather than
+    stopping at last night, and the component draws it as a ring rather than
+    joining it in, because it is the one point that can still move.
+  */
+  const myMarks = mine ? (marksByPortfolio.get(mine.id) ?? []) : [];
+  const trail =
+    you == null
+      ? []
+      : [...myMarks.map((mark) => mark.returnPercent), you.returnPercent];
+
   return {
     battle,
     standings,
@@ -774,6 +796,7 @@ export const getBattleView = cache(async function getBattleView(
       no screen in this app does.
     */
     cash: mine ? num(mine.cash) : you ? battle.startingBalance : null,
+    trail,
     tradingOpen: trading.open,
     closedReason: trading.reason,
     marketState: benchmarkQuote?.marketState ?? null,

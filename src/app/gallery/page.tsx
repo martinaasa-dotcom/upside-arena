@@ -30,6 +30,7 @@ import { PlusControls } from "@/components/PlusControls";
 import { AccountControls } from "@/components/AccountControls";
 import { SharedCards } from "@/components/SharedCards";
 import { WeekShape } from "@/components/WeekShape";
+import { Trail } from "@/components/Trail";
 import { settledWeek, weekSoFar } from "@/lib/game/shape";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomDock } from "@/components/BottomDock";
@@ -197,6 +198,27 @@ export default function GalleryPage() {
             value={<Ticker value={128.4} format="percent" />}
           />
         </Scoreboard>
+      </Case>
+
+      <Case name="trail-quarter">
+        <Panel
+          title="How it has gone"
+          description="Each point is a day's close. The line across the middle is what everybody started with."
+        >
+          <Trail values={fixture.quarterTrail} from="17 August" to="Now" />
+        </Panel>
+      </Case>
+
+      <Case name="trail-behind">
+        <Panel title="How it has gone">
+          <Trail values={fixture.losingTrail} from="17 August" to="Now" />
+        </Panel>
+      </Case>
+
+      <Case name="trail-short">
+        <Panel title="How it has gone">
+          <Trail values={[0, 1.4, 0.9, 2.6]} from="17 August" to="Now" />
+        </Panel>
       </Case>
 
       <Case name="week-shape">

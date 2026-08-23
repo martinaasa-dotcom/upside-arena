@@ -287,6 +287,20 @@ export const flatMarks = [0.01, 0.0, 0.01, 0.0, 0.01];
 */
 export const joinedMidweekMarks = [null, null, 1.2, 2.8, 0.4];
 
+/*
+  A quarter that went somewhere and came back, which is the run the single
+  figure at the top of the screen cannot tell from a steady climb. Sixty-five
+  closes, which is what a quarter of trading days actually is.
+*/
+export const quarterTrail = Array.from({ length: 65 }, (_, day) => {
+  const climb = Math.sin((day / 64) * Math.PI) * 18;
+  const wobble = Math.sin(day * 1.7) * 1.4 + Math.sin(day * 0.6) * 0.9;
+  return Number((climb + wobble - 2).toFixed(2));
+});
+
+/** The same length of run, spent behind the whole way. */
+export const losingTrail = quarterTrail.map((value) => Number((-6 - value / 3).toFixed(2)));
+
 export const partWeekMonday = "2026-08-17";
 export const partWeekToday = "2026-08-19";
 export const partWeekMarks = [

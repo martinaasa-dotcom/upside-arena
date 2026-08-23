@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Holdings } from "@/components/Holdings";
 import { Score, Scoreboard } from "@/components/Scoreboard";
 import { StandingsTable } from "@/components/StandingsTable";
+import { Trail } from "@/components/Trail";
 import { TradeForm } from "@/components/TradeForm";
 import { TrackView } from "@/components/TrackView";
 import { getSession } from "@/lib/profile";
 import { getBattleView, getLeagueBattle } from "@/lib/game/battles";
 import { allowedSymbols } from "@/lib/game/formats";
+import { formatDate } from "@/lib/format";
 import { submitCancelBattle } from "@/app/(app)/leagues/battle-actions";
 import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
 import { formatGap, formatMoney, formatPercent, ordinal } from "@/lib/format";
@@ -244,7 +246,7 @@ async function Rest({ params }: Params) {
   const view = await getBattleView(user.id, summary.cycleId);
   if (!view) notFound();
 
-  const { battle, standings, you, positions } = view;
+  const { battle, standings, you, positions, trail } = view;
   const format = battle.format;
   const ahead = you && you.rank > 1 ? standings[you.rank - 2] : null;
 
@@ -341,6 +343,32 @@ async function Rest({ params }: Params) {
               Under these rules, that is closer than it looks.
             </span>
           </p>
+        </Panel>
+      ) : null}
+
+      {/*
+        How the contest has gone, not only where it stands.
+
+        This matters more the longer the battle is. A week has five closes
+        and the figure at the top is nearly the whole story; a quarter has
+        sixty-five, and "up 12%" covers a run that climbed steadily and one
+        that doubled and gave half of it back. Nothing here is worked out
+        after the fact -- every point is a close recorded on the day it
+        happened, with what it is worth right now on the end.
+
+        Two points is the least a line can be made of, so a battle on its
+        first day has none and the panel is simply not there.
+      */}
+      {trail.length >= 2 ? (
+        <Panel
+          title="How it has gone"
+          description="Each point is a day's close. The line across the middle is what everybody started with."
+        >
+          <Trail
+            values={trail}
+            from={formatDate(battle.startsOn)}
+            to={battle.finished ? formatDate(battle.endsOn) : "Now"}
+          />
         </Panel>
       ) : null}
 
