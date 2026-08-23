@@ -19,6 +19,8 @@ import {
   subscribeToPush,
   unsubscribeFromPush,
 } from "@/app/(app)/profile/notification-actions";
+import { DAILY_CAP, QUIET_HOURS } from "@/lib/notify/timing";
+import { KINDS } from "@/lib/notify/kinds";
 import type { NotificationSettings as Settings } from "@/lib/notify/settings";
 
 /*
@@ -30,44 +32,6 @@ import type { NotificationSettings as Settings } from "@/lib/notify/settings";
   person has an opinion about and "push notifications" is not.
 */
 
-const KINDS = [
-  {
-    key: "rivalAlerts" as const,
-    label: "When somebody passes you",
-    detail: "Only while the market is open, and only in a league you are in.",
-  },
-  {
-    key: "weekResult" as const,
-    /*
-      One switch for two things, on purpose. A settled battle is the same
-      question as a settled week -- do you want to be told a contest you were
-      in has been scored -- and two toggles for one preference is one more
-      decision than anybody wants to make about notifications.
-    */
-    label: "When a result comes in",
-    detail:
-      "Your week on Friday evening, and any battle your league finishes. Once each, whatever the result was.",
-  },
-  {
-    key: "leagueActivity" as const,
-    /*
-      Its own switch rather than folded into the one above it. Being passed
-      happens while the market is open and can happen often; a league
-      starting a contest happens when a league decides to do something, which
-      is rare. Somebody who turns the noisy one off is turning off the noisy
-      one, and taking the rare one with it would read far more into that tap
-      than they said.
-    */
-    label: "When your league starts a battle",
-    detail:
-      "You are in it either way, so this is the difference between playing it and finding out afterwards.",
-  },
-  {
-    key: "streakReminder" as const,
-    label: "When your streak needs today",
-    detail: "Late afternoon, and only if you already have a streak going.",
-  },
-];
 
 export function NotificationSettings({
   initial,
@@ -279,9 +243,15 @@ export function NotificationSettings({
         ))}
       </div>
 
+      {/*
+        The two numbers come from the module that enforces them rather than
+        from this sentence. They were written out here in words, which meant
+        the promise and the rule were two separate things that happened to
+        agree, and only one of them was tested.
+      */}
       <p className="text-sm text-muted-foreground">
-        Never more than three a day, and never between nine at night and eight in
-        the morning where you are. We do not send anything about a losing week.
+        Never more than {DAILY_CAP} a day, and never between {QUIET_HOURS} where
+        you are. We do not send anything about a losing week.
       </p>
     </div>
   );

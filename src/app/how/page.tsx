@@ -6,6 +6,8 @@ import { MAX_LINEUP_ORDERS, STARTING_BALANCE } from "@/lib/game";
 import { FORMATS } from "@/lib/game/formats";
 import { LENGTHS } from "@/lib/game/lengths";
 import { MIN_WEEKS_TO_RANK } from "@/lib/game/seasons";
+import { DAILY_CAP, QUIET_HOURS } from "@/lib/notify/timing";
+import { KINDS } from "@/lib/notify/kinds";
 import { formatMoney } from "@/lib/format";
 
 export const metadata = {
@@ -234,7 +236,52 @@ export default function HowPage() {
             </p>
           </Section>
 
-          <Section title="8. How it is meant to be used">
+          {/*
+            What it will send you, on the page somebody reads before deciding
+            whether to hand over an email address.
+
+            It was not here at all, which is a strange omission on a page whose
+            job is to say what this thing is: the honest answer is a reason to
+            sign up rather than a thing to bury. The cap and the quiet hours
+            are read from the module that enforces them, so this cannot become
+            a promise that used to be true.
+          */}
+          <Section title="8. What Arena will send you, and what it will not">
+            <p>
+              Every one of them is something that actually happened, to you,
+              with a name attached, and they are exactly the switches that sit
+              on your profile:
+            </p>
+            {/*
+              Drawn from the list the settings screen is built from, so this
+              cannot end up describing a set of switches that no longer exists
+              -- which is exactly what happened to this page's account of the
+              game before battles were added to it.
+            */}
+            <ul>
+              {KINDS.map((kind) => (
+                <li key={kind.key}>
+                  <span className="text-foreground">{kind.label}.</span>{" "}
+                  {kind.detail}
+                </li>
+              ))}
+            </ul>
+            <p>
+              Never more than {DAILY_CAP} in a day. Never between {QUIET_HOURS}{" "}
+              where you are. Each one can be turned off on its own, and off
+              means it stops that moment rather than at the end of some cycle.
+            </p>
+            <p>
+              There is no &ldquo;come back&rdquo;, no &ldquo;your friends are
+              playing without you&rdquo;, and no countdown invented to create a
+              deadline. <strong>Nothing is ever sent about a bad week.</strong>{" "}
+              Messaging a loss as something one more trade could fix is the
+              mechanic behind chasing losses, and it is not going to be built
+              here.
+            </p>
+          </Section>
+
+          <Section title="9. How it is meant to be used">
             <p>
               Honestly: about a minute a day, and ten on a Sunday.
             </p>
@@ -267,7 +314,7 @@ export default function HowPage() {
             </p>
           </Section>
 
-          <Section title="9. What Arena is not">
+          <Section title="10. What Arena is not">
             <ul>
               <li>Not a broker, and not connected to any account you hold.</li>
               <li>Not real money, in or out, at any point.</li>

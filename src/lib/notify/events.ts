@@ -18,7 +18,7 @@ import {
 import { isTradingDay, isTradingOpen, nyDate } from "@/lib/market/session";
 import { formatDate, formatGap, ordinal } from "@/lib/format";
 import { emailConfigured, pushConfigured, sendEmail, sendPush } from "@/lib/notify/send";
-import { isAwakeHour, isStreakReminderHour } from "@/lib/notify/timing";
+import { DAILY_CAP, isAwakeHour, isStreakReminderHour } from "@/lib/notify/timing";
 
 /*
   Deciding what is worth interrupting someone for.
@@ -38,8 +38,6 @@ import { isAwakeHour, isStreakReminderHour } from "@/lib/notify/timing";
   - Nothing is sent more than three times a day, enforced in the database
     rather than here, so a bug in this file cannot spam anyone.
 */
-
-const DAILY_CAP = 3;
 
 type Settings = {
   user_id: string;
