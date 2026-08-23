@@ -12,8 +12,10 @@ import {
 } from "@/components/LeagueRecord";
 import { getSession } from "@/lib/profile";
 import { getLeagueRecord } from "@/lib/game/record";
+import { getLastWeekBooks } from "@/lib/game/books";
+import { Reveal } from "@/components/Reveal";
 import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
-import { formatPercent, plural } from "@/lib/format";
+import { formatDate, formatPercent, plural } from "@/lib/format";
 
 /*
   The record room.
@@ -95,6 +97,24 @@ async function recordFor(params: Promise<{ id: string }>) {
 
   const { id } = await params;
   return getLeagueRecord(user.id, id);
+}
+
+async function LastWeek({ params }: Params) {
+  const { user } = await getSession();
+  if (!user) return null;
+
+  const { id } = await params;
+  const week = await getLastWeekBooks(user.id, id);
+  if (!week || week.books.length === 0) return null;
+
+  return (
+    <Panel
+      title="What everybody held last week"
+      description={`Week of ${formatDate(week.monday)}, settled at Friday's close. Shown now that it is over and nobody can copy it.`}
+    >
+      <Reveal books={week.books} />
+    </Panel>
+  );
 }
 
 async function BackToLeague({ params }: Params) {
@@ -214,6 +234,22 @@ async function Rest({ params }: Params) {
       </div>
 
       <div className={COLUMN}>
+        {/*
+          What everybody was actually holding, for the week that just ended.
+
+          The reveal was built for battles first, which was the wrong way
+          round: a battle needs a league to have decided to start one, and the
+          week happens to all of them every Monday. This is the one that will
+          be read.
+
+          Its own boundary because it is four more queries than the rest of
+          this room needs, and none of the panels beside it should wait on
+          them.
+        */}
+        <Suspense fallback={null}>
+          <LastWeek params={params} />
+        </Suspense>
+
         {record.headToHead.length > 0 ? (
           <Panel
             title="You against each of them"

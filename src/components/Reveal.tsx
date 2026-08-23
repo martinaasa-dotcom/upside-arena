@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { formatMoney, formatPercent, initials } from "@/lib/format";
-import type { RevealedBook } from "@/lib/game/battles";
+import type { RevealedBook } from "@/lib/game/books";
 
 /*
   What everybody turned out to be holding.

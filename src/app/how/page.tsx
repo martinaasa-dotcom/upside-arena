@@ -122,6 +122,15 @@ export default function HowPage() {
               they were going to do.
             </p>
             <p>
+              Once a week is over, <strong>everybody&rsquo;s book is opened</strong>:
+              what each of you was holding at the close and what it cost. Only
+              once it is settled — while a week is running, seeing what the
+              person in front of you owns would be a copying machine, and a
+              league would converge on one portfolio by Wednesday. Afterwards
+              it is the conversation the whole thing was for, and it is in your
+              league&rsquo;s record room.
+            </p>
+            <p>
               You can also say, once a week, what you are trying to do — beat
               the market, finish up, finish top three, show up every day. It
               earns nothing and costs nothing. Saying a thing out loud to four

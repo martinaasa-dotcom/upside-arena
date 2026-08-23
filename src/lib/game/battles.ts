@@ -35,6 +35,7 @@ import {
   type RunLength,
 } from "@/lib/game/lengths";
 import { getMarksFor } from "@/lib/game/marks";
+import type { RevealedBook } from "@/lib/game/books";
 import { dayMove, lastCloseBefore, runTrail } from "@/lib/game/shape";
 import type { LeagueRow, WeeklyCycleRow } from "@/lib/supabase/database.types";
 
@@ -133,41 +134,6 @@ export type BattleResult = {
    * opens, so it would arrive pointing at a door that is shut to them.
    */
   present: string[];
-};
-
-/**
- * What one player was holding when a contest ended.
- *
- * Only ever for a contest that has ended, which is the whole of why this can
- * exist at all. Live, it would be a copying machine: the person in front is
- * visible to everybody behind them, and a league would converge on one book
- * by Wednesday. Settled, it is the opposite -- it is the conversation the
- * game is actually for. "How were you up nine per cent" is the first thing
- * anybody asks, and until now Arena could not answer it.
- *
- * Facts only. Symbols, share counts and what they cost, which are what they
- * were and cannot change. No current value and no gain: settling does not
- * clear holdings and the rooms price them live, so a "worth" here would
- * drift every day after a contest nobody can trade in any more.
- */
-export type RevealedBook = {
-  userId: string;
-  displayName: string;
-  rank: number;
-  returnPercent: number;
-  /** What they never put to work. A story in itself, when it is most of it. */
-  cash: number;
-
-  /**
-   * Whether they ever traded in this contest at all.
-   *
-   * Somebody holding nothing at the end is two completely different people:
-   * one who sold up before the close, and one who never turned up. Without
-   * this the panel called both of them a decision to stay in cash, which is
-   * putting a strategy in the mouth of somebody who simply missed it.
-   */
-  traded: boolean;
-  positions: { symbol: string; quantity: number; costBasis: number }[];
 };
 
 export type BattleView = {
