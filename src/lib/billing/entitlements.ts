@@ -3,6 +3,7 @@ import "server-only";
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PLUS, limitsFor, type Limits } from "@/lib/billing/plan";
+import { playerCache } from "@/lib/game/cache";
 
 /*
   What somebody is entitled to, and what that means in the game.
@@ -30,6 +31,9 @@ export const FREE_STANDING: Standing = {
 };
 
 export async function getStanding(userId: string): Promise<Standing> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return FREE_STANDING;
 
   const admin = createAdminClient();

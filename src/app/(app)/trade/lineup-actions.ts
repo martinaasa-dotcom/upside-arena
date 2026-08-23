@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { clearOrder, queueOrder } from "@/lib/game/lineup";
 import { lineupMonday } from "@/lib/market/session";
+import { playerChanged } from "@/lib/game/cache";
 
 /*
   Building a lineup for a Monday that has not happened yet.
@@ -67,7 +68,9 @@ export async function submitLineupOrder(
 
   if (!result.ok) return { error: result.error };
 
+  playerChanged(user.id);
   revalidatePath("/trade");
+  playerChanged(user.id);
   revalidatePath("/home");
 
   return {
@@ -95,7 +98,9 @@ export async function submitClearLineupOrder(
   const result = await clearOrder(user.id, orderId);
   if (!result.ok) return { ok: false, error: result.error };
 
+  playerChanged(user.id);
   revalidatePath("/trade");
+  playerChanged(user.id);
   revalidatePath("/home");
 
   return { ok: true };

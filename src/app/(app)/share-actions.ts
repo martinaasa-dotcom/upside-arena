@@ -4,6 +4,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { revokeCard, shareCardTag, shareLatestWeek } from "@/lib/game/share";
 import { shareText } from "@/lib/share/card";
+import { playerChanged } from "@/lib/game/cache";
 
 /*
   Making a week shareable, and taking it back.
@@ -55,7 +56,9 @@ export async function shareMyWeek(): Promise<ShareResult> {
 
   const { card } = outcome;
 
+  playerChanged(user.id);
   revalidatePath("/home");
+  playerChanged(user.id);
   revalidatePath("/profile");
 
   return {
@@ -83,7 +86,9 @@ export async function unshareCard(cardId: string): Promise<{ ok: boolean }> {
   */
   if (token) updateTag(shareCardTag(token));
 
+  playerChanged(user.id);
   revalidatePath("/home");
+  playerChanged(user.id);
   revalidatePath("/profile");
 
   return { ok };

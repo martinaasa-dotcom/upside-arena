@@ -14,6 +14,7 @@ import {
 } from "@/lib/market/session";
 import type { Cycle } from "@/lib/game/portfolio";
 import type { LineupOrderRow } from "@/lib/supabase/database.types";
+import { playerCache } from "@/lib/game/cache";
 
 /*
   The lineup: what the weekend is for.
@@ -96,6 +97,9 @@ export async function getLineup(
   monday: string,
   startingBalance: number
 ): Promise<LineupView> {
+  "use cache";
+  playerCache(userId);
+
   const empty: LineupView = {
     monday,
     locked: lineupLocked(monday),
@@ -386,6 +390,9 @@ const REPORT_FOR_HOURS = 48;
 export async function getLatestLineupReport(
   userId: string
 ): Promise<{ filled: number; missed: LineupOrder[] } | null> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return null;
 
   const since = new Date(Date.now() - REPORT_FOR_HOURS * 60 * 60 * 1000);

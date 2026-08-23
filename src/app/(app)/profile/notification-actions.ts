@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { playerChanged } from "@/lib/game/cache";
 import {
   removePushSubscription,
   savePushSubscription,
@@ -49,6 +50,7 @@ export async function submitNotificationSettings(
     timezone: validTimezone(next.timezone ?? null) ?? undefined,
   });
 
+  playerChanged(user.id);
   revalidatePath("/profile");
   return { ok: saved != null };
 }
@@ -79,6 +81,7 @@ export async function subscribeToPush(subscription: {
     timezone: validTimezone(subscription.timezone ?? null) ?? undefined,
   });
 
+  playerChanged(user.id);
   revalidatePath("/profile");
   return { ok: settings != null };
 }
@@ -102,6 +105,7 @@ export async function unsubscribeFromPush(endpoint: string): Promise<{ ok: boole
   */
   const saved = await saveNotificationSettings(user.id, { push: false });
 
+  playerChanged(user.id);
   revalidatePath("/profile");
   return { ok: saved != null };
 }

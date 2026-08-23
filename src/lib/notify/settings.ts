@@ -4,6 +4,7 @@ import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pushConfigured, emailConfigured } from "@/lib/notify/send";
 import type { NotificationSettingsRow } from "@/lib/supabase/database.types";
+import { playerCache } from "@/lib/game/cache";
 
 /*
   Reading and changing what somebody has agreed to be interrupted for.
@@ -139,6 +140,9 @@ export async function removePushSubscription(endpoint: string): Promise<boolean>
 
 /** What the profile page needs to describe the state of things honestly. */
 export async function getNotificationState(userId: string) {
+  "use cache";
+  playerCache(userId);
+
   const [settings, devices] = await Promise.all([
     getNotificationSettings(userId),
     countPushSubscriptions(userId),

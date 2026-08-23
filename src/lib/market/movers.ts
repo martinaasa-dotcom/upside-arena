@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getQuotes, type Quote } from "@/lib/market/quotes";
+import { cycleCache } from "@/lib/game/cache";
 
 /*
   What moved today.
@@ -77,6 +78,9 @@ const SHOWN = 4;
  * A movers panel with one name in it is worse than no movers panel.
  */
 export async function getMovers(owned: readonly string[] = []): Promise<MoversView | null> {
+  "use cache";
+  cycleCache();
+
   const held = new Set(owned.map((symbol) => symbol.toUpperCase()));
   const wanted = [...new Set([...WATCHLIST, ...held])];
 

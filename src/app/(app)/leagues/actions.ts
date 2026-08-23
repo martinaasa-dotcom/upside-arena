@@ -9,6 +9,7 @@ import { declareGoal, withdrawGoal } from "@/lib/game/goals";
 import { isGoalKind } from "@/lib/game/goal-kinds";
 import { getCurrentCycle } from "@/lib/game/portfolio";
 import { LEAGUE_ICONS } from "@/lib/game";
+import { playerChanged } from "@/lib/game/cache";
 
 export type LeagueState = { error?: string };
 
@@ -61,6 +62,7 @@ export async function submitCreateLeague(
 
   if (!result.ok) return { error: result.error };
 
+  playerChanged(user.id);
   revalidatePath("/leagues");
   redirect(`/leagues/${result.league.id}`);
 }
@@ -87,6 +89,7 @@ export async function submitJoinLeague(
   const result = await joinLeague(user.id, parsed.data.code);
   if (!result.ok) return { error: result.error };
 
+  playerChanged(user.id);
   revalidatePath("/leagues");
   redirect(`/leagues/${result.league.id}`);
 }
@@ -98,6 +101,7 @@ export async function submitLeaveLeague(formData: FormData) {
   if (!leagueId) return;
 
   await leaveLeague(user.id, leagueId);
+  playerChanged(user.id);
   revalidatePath("/leagues");
   redirect("/leagues");
 }
@@ -124,6 +128,7 @@ export async function submitGoal(
   const result = await declareGoal(user.id, leagueId, cycle.id, kind);
   if (!result.ok) return { ok: false, error: result.error };
 
+  playerChanged(user.id);
   revalidatePath(`/leagues/${leagueId}`);
   return { ok: true };
 }
@@ -137,6 +142,7 @@ export async function submitWithdrawGoal(
   if (!cycle) return { ok: false };
 
   const done = await withdrawGoal(user.id, leagueId, cycle.id);
+  playerChanged(user.id);
   revalidatePath(`/leagues/${leagueId}`);
   return { ok: done };
 }

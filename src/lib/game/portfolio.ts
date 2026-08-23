@@ -18,6 +18,7 @@ import { hasDueCycle, settleDueCycles } from "@/lib/game/settle";
 import { needsMarkToday, recordDailyMarks } from "@/lib/game/marks";
 import { fillLineup, hasLineupToFill } from "@/lib/game/lineup";
 import { checkTrade, formatById } from "@/lib/game/formats";
+import { cycleCache, playerCache } from "@/lib/game/cache";
 
 /*
   Reading and valuing a player's week.
@@ -106,6 +107,9 @@ function num(value: string | number | null | undefined): number {
  * asked. A new player never waits for Monday.
  */
 export const getCurrentCycle = cache(async (): Promise<Cycle | null> => {
+  "use cache";
+  cycleCache();
+
   if (!canWriteGame) return null;
 
   /*
@@ -201,6 +205,9 @@ async function ensurePortfolio(userId: string, cycleId: string) {
 export const getPortfolioView = cache(async function getPortfolioView(
   userId: string
 ): Promise<PortfolioView | null> {
+  "use cache";
+  playerCache(userId);
+
   const cycle = await getCurrentCycle();
   if (!cycle) return null;
 

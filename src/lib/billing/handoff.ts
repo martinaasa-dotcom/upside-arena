@@ -3,6 +3,7 @@ import "server-only";
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { LabHandoffRow } from "@/lib/supabase/database.types";
+import { playerCache } from "@/lib/game/cache";
 
 /*
   The Upside Lab handoff.
@@ -52,6 +53,9 @@ export type Handoff = {
  * Returns null far more often than not, which is the point.
  */
 export async function considerHandoff(userId: string): Promise<Handoff | null> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return null;
 
   const admin = createAdminClient();

@@ -10,6 +10,7 @@ import { searchSymbols, type SymbolMatch } from "@/lib/market/quotes";
 import { formatMoney } from "@/lib/format";
 import { battleFormat, placeBattleTrade } from "@/lib/game/battles";
 import { SHARE_TYPES } from "@/lib/game/formats";
+import { playerChanged } from "@/lib/game/cache";
 
 export type TradeState = {
   error?: string;
@@ -85,7 +86,9 @@ export async function submitTrade(
     // The next trade grants it. Nothing is lost by being late.
   }
 
+  playerChanged(user.id);
   revalidatePath("/home");
+  playerChanged(user.id);
   revalidatePath("/trade");
   if (battleId) revalidatePath("/leagues", "layout");
 

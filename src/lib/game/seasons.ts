@@ -3,6 +3,7 @@ import "server-only";
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { SeasonResultRow, SeasonRow } from "@/lib/supabase/database.types";
+import { playerCache } from "@/lib/game/cache";
 
 /*
   The season, read.
@@ -116,6 +117,9 @@ export async function getSeasonView(
   seasonId?: string,
   limit = 50
 ): Promise<SeasonView | null> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return null;
 
   const admin = createAdminClient();
@@ -218,6 +222,9 @@ export async function getSeasonView(
 export async function getSeasonHistory(
   userId: string
 ): Promise<{ season: Season; rank: number | null; weeksPlayed: number }[]> {
+  "use cache";
+  playerCache(userId);
+
   if (!canWriteGame) return [];
 
   const admin = createAdminClient();
