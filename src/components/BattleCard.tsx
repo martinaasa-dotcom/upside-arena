@@ -3,7 +3,7 @@ import { ArrowRight, Swords } from "lucide-react";
 import { Panel, Well } from "@/components/Panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatPercent } from "@/lib/format";
+import { formatDate, formatPercent } from "@/lib/format";
 import type { Battle } from "@/lib/game/battles";
 
 /*
@@ -38,8 +38,26 @@ export function BattleCard({
           </h2>
           <p className="text-sm text-muted-foreground">{battle.format.rule}</p>
         </div>
-        <Badge variant={battle.finished ? "outline" : "gain"} className="shrink-0">
-          {battle.finished ? "Finished" : battle.timeLeft}
+        {/*
+          A battle made at the weekend has not started yet, and this badge was
+          showing it a countdown in the colour that means running. So on a
+          Saturday it read as live, and somebody tapping through found the
+          trade form shut with an explanation -- the card had told them one
+          thing and the room another.
+
+          It says the day it begins instead, in the quiet variant, which is
+          also the honest answer to the only question the badge is there to
+          settle: can I do something about this now.
+        */}
+        <Badge
+          variant={battle.finished || battle.notStarted ? "outline" : "gain"}
+          className="shrink-0"
+        >
+          {battle.finished
+            ? "Finished"
+            : battle.notStarted
+              ? `Starts ${formatDate(battle.startsOn)}`
+              : battle.timeLeft}
         </Badge>
       </header>
 

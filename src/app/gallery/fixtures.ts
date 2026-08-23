@@ -298,6 +298,17 @@ export const joinedMidweekMarks = [null, null, 1.2, 2.8, 0.4];
   and somebody who never traded at all -- which is a way of playing it, and
   on a week the market fell it is a winning one.
 */
+/*
+  The same table with no day in it, which is what a battle looks like -- and
+  what every league looks like on a Monday and at the weekend. A separate
+  fixture because it is a different branch of the row: with no day to give
+  the place up to, the money comes back onto the phone.
+*/
+export const battleStandings: Standing[] = leagueStandings.map((row) => ({
+  ...row,
+  todayPercent: null,
+}));
+
 export const revealedBooks = [
   {
     userId: "r1",
@@ -384,6 +395,22 @@ export const battle: Battle = {
   isYours: true,
   timeLeft: "About 3 months left",
   notStarted: false,
+};
+
+/*
+  A battle made at the weekend, which does not begin until the market next
+  opens. The branch the card was getting wrong: it showed a countdown in the
+  colour that means running, so on a Saturday it read as live.
+*/
+export const battleNotStarted: Battle = {
+  ...battle,
+  format: formatById("silicon"),
+  length: lengthById("week"),
+  benchmarkSymbol: "SOXX",
+  startsOn: "2026-08-24",
+  endsOn: "2026-08-28",
+  timeLeft: "Ends in 6 days",
+  notStarted: true,
 };
 
 export const battleFinished: Battle = {

@@ -201,6 +201,23 @@ export default function GalleryPage() {
         </Scoreboard>
       </Case>
 
+      {/*
+        The table with no day in it. Reasoned about when the day column was
+        added and never actually looked at, which is the same way the reveal
+        shipped saying the wrong thing about somebody who never traded.
+      */}
+      <Case name="standings-table-no-day">
+        <Panel title="A battle, which has no day to show">
+          <StandingsTable standings={fixture.battleStandings} />
+        </Panel>
+      </Case>
+
+      <Case name="week-shape-all-down">
+        <Panel title="A week that never got above water">
+          <WeekShape days={settledWeek([-0.6, -2.1, -1.4, -3.8, -3.1])} />
+        </Panel>
+      </Case>
+
       <Case name="reveal">
         <Panel
           title={revealTitle(fixture.revealedBooks)}
@@ -309,6 +326,10 @@ export default function GalleryPage() {
       */}
       <Case name="battle-running">
         <BattleCard battle={fixture.battle} href="#" />
+      </Case>
+
+      <Case name="battle-not-started">
+        <BattleCard battle={fixture.battleNotStarted} href="#" />
       </Case>
 
       <Case name="battle-finished">
