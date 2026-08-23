@@ -131,6 +131,46 @@ export const MARK_BOX = (() => {
 /** The tight viewBox, as the attribute string. */
 export const MARK_VIEWBOX = `${MARK_BOX.x} ${MARK_BOX.y} ${MARK_BOX.width} ${MARK_BOX.height}`;
 
+/*
+  Where the ink actually balances, on the 64 grid.
+
+  Two peaks are nearly all base: the apexes are points and almost every square
+  unit of the drawing sits along the baseline, so the centre of area lands at
+  y = 40.8, which is 8.8 units below the middle of the box the drawing is
+  centred in. Sampled from the two outlines; the hairline cut takes a sliver
+  off the far peak near the foot and moves this by under a tenth of a unit, so
+  it is measured on the outlines rather than on one particular size.
+  `tests/unit/lockup.test.ts` recomputes it, so a peak cannot move without the
+  number following.
+*/
+export const MARK_CENTROID_Y = 40.8;
+
+/*
+  How far to lift the mark when it stands beside the type, as a fraction of
+  the size it is drawn at.
+
+  Centred by the numbers, the mark reads as having sagged: the ink is
+  symmetric about the middle of its box, but its weight is not, and the eye
+  splits the difference between the outline and the balance point. So the
+  perceived centre is about half of those 8.8 units low, and lifting by half
+  the offset -- 4.4 units, or 6.9% of the box -- puts it on the middle of the
+  cap band. Nothing else is needed on a `items-center` row: Geist's caps are
+  centred in a `leading-none` line box to within a twentieth of a pixel at
+  header size, measured, so the row already lines the two boxes up.
+
+  Half, not all of it. Lifting the centre of area itself onto the cap band
+  puts the apex a long way over the caps with the feet at the baseline, and
+  the mark stops reading as sitting on the line at all.
+
+  It belongs to the lockup rather than to the mark, so `ArenaMark` stays
+  centred in its own box: a drawing that is secretly off-centre fights every
+  other place it is put. The plated icons carry their own, smaller lift for
+  the same reason stated against a tile (`OPTICAL_LIFT`), because a tile is
+  not a line of type.
+*/
+export const LOCKUP_LIFT =
+  (MARK_CENTROID_Y - (MARK_BOX.y + MARK_BOX.height / 2)) / 2 / ICON_BOX;
+
 export type Ramp = { from: string; to: string };
 export type Colourway = {
   /** The plate under it, top to bottom. Null for the transparent mark. */

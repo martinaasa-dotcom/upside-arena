@@ -1,3 +1,4 @@
+import { LOCKUP_LIFT } from "@/lib/brand/mark";
 import { cn } from "@/lib/utils";
 import { ArenaMark } from "./ArenaMark";
 
@@ -23,7 +24,24 @@ export function ArenaWordmark({
       className={cn("flex items-center", className)}
       style={{ gap: size * 0.4 }}
     >
-      <ArenaMark size={size} title={markOnly ? "Upside Arena" : undefined} />
+      <ArenaMark
+        size={size}
+        title={markOnly ? "Upside Arena" : undefined}
+        /*
+          Lifted off the row's centre line, and only when there is type to
+          stand beside. Two triangles carry their weight along the baseline,
+          so a mark centred by the numbers reads as having sagged next to the
+          word: the row lines up the two boxes, and the eye lines up the
+          masses. LOCKUP_LIFT is where that number comes from. A transform
+          rather than a margin, so the lockup's own box does not move and
+          nothing around it reflows.
+        */
+        style={
+          markOnly
+            ? undefined
+            : { transform: `translateY(${-(size * LOCKUP_LIFT).toFixed(3)}px)` }
+        }
+      />
       {!markOnly ? (
         <span
           className="leading-none tracking-wide uppercase"

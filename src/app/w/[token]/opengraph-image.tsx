@@ -3,7 +3,13 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { getSharedCard } from "@/lib/game/share";
 import { headline, ordinal, versusMarketLine, weekLabel } from "@/lib/share/card";
-import { HEX, PRIMARY_RGB, SECONDARY_RGB, arenaMarkDataUri } from "@/lib/brand/mark";
+import {
+  HEX,
+  LOCKUP_LIFT,
+  PRIMARY_RGB,
+  SECONDARY_RGB,
+  arenaMarkDataUri,
+} from "@/lib/brand/mark";
 import { WeekBars } from "@/lib/share/week-bars";
 import { formatPercent, plural } from "@/lib/format";
 
@@ -108,7 +114,18 @@ export default async function Image({
 
   const wordmark = (
     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-      <img src={arenaMarkDataUri(34)} width={34} height={34} alt="" />
+      {/*
+        The same optical lift the app's lockup takes: a pair of peaks carries
+        its weight along the baseline, so centred by the numbers it reads as
+        having sagged beside the word. See LOCKUP_LIFT.
+      */}
+      <img
+        src={arenaMarkDataUri(34)}
+        width={34}
+        height={34}
+        alt=""
+        style={{ transform: `translateY(${-(34 * LOCKUP_LIFT).toFixed(2)}px)` }}
+      />
       <div style={{ display: "flex", fontSize: 24, letterSpacing: 0.5 }}>
         <span style={{ color: HEX.foreground, fontWeight: 600 }}>UPSIDE</span>
         <span style={{ color: HEX.foreground, fontWeight: 400 }}>&nbsp;ARENA</span>

@@ -20,6 +20,7 @@
   second copy would drift.
 */
 
+import type { CSSProperties } from "react";
 import { useId } from "react";
 
 import {
@@ -35,9 +36,15 @@ type ArenaMarkProps = {
   className?: string;
   size?: number;
   title?: string;
+  /*
+    For the one adjustment a caller is allowed to make: where the drawing sits
+    relative to whatever it stands beside. The lockup lifts it off the row's
+    centre line (see LOCKUP_LIFT); nothing else should be reaching in here.
+  */
+  style?: CSSProperties;
 };
 
-export function ArenaMark({ className, size = 20, title }: ArenaMarkProps) {
+export function ArenaMark({ className, size = 20, title, style }: ArenaMarkProps) {
   /*
     Unique ids per instance, and this is load-bearing rather than tidiness.
 
@@ -69,6 +76,7 @@ export function ArenaMark({ className, size = 20, title }: ArenaMarkProps) {
       width={size}
       height={size}
       className={className}
+      style={style}
       role={title ? "img" : "presentation"}
       aria-label={title}
       aria-hidden={title ? undefined : true}
