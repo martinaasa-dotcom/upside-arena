@@ -467,14 +467,29 @@ async function Rest() {
           </Panel>
         </div>
 
-        <div className={COLUMN}>
+        {/*
+          On a phone this column is not beside the other one, it is after all
+          of it -- and in somebody's first week that is the wrong way round. A
+          new player met a market comparison, a chart of a week they have not
+          had, an offer of notifications, a streak of one, what moved today and
+          an empty "what you own" before reaching the list that tells them what
+          to do.
+
+          So for that one week, and only below the width where the two columns
+          are actually side by side, this one goes first. Everything in it is
+          what a new player needs: the list, and the battle their league may
+          have started. Nothing moves on a desktop, where the two are level
+          anyway.
+        */}
+        <div className={`${COLUMN} ${showFirstWeek ? "max-lg:order-first" : ""}`}>
           {/*
             The first week's list, while it is still their first week.
 
-            Bounded by weeks played rather than left to run until the last box is
-            ticked. A player two months in who has never declared a goal has not
-            failed to finish anything -- they have decided they do not want that
-            part -- and a panel telling them so every Monday would be nagging.
+            Bounded by weeks played rather than left to run until the last box
+            is ticked. A player two months in who has never declared a goal has
+            not failed to finish anything -- they have decided they do not want
+            that part -- and a panel telling them so every Monday would be
+            nagging.
           */}
           {showFirstWeek ? (
             <FirstRun

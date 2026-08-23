@@ -521,6 +521,38 @@ export default function GalleryPage() {
         </div>
       </Case>
 
+      {/*
+        The first week's room, at the width where the two columns are not two
+        columns.
+
+        Home puts "what to do next" in the second column, and on a phone a
+        second column is not beside the first, it is after all of it. For one
+        week that ordering is wrong, so that column takes order-first below
+        lg -- and a class that only does anything at one breakpoint is exactly
+        the sort of claim worth photographing rather than believing.
+      */}
+      <Case name="room-split-first-week">
+        <div className={SPLIT}>
+          <div className={COLUMN}>
+            <Panel title="What you own" description="Nothing yet. Your money is all sitting in cash, which earns nothing." />
+            <Movers movers={fixture.movers} />
+          </div>
+
+          <div className={`${COLUMN} max-lg:order-first`}>
+            <FirstRun
+              startingBalance={100_000}
+              leagueName={fixture.LONG_LEAGUE}
+              inviteCode="ABCD2345"
+              leagueHref="#"
+              hasTraded={false}
+              hasCompany={false}
+              hasGoal={false}
+              hasBattle={false}
+            />
+          </div>
+        </div>
+      </Case>
+
       <Case name="form-strip">
         <FormStrip weeks={fixture.recordedWeeks} you={fixture.honours[1]} href="#" />
       </Case>
