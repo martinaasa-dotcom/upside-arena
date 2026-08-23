@@ -207,11 +207,8 @@ export default function LandingPage({
 function SampleLeague() {
   return (
     <div className="relative mx-auto w-full max-w-sm md:-rotate-1 md:transition-transform md:duration-700 md:hover:rotate-0">
-      {/* One quiet lift behind the card, not a halo. */}
-      <div
-        className="pointer-events-none absolute -inset-2 -z-10 rounded-[2.5rem] bg-gradient-to-br from-primary/12 to-transparent opacity-70 blur-2xl"
-        aria-hidden="true"
-      />
+      {/* One quiet lift behind the card, not a halo. See `.ambient-glow`. */}
+      <div className="ambient-glow" aria-hidden="true" />
 
       <div className="card-sheen glass rise rise-3 relative overflow-hidden rounded-xl p-4 shadow-2xl shadow-black/60 ring-1 ring-primary/15">
         <div className="mb-3 flex items-center justify-between gap-3">

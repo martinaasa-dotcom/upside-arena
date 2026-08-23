@@ -388,6 +388,14 @@
     inset: 0;
     z-index: -1;
     pointer-events: none;
+    /*
+      Dithered, because a ramp this dark has about thirty levels of 255 to
+      spend and it spends them across most of a screen. Every theme below
+      overrides only the gradients, so all of them inherit it. See
+      `AmbientDither` for the measurements and for why the noise is signed
+      and clipped.
+    */
+    filter: url(#ambient-dither);
     background-image:
       radial-gradient(
         1250px 1000px at -4% -8%,
@@ -647,6 +655,42 @@
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
+}
+
+/*
+  The lift behind a sample card, and the reason it is a class rather than
+  four utilities.
+
+  It was `bg-gradient-to-br from-primary/12 to-transparent opacity-70
+  blur-2xl`: one colour, one stop, straight to nothing, across a card's
+  worth of near-black. A two stop ramp down there has about twenty levels
+  to spend and spends them a level at a time every thirty-odd pixels, so
+  what it drew was not a glow but a set of steps, stacked on top of the
+  rings the field was already drawing. Lab had the same element with the
+  same utilities and the same fault; both are this class now.
+
+  So it takes the shape the room's own lamps take: a falloff curve rather
+  than a straight line, anchored off the card's top left corner where the
+  key light is, and dithered like everything else that has to ramp through
+  the bottom of the range. No `blur` term: at four stops the gradient is
+  already softer than a 40px blur made it, and a blur inside a filter
+  region would only be clipped back to the element box anyway.
+*/
+.ambient-glow {
+  position: absolute;
+  inset: -1rem;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 3rem;
+  background-image: radial-gradient(
+    125% 120% at 10% 4%,
+    oklch(from var(--primary) l c h / 8.5%) 0%,
+    oklch(from var(--primary) l c h / 4.4%) 22%,
+    oklch(from var(--primary) l c h / 1.9%) 44%,
+    oklch(from var(--primary) l c h / 0.7%) 68%,
+    transparent 100%
+  );
+  filter: url(#ambient-dither);
 }
 
 @media (prefers-reduced-motion: reduce) {
