@@ -3,13 +3,9 @@ import {
   ADDRESS_MESSAGES,
   MAX_LINKED_ADDRESSES,
   decideClaim,
-  hashLinkToken,
-  linkUrl,
-  mintLinkToken,
   type ClaimFacts,
 } from "@/lib/auth/address-link";
 import { googleEmailFromIdToken, readIdTokenClaims } from "@/lib/auth/id-token";
-import { confirmAddressMail, linkedSignInMail } from "@/lib/auth/link-mail";
 
 /*
   One account, more than one address.
@@ -62,12 +58,13 @@ describe("whether an address may be added", () => {
     });
   });
 
-  it("sends the link again for one this account added but never confirmed", () => {
+  it("lets an unconfirmed row be asked for again rather than calling it done", () => {
     /*
-      A pending row is a link sitting unopened in a mailbox, which is the exact
-      situation somebody is in when they press the button a second time.
-      Calling that "already connected" would leave them with an address that
-      does not work and a screen saying it does.
+      Nothing writes an unconfirmed row any more: the Google handshake proves
+      the mailbox and inserts the address already verified. The rule stays
+      because it is the safe way round for a row that predates that or arrives
+      some other way, and because "already connected" about an address that
+      does not work is the one answer that leaves somebody stuck.
     */
     expect(decideClaim(facts({ linked: { account: ME, verified: false } }))).toEqual({
       kind: "ok",
@@ -143,32 +140,6 @@ describe("whether an address may be added", () => {
     for (const [outcome, sentence] of Object.entries(ADDRESS_MESSAGES)) {
       expect(sentence.length, `${outcome} says nothing`).toBeGreaterThan(10);
     }
-  });
-});
-
-describe("the token mailed to an address being added", () => {
-  it("never issues the same one twice", () => {
-    const seen = new Set(Array.from({ length: 200 }, () => mintLinkToken().token));
-    expect(seen.size).toBe(200);
-  });
-
-  it("stores a digest rather than the token itself", () => {
-    // A table of live tokens is a table anybody who can read a backup can
-    // spend. A digest cannot be spent.
-    const minted = mintLinkToken();
-    expect(minted.hash).not.toBe(minted.token);
-    expect(minted.hash).toBe(hashLinkToken(minted.token));
-    expect(minted.hash).toMatch(/^[0-9a-f]{64}$/);
-  });
-
-  it("expires an hour out, the same as a sign-in link", () => {
-    const now = new Date("2026-08-23T10:00:00.000Z");
-    expect(mintLinkToken(now).expiresAt).toBe("2026-08-23T11:00:00.000Z");
-  });
-
-  it("puts the token in the url in a form that survives being one", () => {
-    const url = linkUrl("https://upsidearena.com", "a+b/c=");
-    expect(url).toBe("https://upsidearena.com/auth/link?token=a%2Bb%2Fc%3D");
   });
 });
 
@@ -256,40 +227,5 @@ describe("reading the address off a Google token", () => {
   it("refuses everything when the app holds no client id", () => {
     // An empty client id must never match an empty audience claim.
     expect(googleEmailFromIdToken(token({ ...good, aud: "" }), "", NOW)).toBeNull();
-  });
-});
-
-describe("the letters", () => {
-  const URL = "https://upsidearena.com/auth/link?token=abc";
-
-  it("names the asking account by its address, which cannot be made up", () => {
-    const mail = confirmAddressMail(URL, "martin@upthink.ee");
-    expect(mail.text).toContain("martin@upthink.ee");
-    expect(mail.html).toContain(URL);
-    expect(mail.text).toContain(URL);
-  });
-
-  it("still reads as a sentence when the account has no address on it", () => {
-    const mail = confirmAddressMail(URL, null);
-    expect(mail.text).toContain("An Upside Arena account");
-    expect(mail.text).not.toContain("null");
-  });
-
-  it("says ignoring it is a real answer, because this lands in a stranger's inbox", () => {
-    expect(confirmAddressMail(URL, "martin@upthink.ee").text).toContain("ignore it");
-  });
-
-  it("escapes anything that reaches the markup", () => {
-    // An address is typed by a person, and this one is a person having a go.
-    const mail = confirmAddressMail(URL, '"><script>alert(1)</script>');
-    expect(mail.html).not.toContain("<script>");
-    expect(mail.html).toContain("&lt;script&gt;");
-  });
-
-  it("carries the sign-in link in both halves of the sign-in letter", () => {
-    const mail = linkedSignInMail(URL);
-    expect(mail.html).toContain(URL);
-    expect(mail.text).toContain(URL);
-    expect(mail.subject.length).toBeGreaterThan(5);
   });
 });

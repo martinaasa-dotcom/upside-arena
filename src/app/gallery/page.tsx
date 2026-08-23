@@ -692,9 +692,8 @@ export default function GalleryPage() {
       </Case>
 
       {/*
-        Two addresses on one account, with a long one and a pending one in it.
-        The row truncates rather than pushing the badges off a phone, and the
-        add form drops to two lines under sm.
+        Two addresses on one account, one of them long enough to need it. The
+        row truncates rather than pushing the badge off a phone.
       */}
       <Case name="sign-in-addresses">
         <Panel title="Ways to sign in">
@@ -710,7 +709,7 @@ export default function GalleryPage() {
               {
                 id: "b",
                 email: "martin.aasa.the.longer.one@somewhere.example.co.uk",
-                verified: false,
+                verified: true,
                 addedAt: "2026-08-23T10:00:00.000Z",
               },
             ]}

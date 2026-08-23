@@ -39,7 +39,6 @@ export type AnalyticsEvent =
     which is a second account with the same person in it, is invisible from
     here: it looks exactly like a new player who never comes back.
   */
-  | "address_link_requested"
   | "address_google_started"
   // Playing
   | "trade_screen_viewed"

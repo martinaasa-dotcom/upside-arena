@@ -1,16 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useId } from "react";
-import { Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  addAddress,
-  removeAddress,
-  type AddressState,
-} from "@/app/(app)/profile/address-actions";
+import { removeAddress } from "@/app/(app)/profile/address-actions";
 import { connectGoogle } from "@/app/auth/actions";
 import type { LinkedAddress } from "@/lib/auth/linked-emails";
 import { track } from "@/lib/analytics";
@@ -23,10 +15,14 @@ import { track } from "@/lib/analytics";
   their phone is signed in to. Without this they make a second account, which
   is a second player tag, a second record and a league nobody is in.
 
-  Two ways to add one, because the two mailboxes people actually have arrive
-  differently. A Google account proves itself in the handshake and is added on
-  the spot. Anything else is sent a link, and nothing is joined until somebody
-  opens it.
+  One way to add one, because Google is the only way into an account. The
+  handshake proves the mailbox, so the address is joined on the spot and can
+  sign in straight away.
+
+  There were two. The other took any address and mailed it a confirmation
+  link, joining nothing until somebody opened it. It went with the magic link:
+  an address you cannot sign in with is not worth confirming, and confirming
+  one anyway is a way to promise somebody a way in that does not exist.
 */
 
 function GoogleGlyph() {
@@ -62,16 +58,6 @@ export function SignInAddresses({
   googleEnabled: boolean;
   notice?: string;
 }) {
-  const [state, formAction, pending] = useActionState<AddressState, FormData>(
-    addAddress,
-    {}
-  );
-  const fieldId = useId();
-
-  useEffect(() => {
-    if (state.sent) track("address_link_requested");
-  }, [state.sent]);
-
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
@@ -84,11 +70,13 @@ export function SignInAddresses({
           <div key={address.id} className={ROW}>
             <span className="figure min-w-0 flex-1 truncate text-sm">{address.email}</span>
 
-            {address.verified ? (
-              <Badge variant="outline">Signs in</Badge>
-            ) : (
-              <Badge variant="warning">Waiting</Badge>
-            )}
+            {/*
+              Always. The Google handshake writes the address down already
+              verified, so there is no longer any such thing as one waiting on
+              a mailbox. The column stays, because the row still records when
+              it was proved.
+            */}
+            <Badge variant="outline">Signs in</Badge>
 
             <form action={removeAddress}>
               <input type="hidden" name="id" value={address.id} />
@@ -120,81 +108,6 @@ export function SignInAddresses({
         </form>
       ) : null}
 
-      {/*
-        The same "did you mean" question the sign-in form asks, for the same
-        reason: one letter out and the link goes to somebody else's mailbox,
-        and plenty of real domains sit one letter from a famous one.
-      */}
-      {state.suggestion && state.typed ? (
-        <form action={formAction} className="flex flex-col gap-2">
-          <p className="text-sm text-muted-foreground">
-            You typed {state.typed}. Did you mean {state.suggestion}?
-          </p>
-          <input type="hidden" name="confirmed" value="1" />
-          <div className="flex flex-wrap gap-2">
-            <Button type="submit" name="email" value={state.suggestion} disabled={pending}>
-              <Mail />
-              Send to {state.suggestion}
-            </Button>
-            <Button
-              type="submit"
-              name="email"
-              value={state.typed}
-              variant="outline"
-              disabled={pending}
-            >
-              No, {state.typed} is right
-            </Button>
-          </div>
-        </form>
-      ) : (
-        <form action={formAction} className="flex max-w-md flex-col gap-2">
-          <Label htmlFor={fieldId}>Add another address</Label>
-
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Input
-              id={fieldId}
-              /*
-                Remounted on a refusal so the typed address is still there to be
-                corrected. React clears an uncontrolled field when a form action
-                returns, which would mean typing the whole thing again.
-              */
-              key={state.typed ?? "fresh"}
-              defaultValue={state.typed}
-              name="email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              required
-              placeholder="you@gmail.com"
-              aria-invalid={Boolean(state.error) || undefined}
-              aria-describedby={state.error ? "address-error" : undefined}
-              className="sm:flex-1"
-            />
-            <Button type="submit" variant="outline" disabled={pending} className="shrink-0">
-              {pending ? "Sending" : "Send a link"}
-            </Button>
-          </div>
-        </form>
-      )}
-
-      {state.error ? (
-        <p id="address-error" role="alert" className="text-sm text-loss">
-          {state.error}
-        </p>
-      ) : null}
-
-      {state.note ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          {state.note}
-        </p>
-      ) : null}
-
-      {state.sent ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          {state.sent}
-        </p>
-      ) : null}
     </div>
   );
 }
