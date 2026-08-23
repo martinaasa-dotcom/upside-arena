@@ -241,6 +241,44 @@ export const recap: Recap = {
 };
 
 /*
+  The two weeks the card was actually designed for.
+
+  card.ts opens by saying the whole share loop rests on one requirement: the
+  card has to be worth posting after a bad week too, because nobody shares
+  something that makes them look foolish. Until now the only week ever
+  photographed was up eight per cent, first of twenty-four, on a forty-one
+  day streak -- the version that needs no design at all.
+
+  One is down and still ahead of a market that fell further, which is a good
+  week wearing a minus sign and is the case the wording exists for. The other
+  is down and behind, which is simply a bad week, and it has to read as
+  neither a scolding nor a consolation prize.
+*/
+export const recapAheadOfFallingMarket: Recap = {
+  displayName: "Priya",
+  title: null,
+  monday: "2026-08-17",
+  returnPercent: -1.4,
+  benchmarkReturn: -4.9,
+  benchmarkDiff: 3.5,
+  league: { name: "The Pit", rank: 2, size: 6 },
+  streakDays: 3,
+  marks: [-0.2, -2.6, -1.9, -3.1, -1.4],
+};
+
+export const recapBadWeek: Recap = {
+  displayName: "Marcus",
+  title: null,
+  monday: "2026-08-17",
+  returnPercent: -6.2,
+  benchmarkReturn: 1.8,
+  benchmarkDiff: -8.0,
+  league: { name: "The Pit", rank: 6, size: 6 },
+  streakDays: 0,
+  marks: [1.1, -0.4, -3.8, -5.2, -6.2],
+};
+
+/*
   The rest of the rooms.
 
   Everything below lays out text or figures somebody else supplied, which is

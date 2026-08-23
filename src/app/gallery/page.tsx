@@ -155,6 +155,14 @@ export default function GalleryPage() {
         <WeekRecap recap={fixture.recap} />
       </Case>
 
+      <Case name="week-recap-ahead-of-falling-market">
+        <WeekRecap recap={fixture.recapAheadOfFallingMarket} />
+      </Case>
+
+      <Case name="week-recap-bad-week">
+        <WeekRecap recap={fixture.recapBadWeek} />
+      </Case>
+
       <Case name="coin-shop">
         <Panel title="Coins">
           <CoinShop
