@@ -81,8 +81,16 @@ export type PortfolioView = {
    * Wednesday afternoon.
    */
   marketState: string | null;
-  /** True when any price shown came from cache after a failed refresh. */
-  anyStale: boolean;
+  /*
+    When the oldest price on this screen was actually fetched, and only when
+    a refresh has failed and the cache is being served in its place.
+
+    Null in the ordinary case, which is almost always: quotes live for sixty
+    seconds, so a reading of how old they are is worth showing exactly when
+    that ceiling has stopped holding. Home turns it into a quiet line saying
+    how far behind the figures are.
+  */
+  staleSince: number | null;
 };
 
 type PortfolioRow = {
@@ -271,8 +279,28 @@ function stubView(): PortfolioView {
     versusMarket: 0.9,
     tradingOpen: true,
     marketState: "REGULAR",
-    anyStale: false,
+    staleSince: null,
   };
+}
+
+/*
+  The oldest print among the ones that came back from cache after a failed
+  refresh, or null when every price is current.
+
+  The oldest rather than the newest, because a screen saying how far behind
+  it is has to answer for the worst figure on it. The benchmark is in here
+  too: it is what "The market" is measured from, and a player reading a
+  comparison against a price from an hour ago should be told.
+*/
+export function oldestStale(quotes: Record<string, Quote>): number | null {
+  let oldest: number | null = null;
+
+  for (const quote of Object.values(quotes)) {
+    if (!quote.stale) continue;
+    if (oldest == null || quote.fetchedAt < oldest) oldest = quote.fetchedAt;
+  }
+
+  return oldest;
 }
 
 export const getPortfolioView = cache(async function getPortfolioView(
@@ -366,15 +394,11 @@ export const getPortfolioView = cache(async function getPortfolioView(
   const quotes = { ...benchmarkQuotes, ...held };
   const benchmarkOpenPrice = cycle.benchmark_open;
 
-  let anyStale = false;
-
   const positions: Position[] = holdings.map((row) => {
     const symbol = row.symbol;
     const quantity = num(row.quantity);
     const costBasis = num(row.cost_basis);
     const quote = quotes[symbol] ?? null;
-
-    if (quote?.stale) anyStale = true;
 
     // With no price at all, the position is shown at cost rather than at
     // zero. Zero would look like a wipeout that never happened.
@@ -418,7 +442,7 @@ export const getPortfolioView = cache(async function getPortfolioView(
       benchmarkReturnPercent == null ? null : returnPercent - benchmarkReturnPercent,
     tradingOpen: cycle.status === "open" && isTradingOpen(),
     marketState: benchmarkQuote?.marketState ?? null,
-    anyStale,
+    staleSince: oldestStale(quotes),
   };
 })
 export type TradeOutcome =

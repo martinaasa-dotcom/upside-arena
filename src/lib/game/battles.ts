@@ -167,7 +167,6 @@ export type BattleView = {
   /** Why it is not, when it is not. Empty when it is. */
   closedReason: string;
   marketState: string | null;
-  anyStale: boolean;
 };
 
 /*
@@ -708,8 +707,6 @@ export const getBattleView = cache(async function getBattleView(
 
   const portfolioByUser = new Map(portfolioRows.map((p) => [p.user_id, p]));
 
-  let anyStale = false;
-
   const rows = memberIds.map((memberId) => {
     const portfolio = portfolioByUser.get(memberId);
     const profile = profileById.get(memberId);
@@ -725,7 +722,6 @@ export const getBattleView = cache(async function getBattleView(
     const held = portfolio ? (holdingsByPortfolio.get(portfolio.id) ?? []) : [];
     const holdingsValue = held.reduce((sum, position) => {
       const quote = quotes[position.symbol] ?? null;
-      if (quote?.stale) anyStale = true;
       return (
         sum +
         positionValue(format, {
@@ -871,7 +867,6 @@ export const getBattleView = cache(async function getBattleView(
     tradingOpen: trading.open,
     closedReason: trading.reason,
     marketState: benchmarkQuote?.marketState ?? null,
-    anyStale,
   };
 });
 

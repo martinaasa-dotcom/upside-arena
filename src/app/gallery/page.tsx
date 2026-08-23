@@ -42,6 +42,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { BottomDock } from "@/components/BottomDock";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { priceAgeLabel } from "@/lib/format";
 import { ErrorPreview } from "./ErrorPreview";
 import { COIN_BUNDLES } from "@/lib/billing/plan";
 import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
@@ -632,8 +633,18 @@ export default function GalleryPage() {
         <Movers movers={fixture.movers} />
       </Case>
 
-      <Case name="movers-stale">
-        <Movers movers={fixture.moversStale} />
+      {/*
+        Home's badge row in the widest state it has: the price age only shows
+        when a refresh has failed, so the three-badge row is the rare one and
+        is the only one worth measuring. 320px is where it has to wrap rather
+        than clip.
+      */}
+      <Case name="home-badges">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline">{priceAgeLabel(59 * 60_000)}</Badge>
+          <Badge variant="outline">Market open</Badge>
+          <Badge variant="outline">Play money</Badge>
+        </div>
       </Case>
 
       <Case name="invite-code">
