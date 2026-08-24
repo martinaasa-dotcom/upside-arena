@@ -95,4 +95,31 @@ describe("readAll", () => {
     // caller already treats a failed read.
     expect(rows).toHaveLength(500);
   });
+
+  /*
+    And the other half of that choice. A snapshot missing most of its rows and
+    looking exactly like a good one is worse than a backup that failed and
+    said so, so captureBookPayload asks for the loud version.
+  */
+  it("raises instead, when the caller says a short answer is worse", async () => {
+    await expect(
+      readAll<{ n: number }>(
+        () => ({
+          range: async () => ({ data: null, error: new Error("gone") }),
+        }),
+        "throw"
+      )
+    ).rejects.toThrow("gone");
+  });
+
+  it("raises a real Error even when the driver hands back a plain object", async () => {
+    await expect(
+      readAll<{ n: number }>(
+        () => ({
+          range: async () => ({ data: null, error: { message: "no such column" } }),
+        }),
+        "throw"
+      )
+    ).rejects.toThrow("no such column");
+  });
 });

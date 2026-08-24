@@ -35,25 +35,45 @@ type Page<T> = { data: T[] | null; error: unknown };
 type Ranged<T> = { range: (from: number, to: number) => PromiseLike<Page<T>> };
 
 /**
+ * What to do when a page fails.
+ *
+ * "stop" hands back what has been read so far, which is how every room
+ * already treats a failed read: draw with less rather than not at all.
+ *
+ * "throw" is for the callers where a short answer is worse than no answer. A
+ * snapshot missing most of its rows and looking exactly like a good one is
+ * worse than a backup that failed and said so.
+ */
+export type OnPageError = "stop" | "throw";
+
+/**
  * Every row a query matches, fetched a page at a time.
  *
  * Takes the query builder rather than the promise, because each page is a
  * separate request and the builder is what can be given a different range.
  * Supabase's builders are single-use once awaited, so the caller passes a
  * function that makes a fresh one.
- *
- * An error on any page returns what has been read so far rather than
- * throwing, matching how every caller already treats a failed read: the room
- * draws with less rather than not at all.
  */
-export async function readAll<T>(build: () => Ranged<T>): Promise<T[]> {
+export async function readAll<T>(
+  build: () => Ranged<T>,
+  onError: OnPageError = "stop"
+): Promise<T[]> {
   const rows: T[] = [];
 
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const from = page * PAGE;
     const { data, error } = await build().range(from, from + PAGE - 1);
 
-    if (error) break;
+    if (error) {
+      if (onError === "throw") {
+        throw error instanceof Error
+          ? error
+          : new Error(
+              (error as { message?: string })?.message ?? "read failed part way"
+            );
+      }
+      break;
+    }
 
     const batch = data ?? [];
     rows.push(...batch);
