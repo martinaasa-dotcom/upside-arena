@@ -2,6 +2,7 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canWriteGame, siteUrl } from "@/lib/env";
+import { unsubscribeUrlFor } from "@/lib/notify/unsubscribe";
 import { COMPANY } from "@/lib/company";
 import { emailHtml, emailText } from "@/lib/notify/email-template";
 import { isSendable } from "@/lib/auth/email-address";
@@ -109,7 +110,16 @@ export async function sendPush(
 
 export async function sendEmail(
   to: string,
-  message: Message
+  message: Message,
+  /*
+    Whose mail this is, so the unsubscribe link in it can be theirs.
+
+    Optional only because a caller that does not know cannot be made to
+    invent one: without it the mail still goes, with the link at the foot
+    pointing at the profile page as it always did. Every caller in the app
+    passes it.
+  */
+  userId?: string
 ): Promise<boolean> {
   if (!emailConfigured || !to) return false;
 
@@ -127,7 +137,18 @@ export async function sendEmail(
     return false;
   }
 
-  const unsubscribeUrl = `${siteUrl()}/profile`;
+  /*
+    A link that turns the emails off by itself, and the profile page only when
+    there is no way to sign one.
+
+    The old link went to /profile for everybody, which is behind a sign-in.
+    Somebody who has stopped using Arena and wants the mail to stop does not
+    sign back in to find a switch; they press the button that says spam, and
+    one of those costs the sending domain more than a hundred quiet
+    unsubscribes.
+  */
+  const signed = userId ? unsubscribeUrlFor(userId) : null;
+  const unsubscribeUrl = signed ?? `${siteUrl()}/profile`;
 
   try {
     const { Resend } = await import("resend");
@@ -143,6 +164,18 @@ export async function sendEmail(
         // Lets a mail client offer one-tap unsubscribe, which is both polite
         // and what keeps mail out of a spam folder.
         "List-Unsubscribe": `<${unsubscribeUrl}>`,
+        /*
+          And this is what makes the offer real. Without it a client that
+          shows an unsubscribe button opens the link in a browser, which is a
+          sign-in page. With it, the client posts to the link itself and the
+          person is done. Gmail and Yahoo have both required it of bulk
+          senders since 2024.
+
+          Only when the link is one we signed: posting to the profile page
+          would do nothing at all, and a button that appears to work and does
+          not is worse than no button.
+        */
+        ...(signed ? { "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } : {}),
       },
     });
 

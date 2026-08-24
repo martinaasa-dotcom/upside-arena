@@ -198,12 +198,12 @@ async function deliver(
     // Nobody actually had a browser listening. Email is the fallback the plan
     // asks for precisely because push reaches so few people on iOS.
     if (delivered === 0 && wantsEmail && email) {
-      await sendEmail(email, message);
+      await sendEmail(email, message, userId);
     }
     return "sent";
   }
 
-  if (email) await sendEmail(email, message);
+  if (email) await sendEmail(email, message, userId);
   return "sent";
 }
 

@@ -46,6 +46,14 @@ const PUBLIC_API_PATHS: string[] = [
     only answers while the thing it is checking is already working.
   */
   "/api/health",
+
+  /*
+    The link at the foot of an email. Somebody who has stopped using Arena has
+    no session, and that is exactly the person it is for. What makes it safe
+    to leave open is that the url carries a signature of whose mail it is and
+    the only thing that signature permits is turning that person's email off.
+  */
+  "/api/unsubscribe",
 ];
 
 function isPublic(pathname: string) {
