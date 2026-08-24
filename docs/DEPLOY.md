@@ -15,6 +15,9 @@ Supabase project. Nothing here is shared with Lab except the company behind it.
 > ground as a click-by-click walkthrough, in the order to do it. This file is
 > the reference.
 
+> Something has gone wrong rather than being set up? `docs/DISASTER_RECOVERY.md`
+> is what is backed up, how to restore it and how to roll a deploy back.
+
 ## Environment variables
 
 Set these in the Vercel project under Settings, Environment Variables, for

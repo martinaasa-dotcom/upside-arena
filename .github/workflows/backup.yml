@@ -1,0 +1,69 @@
+name: Nightly backup
+
+# A backup is a file, and this is the workflow that writes one.
+#
+# What it is not is a subscription. pg_dump and gpg, on a schedule, with the
+# result kept as an encrypted artifact of this run. GitHub keeps those for
+# ninety days on a private repository at no cost, which is far longer than the
+# window in which anybody notices data is missing.
+#
+# Two secrets, both set by hand, and the workflow says so and stops rather
+# than pretending when either is absent:
+#
+#   SUPABASE_DB_URL      the project's direct connection string, from
+#                        Supabase, Settings, Database. The pooler will not do
+#                        for pg_dump.
+#   BACKUP_PASSPHRASE    a long random string. Keep a copy somewhere that is
+#                        not this repository, because a passphrase stored only
+#                        beside the thing it encrypts is not a passphrase.
+#
+# The rehearsal that proves a backup can actually be restored is a separate
+# job in the Check workflow, and it runs on every pull request. A backup
+# nobody has ever restored is a belief rather than a backup.
+
+on:
+  schedule:
+    # 05:00 UTC, which is the middle of the night in New York and well after
+    # the week has settled on a Friday.
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The client has to be at least as new as the server, or pg_dump refuses.
+      - name: Install the matching pg_dump
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client-16
+
+      - name: Take the backup
+        id: dump
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::SUPABASE_DB_URL or BACKUP_PASSPHRASE is not set on this repository."
+            echo "Nothing was backed up. See docs/DISASTER_RECOVERY.md."
+            exit 1
+          fi
+
+          ./scripts/backup.sh backups
+
+      - name: Keep it
+        uses: actions/upload-artifact@v4
+        with:
+          name: arena-backup-${{ github.run_id }}
+          path: backups/*.gpg
+          # Long enough that a deletion noticed a month later is still
+          # recoverable. Nothing here is readable without the passphrase.
+          retention-days: 90
+          if-no-files-found: error

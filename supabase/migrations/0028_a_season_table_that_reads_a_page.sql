@@ -100,8 +100,8 @@ as $$
   order by place;
 $$;
 
-create index if not exists season_results_season_idx
-  on public.season_results (season_id);
+-- The index this reads over is season_results_season_idx, which 0011 already
+-- created. Named here so the next person does not go looking for it.
 
 revoke all on function public.season_standings(uuid, uuid, integer, integer)
   from public, anon, authenticated;
