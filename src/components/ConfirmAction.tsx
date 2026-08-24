@@ -90,8 +90,18 @@ export function ConfirmAction({
                   data.set(name, value);
                 }
 
-                await action(data);
-                setOpen(false);
+                try {
+                  await action(data);
+                } finally {
+                  /*
+                    Closed whatever happened. An action that navigates never
+                    reaches this, because the redirect unwinds the transition;
+                    one that fails would otherwise leave a dialog open with
+                    both of its buttons disabled, which is a trap rather than
+                    a question.
+                  */
+                  setOpen(false);
+                }
               });
             }}
           >
