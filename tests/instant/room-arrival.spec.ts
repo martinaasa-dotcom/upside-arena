@@ -81,8 +81,23 @@ test.describe("a room arrives whole", () => {
       */
       await expect(page.getByText("What you own")).toBeVisible();
 
-      // And a holding in it, so an empty panel cannot pass for a full one.
-      await expect(page.getByText("AAPL")).toBeVisible();
+      /*
+        And a holding in it, so an empty panel cannot pass for a full one.
+
+        Scoped to that panel rather than to the page, and the reason is a
+        failure this actually had: the same company can be in what moved
+        today, marked as yours, and then "AAPL" is on the screen twice and a
+        page-wide match is a strict mode violation rather than an assertion.
+        Which of the recognisable companies moved most is not something this
+        test gets to know, so it looks where the holding has to be.
+      */
+      const owned = page
+        .locator("section")
+        .filter({ hasText: "What you own" })
+        // The innermost match: an ancestor section holding the whole room
+        // would contain the heading too, and comes first in document order.
+        .last();
+      await expect(owned.getByText("AAPL")).toBeVisible();
 
       firstFrame = room(await page.locator("body").innerText());
     });
