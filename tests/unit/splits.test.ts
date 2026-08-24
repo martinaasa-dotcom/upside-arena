@@ -148,6 +148,50 @@ describe("reading a split off the provider", () => {
     expect(await getSplits("ZERO", "2026-06-01", "2026-06-10")).toEqual([]);
   });
 
+  it("refuses a spinoff, which arrives on the same feed and is not a split", async () => {
+    /*
+      GE's real events, read off the live feed: a 1 for 8 reverse in 2021, and
+      then the GE HealthCare and Vernova spinoffs, which Yahoo reports as
+      1281:1000 and 1253:1000. A spinoff leaves the share count alone. Applied
+      as a split it would hand every holder 28% more shares at the current
+      price, which is a position worth 28% more than it is, settled and
+      printed on a leaderboard.
+    */
+    chart.mockResolvedValue({
+      events: {
+        splits: [
+          { date: new Date("2023-01-04T14:30:00Z"), numerator: 1281, denominator: 1000 },
+          { date: new Date("2024-04-02T13:30:00Z"), numerator: 1253, denominator: 1000 },
+        ],
+      },
+    });
+
+    expect(await getSplits("GE", "2023-01-01", "2024-05-01")).toEqual([]);
+  });
+
+  it("keeps a real reverse split of the same company", async () => {
+    chart.mockResolvedValue({
+      events: {
+        splits: [{ date: new Date("2021-08-02T13:30:00Z"), numerator: 1, denominator: 8 }],
+      },
+    });
+
+    const [event] = (await getSplits("GE", "2021-08-01", "2021-08-10")) ?? [];
+    expect(event.numerator).toBe(1);
+    expect(event.denominator).toBe(8);
+  });
+
+  it("keeps a ratio that reduces to small whole numbers", async () => {
+    // 300:200 is three for two written the long way, and is a real split.
+    chart.mockResolvedValue({
+      events: {
+        splits: [{ date: new Date("2026-06-10T13:30:00Z"), numerator: 300, denominator: 200 }],
+      },
+    });
+
+    expect((await getSplits("ODDS", "2026-06-01", "2026-06-10"))?.[0].numerator).toBe(300);
+  });
+
   it("says it could not ask, which is not the same as nothing happening", async () => {
     /*
       An empty list means the provider answered and there was no split. Null
