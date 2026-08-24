@@ -489,7 +489,15 @@ curl -sS -H "Authorization: Bearer $VERCEL_TOKEN" \
 A deploy and a migration are two separate acts, and the app can be running code
 that expects a table the project does not have.
 
-Three ways to apply one:
+**`./scripts/migrate.sh --check` answers "is production behind?"** in one
+request, and it is the thing that was missing when production sat at `0025`
+for five migrations while `main` carried the code that needs them. It works
+the state out from what the project holds rather than from a ledger, because a
+ledger lies the first time somebody runs a file by hand in the SQL editor.
+`./scripts/migrate.sh --all` then applies what it found, one at a time,
+stopping at the first failure.
+
+Three ways to apply one by hand:
 
 - `npx supabase db push` against a linked project. Needs a Supabase access
   token (`supabase login`, or `SUPABASE_ACCESS_TOKEN`), which is not the same
