@@ -427,22 +427,108 @@ const US_EXCHANGES = new Set([
   "SNP", // where the indices do
 ]);
 
-export async function searchSymbols(
+/*
+  What a search costs, and why it is cached far longer than a price is.
+
+  This was the one call in the file with no cache and no dedupe behind it.
+  Every keystroke in the trade box was a request to Yahoo: measured live,
+  between 100ms and 307ms each, and the two rooms that search debounce at
+  300ms, which collapses a fast typist but does nothing at all across
+  people. Two hundred players typing NVDA on a Monday morning were two
+  hundred separate requests for one answer, and asking for that answer
+  twice a second from one address is what gets an address throttled. The
+  cost of that is not a search box that stops working. Quotes go through
+  the same client to the same host, so a throttle takes the prices down
+  with it, and prices are the game.
+
+  Six hours, where a quote gets sixty seconds, because the two answers age
+  at completely different rates: a price is wrong a minute later by
+  design, while the set of companies whose name begins "nvd" is the same
+  set tomorrow. Measured, the live answer is not even stable inside a
+  second -- the same query run twice returned NVDA,NVDL,NVDY,NVDW,NVD and
+  then NVDA,NVDY,NVDW,NVYY,YNVD.NE -- so caching also stops two people who
+  typed the same thing being offered different companies, which the
+  uncached version did.
+*/
+const SEARCH_TTL_SECONDS = 6 * 60 * 60;
+const MAX_SEARCH_ENTRIES = 300;
+
+/*
+  A search query is a free-text field, and nothing downstream bounded it.
+  Truncated rather than refused: the longest company name anybody would
+  paste still matches on its first forty characters, and a query nobody
+  could type is not worth forwarding whole.
+*/
+const MAX_QUERY_LENGTH = 40;
+
+type SearchEntry = { matches: SymbolMatch[]; fetchedAt: number };
+
+const searches = new Map<string, SearchEntry>();
+const searchesInFlight = new Map<string, Promise<SymbolMatch[]>>();
+
+/*
+  A ceiling on how often this process will go upstream for a search, as a
+  backstop rather than as the defence.
+
+  The cache is the defence, and it is the part that scales: once the
+  answer to a query is held, the number of people asking it costs nothing.
+  What the cache cannot bound is a run of queries that are each different,
+  which is either a launch morning with real breadth in it or somebody
+  walking the alphabet, and from one process those look the same. Thirty a
+  minute is far above the first and far below what reads as scraping.
+
+  Per process, and honestly so: several instances each keep their own,
+  exactly as the quote cache above does. That makes this a bound on one
+  instance running away rather than a global rate limit, and a global one
+  would mean a database round trip on every keystroke to defend against a
+  case the cache already covers. Over the ceiling the query is answered
+  from whatever was last held for it, so what a player loses is freshness
+  on one search rather than the prices in every room.
+*/
+const SEARCH_BUDGET = 30;
+const SEARCH_WINDOW_MS = 60_000;
+
+let windowOpened = 0;
+let windowSpent = 0;
+
+function mayAskUpstream(now = Date.now()): boolean {
+  if (now - windowOpened >= SEARCH_WINDOW_MS) {
+    windowOpened = now;
+    windowSpent = 0;
+  }
+  if (windowSpent >= SEARCH_BUDGET) return false;
+  windowSpent += 1;
+  return true;
+}
+
+function pruneSearches() {
+  if (searches.size <= MAX_SEARCH_ENTRIES) return;
+  const oldest = [...searches.entries()]
+    .sort((a, b) => a[1].fetchedAt - b[1].fetchedAt)
+    .slice(0, searches.size - MAX_SEARCH_ENTRIES);
+  for (const [key] of oldest) searches.delete(key);
+}
+
+/**
+ * One trip upstream.
+ *
+ * Null when the provider did not answer, never an empty list. The two are
+ * different answers -- "nothing is called that" is worth remembering for
+ * six hours and "Yahoo was down" is worth remembering for none of it --
+ * and a version of this that returned [] for both would have cached the
+ * outage.
+ */
+async function fetchSearch(
   query: string,
-  types: readonly string[] = ["EQUITY", "ETF", "MUTUALFUND", "INDEX"]
-): Promise<SymbolMatch[]> {
-  const trimmed = query.trim();
-  if (trimmed.length < 1) return [];
-
-  const allowed = new Set(types.map((type) => type.toUpperCase()));
-
+  allowed: ReadonlySet<string>
+): Promise<SymbolMatch[] | null> {
   try {
     const yahoo = await getYahoo();
     const result = (await (
       yahoo as {
         search: (q: string, opts: Record<string, unknown>) => Promise<unknown>;
       }
-    ).search(trimmed, { quotesCount: 12, newsCount: 0 })) as {
+    ).search(query, { quotesCount: 12, newsCount: 0 })) as {
       quotes?: Array<{
         symbol?: string;
         shortname?: string;
@@ -464,12 +550,59 @@ export async function searchSymbols(
         exchange: q.exchange ?? null,
       }));
   } catch {
-    return [];
+    return null;
   }
+}
+
+export async function searchSymbols(
+  query: string,
+  types: readonly string[] = ["EQUITY", "ETF", "MUTUALFUND", "INDEX"]
+): Promise<SymbolMatch[]> {
+  const trimmed = query.trim().slice(0, MAX_QUERY_LENGTH);
+  if (trimmed.length < 1) return [];
+
+  const wanted = [...types].map((type) => type.toUpperCase()).sort();
+  const allowed = new Set(wanted);
+
+  /*
+    The types belong in the key. A week that accepts only coins and a week
+    that accepts only funds ask the same word of the same provider and must
+    not be handed each other's answer.
+  */
+  const key = `${trimmed.toLowerCase()}|${wanted.join(",")}`;
+
+  const held = searches.get(key);
+  if (held && Date.now() - held.fetchedAt < SEARCH_TTL_SECONDS * 1000) {
+    return held.matches;
+  }
+
+  // Ten players typing the same word at the same moment are one request.
+  const flight = searchesInFlight.get(key);
+  if (flight) return flight;
+
+  if (!mayAskUpstream()) return held?.matches ?? [];
+
+  const request = fetchSearch(trimmed, allowed)
+    .then((matches) => {
+      if (matches == null) return held?.matches ?? [];
+      searches.set(key, { matches, fetchedAt: Date.now() });
+      pruneSearches();
+      return matches;
+    })
+    .finally(() => {
+      searchesInFlight.delete(key);
+    });
+
+  searchesInFlight.set(key, request);
+  return request;
 }
 
 /** Clears the cache. Tests only. */
 export function __resetQuoteCache() {
   cache.clear();
   inFlight.clear();
+  searches.clear();
+  searchesInFlight.clear();
+  windowOpened = 0;
+  windowSpent = 0;
 }
