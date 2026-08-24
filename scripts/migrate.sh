@@ -120,12 +120,28 @@ case "${1:-}" in
     check
     ;;
   --all)
-    check
-    mapfile -t behind < <(grep -v '^$' "$ROOT/.migrate-behind" || true)
+    # The list comes back from the same run that printed the report, rather
+    # than through a file somebody else can overwrite between the two. An
+    # --all that applies nothing and says it is done is the exact silent
+    # no-op this tool exists to catch.
+    echo "project: $SUPABASE_PROJECT_REF"
+    echo
+    have="$(inventory)"
+    [ -n "$have" ] || { echo "could not read the project's schema"; exit 1; }
+
+    printf '%s' "$have" |
+      python3 "$ROOT/scripts/migration-state.py" "$ROOT/supabase/migrations"
+
+    mapfile -t behind < <(printf '%s' "$have" |
+      python3 "$ROOT/scripts/migration-state.py" "$ROOT/supabase/migrations" --names-only)
+
     [ ${#behind[@]} -eq 0 ] && exit 0
+
     echo
     echo "applying ${#behind[@]}:"
-    for name in "${behind[@]}"; do apply_one "$ROOT/supabase/migrations/$name.sql"; done
+    for name in "${behind[@]}"; do
+      apply_one "$ROOT/supabase/migrations/$name.sql"
+    done
     echo
     check
     ;;

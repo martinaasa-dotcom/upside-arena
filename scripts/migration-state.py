@@ -32,6 +32,13 @@ judged at all, and says so rather than guessing.
 
 Reads the project's inventory on stdin as whitespace-separated
 `table:name` and `function:name:nargs`, and prints one line per migration.
+
+With --names-only it prints just the missing ones, one per line, which is
+what migrate.sh --all applies. That used to be passed through a file in the
+repository root, until the test for this script overwrote it with the empty
+list from a fully migrated database -- and an --all that applies nothing and
+says it is done is the exact class of silent no-op this whole tool exists to
+catch.
 """
 
 import os
@@ -112,7 +119,7 @@ def key(obj: str) -> str:
     return f"{parts[0]}:{parts[1]}"
 
 
-def main(directory: str) -> int:
+def main(directory: str, names_only: bool = False) -> int:
     files = sorted(
         os.path.join(directory, f)
         for f in os.listdir(directory)
@@ -148,16 +155,26 @@ def main(directory: str) -> int:
             if owner[key(obj)] == (path, "create")
         ]
 
+        missing = [obj for obj in mine if obj not in have]
+        if missing:
+            behind.append(name)
+
+        if names_only:
+            continue
+
         if not declared[path]:
             print(f"  {name:<62} nothing to look for")
         elif not mine:
             print(f"  {name:<62} superseded")
-        elif all(obj in have for obj in mine):
+        elif not missing:
             print(f"  {name:<62} applied")
         else:
-            missing = [obj for obj in mine if obj not in have]
             print(f"  {name:<62} MISSING  ({', '.join(missing)})")
-            behind.append(name)
+
+    if names_only:
+        for name in behind:
+            print(name)
+        return 0
 
     print()
     if behind:
@@ -166,11 +183,8 @@ def main(directory: str) -> int:
     else:
         print("Nothing missing.")
 
-    with open(os.path.join(directory, "..", "..", ".migrate-behind"), "w") as f:
-        f.write("\n".join(behind) + ("\n" if behind else ""))
-
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1]))
+    sys.exit(main(sys.argv[1], "--names-only" in sys.argv[2:]))

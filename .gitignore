@@ -50,4 +50,3 @@ next-env.d.ts
 # supabase local stack
 /supabase/.branches
 /supabase/.temp
-.migrate-behind

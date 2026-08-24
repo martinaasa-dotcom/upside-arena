@@ -84,4 +84,18 @@ grep -qE "^  0*$NEWEST.* MISSING" <<< "$BEHIND" ||
 echo "ok"
 
 echo
+echo "== the report and the list --all applies say the same thing"
+# --all applies what --names-only prints while the reader is looking at what
+# the report printed. If those two ever disagree, the tool applies something
+# other than what it just said it would.
+REPORTED="$(state arena_state_behind | grep -oE '^  [0-9]{4}_[a-z_]+' | sed 's/^  //' ; true)"
+LISTED="$(inventory arena_state_behind |
+  python3 "$ROOT/scripts/migration-state.py" "$ROOT/supabase/migrations" --names-only)"
+REPORTED_MISSING="$(state arena_state_behind | grep 'MISSING' | grep -oE '[0-9]{4}_[a-z_]+' | head -1)"
+
+[ "$LISTED" = "$REPORTED_MISSING" ] ||
+  fail "the report says '$REPORTED_MISSING' and --all would apply '$LISTED'"
+echo "ok"
+
+echo
 echo "Migration state checker passed."
