@@ -2,7 +2,11 @@ import "server-only";
 
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getSplits, type SplitEvent } from "@/lib/market/benchmark";
+import {
+  getSplits,
+  isRealSplitRatio,
+  type SplitEvent,
+} from "@/lib/market/benchmark";
 import { getQuotes } from "@/lib/market/quotes";
 import { addDays, hasOpenedToday, nyDate } from "@/lib/market/session";
 
@@ -62,58 +66,14 @@ export type SplitCheck = {
   applied?: AppliedSplit[];
 };
 
-/**
- * Biggest numerator or denominator a real split has once the fraction is
- * reduced.
- *
- * Every genuine split is a small whole ratio: two for one, three for two,
- * ten for one, one for eight. Yahoo's split feed also carries **spinoff
- * adjustment factors**, which are not splits and do not look like them.
- * Checked against the live feed, GE reports three events:
- *
- *     2021-08-02   1:8          a real reverse split
- *     2023-01-04   1281:1000    the GE HealthCare spinoff
- *     2024-04-02   1253:1000    the Vernova spinoff
- *
- * A spinoff restates the historical price series and leaves the share count
- * alone: the holder keeps the shares they had and receives shares in a new
- * company. Applying one here would multiply every lineup holding that
- * company by 1.281 and, because this game holds whole shares only, pay the
- * leftover fraction out in cash at the post-split price. That is a
- * leaderboard moved by an event that did not happen.
- *
- * Fifty admits everything anybody actually declares, including twenty for
- * ten written the long way, and rejects a ratio over 1000ths, which is what
- * an adjustment factor is.
- */
-const MAX_SPLIT_TERM = 50;
-
-function greatestCommonDivisor(a: number, b: number): number {
-  let x = Math.abs(Math.round(a));
-  let y = Math.abs(Math.round(b));
-  while (y > 0) {
-    const t = y;
-    y = x % y;
-    x = t;
-  }
-  return x || 1;
-}
-
-/**
- * True for a ratio a company could actually have declared. A ratio of one is
- * not a split either: it moves nothing and would spend a ledger row saying so.
- */
-export function isRealSplitRatio(numerator: number, denominator: number): boolean {
-  if (!Number.isFinite(numerator) || !Number.isFinite(denominator)) return false;
-  if (!(numerator > 0) || !(denominator > 0)) return false;
-  if (!Number.isInteger(numerator) || !Number.isInteger(denominator)) return false;
-  if (numerator === denominator) return false;
-  const divisor = greatestCommonDivisor(numerator, denominator);
-  return (
-    numerator / divisor <= MAX_SPLIT_TERM &&
-    denominator / divisor <= MAX_SPLIT_TERM
-  );
-}
+/*
+  The guard against a spinoff adjustment factor lives in `benchmark.ts`,
+  at the fetch, so nothing downstream of `getSplits` ever sees one. It is
+  re-exported here because this module guards the same thing again at the
+  window it applies from, and two copies of the rule with two copies of
+  the ceiling is how the two come to disagree.
+*/
+export { isRealSplitRatio };
 
 /**
  * Which of a company's splits this check should act on.

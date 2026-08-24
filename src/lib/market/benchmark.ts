@@ -237,8 +237,17 @@ function greatestCommonDivisor(a: number, b: number): number {
   return x || 1;
 }
 
-/** Whether a ratio is a split rather than an adjustment factor. */
-function isRealSplit(numerator: number, denominator: number): boolean {
+/**
+ * Whether a ratio is a split rather than an adjustment factor.
+ *
+ * Exported because `game/splits.ts` guards the same thing at the window it
+ * applies from, and two copies of this rule with two copies of the ceiling
+ * is how the two drift. This is the layer that should own it: nothing
+ * downstream of `getSplits` should ever see an adjustment factor at all,
+ * and the check at the window is then the second line rather than a
+ * separate opinion.
+ */
+export function isRealSplitRatio(numerator: number, denominator: number): boolean {
   if (!Number.isFinite(numerator) || !Number.isFinite(denominator)) return false;
   if (!(numerator > 0) || !(denominator > 0)) return false;
   if (numerator === denominator) return false;
@@ -304,7 +313,7 @@ export async function getSplits(
       .filter(
         (split) =>
           split.date instanceof Date &&
-          isRealSplit(split.numerator as number, split.denominator as number)
+          isRealSplitRatio(split.numerator as number, split.denominator as number)
       )
       .map((split) => ({
         symbol: symbol.toUpperCase(),
