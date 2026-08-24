@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmAction } from "@/components/ConfirmAction";
 import { Badge } from "@/components/ui/badge";
 import { removeAddress } from "@/app/(app)/profile/address-actions";
 import { connectGoogle } from "@/app/auth/actions";
@@ -78,12 +79,16 @@ export function SignInAddresses({
             */}
             <Badge variant="outline">Signs in</Badge>
 
-            <form action={removeAddress}>
-              <input type="hidden" name="id" value={address.id} />
-              <Button type="submit" variant="ghost" size="sm">
-                Remove
-              </Button>
-            </form>
+            <ConfirmAction
+              action={removeAddress}
+              fields={{ id: address.id }}
+              label="Remove"
+              variant="ghost"
+              title={`Stop ${address.email} signing you in?`}
+              description="Tapping Continue with Google from that account would open a new, empty Arena account instead of this one. You can connect it again at any time."
+              confirmLabel="Remove it"
+              cancelLabel="Keep it"
+            />
           </div>
         ))}
       </div>

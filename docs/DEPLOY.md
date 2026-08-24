@@ -115,12 +115,16 @@ Vercel.
 Under Authentication, URL Configuration:
 
 - Site URL: `https://upsidearena.com`
-- Redirect URLs: `https://upsidearena.com/auth/confirm`,
-  `https://upsidearena.com/auth/callback`, and the same two on
+- Redirect URLs: `https://upsidearena.com/auth/callback`, and the same on
   `http://localhost:3000` for local work.
 
 Supabase refuses to redirect anywhere not on this list, which is what stops a
 sign-in being returned to somewhere it should not go.
+
+`/auth/confirm` used to be on that list and is not any more: it was the return
+leg of the magic link, which went when Google became the only way in. An entry
+left behind on the allow list does nothing, since nothing sends anybody there,
+but it is one fewer place a sign-in could be returned to.
 
 ## Settling the week, without paying for a scheduler
 
@@ -525,19 +529,48 @@ like a key that should.
 | `0013_weekly_goals.sql` | The goal declared inside a league |
 | `0014_pods.sql` | The public ladder: tiers, pods, placement and settlement |
 | `0015_score_needs_every_price.sql` | Refuses to score a week on a price it does not have |
+| `0016_score_cycle_needs_a_where.sql` | The DELETE that stopped every week being scored through the API |
+| `0017_battles.sql` | A league's own contest beside the house week, and shorts |
+| `0018_lineups.sql` | What the weekend is for: orders filled at Monday's open |
+| `0019_metrics_know_a_battle_from_a_week.sql` | Counts that tell the two apart |
+| `0020_a_battle_can_be_told.sql` | The record behind a battle notification |
+| `0021_the_lineup_lock_decides_for_itself.sql` | The database decides whether a week is locked |
+| `0022_a_battle_is_worth_recording_too.sql` | Daily marks for a battle, not just the house week |
+| `0023_a_league_can_say_it_has_started_something.sql` | A league remembers it has run one |
+| `0024_the_tour_everybody_sees.sql` | The walkthrough's version on a profile |
+| `0025_one_account_more_than_one_address.sql` | More than one mailbox opening one account |
+| `0026_a_week_still_has_to_end.sql` | **Scoring a week around a company nobody can price** |
+| `0027_a_split_is_not_a_loss.sql` | Share splits: the ledger, the day's claim, the arithmetic |
+| `0028_a_season_table_that_reads_a_page.sql` | The season table ranked in SQL, and a tie broken the same way twice |
+| `0029_learning_about_a_bug_before_somebody_reports_it.sql` | Where a failure is written down |
 
-`0015` is the one to apply promptly. Without it a settlement handed an
-incomplete set of closing prices values the missing companies at zero and
-writes the result as final. The app will not call it that way, so nothing is
-wrong today; the migration is what makes that true of the database rather than
-of one `if` statement in `settle.ts`.
+### The two that are not optional
+
+**`0026` has to be applied before or with the deploy that carries it, and it
+is the only migration here that does.** It changes `score_cycle`'s signature,
+and `src/lib/game/settle.ts` calls the new one. Without the migration, every
+settlement raises a PostgREST error about a function that does not exist and
+**no week is scored at all** until it is applied. Everything else on the site
+carries on, which is exactly what makes that easy to miss for a weekend.
+
+`0015` is the other one worth applying promptly, for the older reason: without
+it a settlement handed an incomplete set of closing prices values the missing
+companies at zero and writes the result as final.
 
 ### How a missing one shows up
 
-Every feature added after `0010` degrades rather than breaking: the season page
-says the season starts with your first settled week, no milestone pays, and no
-goal can be declared. Nothing else on the site is affected.
+Everything else added after `0010` degrades rather than breaking, and quietly:
+the season page says the season starts with your first settled week, no
+milestone pays, no goal can be declared, no split is ever applied, and nothing
+is written down when a screen fails to draw. Nothing else on the site is
+affected and nothing anywhere says so.
 
 That is deliberate, and it is also why a missing migration is easy to miss.
-Check rather than infer — the fastest way is to open `/season` while signed in
-and see whether it names the current quarter.
+Check rather than infer. The fastest ways:
+
+- `/api/health` answers 503 with `settlement` failing once a week has been due
+  for more than half a day, which is what a missing `0026` looks like from
+  outside.
+- `/season` while signed in names the current quarter when `0011` is applied.
+- `/metrics` grows a "What broke" panel that says something other than
+  "nothing has failed" once `0029` is applied and anything has.

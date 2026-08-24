@@ -21,8 +21,6 @@ import { PAGE, PAGE_FRAME } from "@/lib/page-shell";
 export const metadata = { title: "Could not sign you in" };
 
 const REASONS: Record<string, string> = {
-  expired: "That sign-in link has already been used, or it timed out. Links last one hour.",
-  "missing-token": "That link is missing part of its address. Ask for a fresh one.",
   "missing-code": "Google sent us back without a sign-in code. Try once more.",
   exchange: "We could not finish signing you in with Google. Try once more.",
   state:

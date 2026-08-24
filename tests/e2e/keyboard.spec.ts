@@ -148,3 +148,48 @@ test.describe("a keyboard is enough", () => {
     await expect(banner).toBeHidden();
   });
 });
+
+/*
+  Asking before taking something away.
+
+  Three one-click actions in Arena take something away and only one of them
+  ever asked. The other two were a plain submit: leaving a league, which on a
+  phone is a button where a thumb rests, and removing a sign-in address, which
+  is how somebody's other Google account stops opening this one.
+
+  Checked in the gallery, which is where the address row is rendered without a
+  session. The confirming button is deliberately not pressed here: it calls a
+  real server action, and what is being checked is that a mis-tap cannot.
+*/
+test.describe("a destructive button asks first", () => {
+  test("removing a sign-in address opens a question rather than doing it", async ({
+    page,
+  }) => {
+    await page.goto("/gallery");
+
+    const row = page.locator("section").filter({ hasText: "Ways to sign in" }).last();
+    await row.getByRole("button", { name: "Remove" }).first().click();
+
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText("signing you in?");
+
+    // And it says what it does rather than "OK".
+    await expect(dialog.getByRole("button", { name: "Remove it" })).toBeVisible();
+  });
+
+  test("and the question can be answered no, from the keyboard", async ({ page }) => {
+    await page.goto("/gallery");
+
+    const row = page.locator("section").filter({ hasText: "Ways to sign in" }).last();
+    await row.getByRole("button", { name: "Remove" }).first().click();
+
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toBeVisible();
+
+    // Escape is the way out of every dialog in the app, and a dialog that
+    // traps somebody is worse than the action it was guarding.
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+  });
+});

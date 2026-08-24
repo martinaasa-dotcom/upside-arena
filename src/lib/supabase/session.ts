@@ -18,7 +18,6 @@ const PUBLIC_PATHS = [
   // to be reachable without a session.
   "/offline",
   "/auth/callback",
-  "/auth/confirm",
   "/auth/error",
 ];
 
