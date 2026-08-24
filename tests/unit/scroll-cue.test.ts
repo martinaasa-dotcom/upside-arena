@@ -97,14 +97,41 @@ describe("the cue stands down when the page is already saying it continues", () 
   it("measures the sample card against the fold", () => {
     // A card the fold cuts needs no words under it. That is every phone.
     expect(CODE).toContain("[data-scroll-cue-still]");
-    expect(CODE).toContain("getBoundingClientRect().bottom > rect.top");
+    expect(CODE).toContain("pageTop(still) + still.offsetHeight > bandTop");
     expect(LANDING).toContain("data-scroll-cue-still");
   });
 
   it("measures the next section against the fold", () => {
     // Any of the following section on screen and the page is saying it
     // itself, whether that reads as a heading or as a heading being cut.
-    expect(CODE).toContain("getBoundingClientRect().top < vh");
+    expect(CODE).toContain("pageTop(next) < fold");
+  });
+
+  it("measures where the page laid things out, not where they are drawn", () => {
+    /*
+      The bug this closed, and the reason it is a rule rather than a fix.
+
+      Every one of these measurements used to be a `getBoundingClientRect`,
+      which reports where a thing is being drawn. The first thing everything
+      on this page does is arrive: `.rise` holds the sample card 8px below
+      where it lands, with `both` fill, from before the first frame until
+      0.76s in, and an `Arrive` section sits 12px low while it is out. The
+      decision is made once, at hydration, inside that window, so the card
+      measured low and the cue stood down as though the fold were cutting
+      it. Nothing re-measured for the rest of the animation, so a reader on
+      a reload got no cue at all, and the first thing to run the measurement
+      again was them scrolling.
+
+      Measured on Upside Lab's copy, the same component with a 12px rise: no
+      cue on any window between 950px and 961px tall, appearing on one wheel
+      notch. With the layout read instead it is drawn 425ms after the
+      document is ready and no scroll is needed.
+    */
+    expect(CODE, "a rect is where the page is drawn, not where it is").not.toContain(
+      "getBoundingClientRect"
+    );
+    expect(CODE).toContain("offsetTop");
+    expect(CODE).toContain("offsetParent");
   });
 
   it("stops drawing once the reader has scrolled or has nowhere to go", () => {
@@ -114,10 +141,11 @@ describe("the cue stands down when the page is already saying it continues", () 
 
   it("re-measures rather than guessing from a breakpoint", () => {
     /*
-      It decides on a few pixels of clearance, and a font swap moves more
-      than that: measured on Upside Lab the card sat 11px clear of the band,
-      and a single measurement taken at hydration got it wrong and left the
-      cue hidden on a window that wanted it.
+      The first read is the one a reader on a reload gets, and the layout
+      measurement above is what makes it right. These are for the page
+      changing shape afterwards: it decides on a few pixels of clearance,
+      and a font swap moves more than that, measured on Upside Lab with the
+      card sitting 11px clear of the band.
     */
     expect(CODE).toContain('window.addEventListener("resize", read)');
     expect(CODE).toContain('window.addEventListener("load", read)');

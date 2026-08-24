@@ -388,6 +388,59 @@ test.describe("landing", () => {
     await page.mouse.wheel(0, 400);
     await expect(cue).toBeHidden();
   });
+
+  test("says it on a reload, rather than waiting to be scrolled", async ({
+    page,
+  }) => {
+    /*
+      The whole point of the cue is the reader who has not scrolled yet, so
+      the one measurement that matters is the first one, and it is taken
+      while the page is still arriving: the hero holds the sample card 8px
+      below where it lands until 0.76s in. Read off a rect, that put the
+      card past the band on any window where it settles closer than the
+      animation travels, the cue stood down, and nothing measured again
+      until the reader scrolled, which is the moment the answer stops being
+      any use. Measured on Upside Lab's copy, which is this component with a
+      12px rise: no cue at all between 950px and 961px tall.
+
+      So this builds that window rather than hoping CI runs in one. The
+      window is sized off where the card really ends, leaving it a few
+      pixels clear of the band, and the assertion is that a reload alone is
+      enough.
+    */
+    await page.goto("/");
+    const noThanks = page.getByRole("button", { name: "No thanks" });
+    if (await noThanks.isVisible()) await noThanks.click();
+
+    const card = await page.evaluate(() => {
+      const still = document.querySelector<HTMLElement>(
+        "[data-scroll-cue-still]"
+      )!;
+      let top = 0;
+      for (
+        let el: HTMLElement | null = still;
+        el;
+        el = el.offsetParent as HTMLElement | null
+      ) {
+        top += el.offsetTop;
+      }
+      return top + still.offsetHeight;
+    });
+
+    // The band is the last 3.5rem of the first screen. Six pixels of
+    // clearance is inside what the entrance animation travels and outside
+    // nothing.
+    const width = page.viewportSize()!.width;
+    await page.setViewportSize({ width, height: card + 56 + 6 });
+    await page.goto("/");
+
+    const cue = page.getByRole("button", { name: /More below/ });
+    await expect(cue).toBeVisible({ timeout: 5000 });
+    // And it got there on its own, with the page still where it opened.
+    expect(await page.evaluate(() => document.scrollingElement!.scrollTop)).toBe(
+      0
+    );
+  });
 });
 
 test.describe("legal", () => {
