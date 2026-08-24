@@ -150,9 +150,12 @@ colour tokens, and the accessibility basics.
 
 ### The signed-in flow
 
-Completing a sign-in needs a link from an email, so the signed-in half is not
-part of the automated suite. It was verified by hand against a real Supabase
-project on 2026-08-21, end to end, and every step passed:
+Completing a sign-in needs a Google account and a configured OAuth client, so
+the signed-in half is not part of the automated suite. It was verified by hand
+against a real Supabase project on 2026-08-21, end to end, and every step
+passed. It was walked with the magic link, which is how sign-in worked that
+day; Google replaced it on 2026-08-23 and the steps below are the same once
+you are through the handshake:
 
 1. Signing up creates exactly one profile automatically, with the name taken
    from the email, the rating at its default and the age gate unconfirmed.
@@ -169,18 +172,24 @@ project on 2026-08-21, end to end, and every step passed:
    session stops opening protected rooms. The token afterwards reports
    `user_not_found`, so nothing is left behind.
 
-To repeat it, the quickest route is to turn off **Confirm email** in the
-Supabase dashboard under Authentication, sign up a throwaway account, walk the
-steps, then **turn Confirm email back on**. Leaving it off lets anyone register
-an address they do not own. A better long-term option is a service role key and
-the admin `generate_link` endpoint, which needs no setting changed.
+To repeat it, sign in with a throwaway Google account. There is no longer a
+**Confirm email** switch to flip, because there is no address to confirm: the
+handshake is the proof, and nothing in the app mails anybody a way in. What is
+needed instead is `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set against a
+client whose redirect URI is this deployment's own `/auth/google/callback`.
+Section 6 of `docs/SWITCH_ON.md` walks that setup. Without them the button
+does not render and there is no way through the door at all.
+
+The Email provider still has to be switched on in the Supabase dashboard, and
+it is not for mail: `magicTokenFor` needs `generateLink` to mint the one-time
+token that turns a second address into a session for the account that owns it.
+Nothing is ever sent through it.
 
 ### Regression checklist
 
 With a project configured:
 
-1. Sign in with your email. The link should arrive and land you on
-   `/onboarding`, not `/home`.
+1. Sign in with Google. It should land you on `/onboarding`, not `/home`.
 2. Pick a name and a player tag. A tag that is already taken should say so
    rather than failing silently.
 3. You land on `/home` and the walkthrough opens over it. Step through all
@@ -204,6 +213,10 @@ than escalated.
   magic link or OAuth over raw passwords. The link needs no provider setup, so
   it is the default; Google matches how Lab signs people in and switches on
   with one environment variable.
+  **This one no longer holds.** The magic link was removed on 2026-08-23 and
+  Google is the only way in. Everything the link did served getting an address
+  right that Google already has right, and every step of it was a way for
+  somebody to fail to reach their own account. See `docs/EMAIL.md`.
 - **A player tag as well as a display name.** Standings, invitations and rival
   callouts all need a stable, unique handle, and display names collide.
 - **The age gate is stored, not just checked.** A browser checkbox is not a

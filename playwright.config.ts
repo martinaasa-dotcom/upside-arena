@@ -50,6 +50,28 @@ export default defineConfig({
       */
       ARENA_UI_GALLERY: "1",
       /*
+        Enough for a project to count as configured, which is what makes
+        `isSupabaseConfigured` true and so what makes the proxy in
+        lib/supabase/session.ts actually run.
+
+        Without them the proxy returns early, every signed-in route falls
+        through to its own page-level guard, and that guard sends a visitor to
+        `/` without the `next` it was headed for. The suite then fails two
+        tests locally and passes them in CI, which set these and nothing else
+        did: a check that only holds on one machine is not a check. They were
+        in the CI job alone; they belong here, where the suite that depends on
+        them lives.
+
+        The same values CI uses, so the two agree. Nothing reaches the host: a
+        signed-out visitor carries no token, so neither `getClaims` nor
+        `getUser` touches the network, and the hostname matching the CSP's
+        `https://*.supabase.co` keeps the browser honest about what it may
+        talk to.
+      */
+      NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-anon-key-no-project-behind-it",
+      NEXT_PUBLIC_SITE_URL: baseURL,
+      /*
         Google is the only way in since the magic link went, so a signed-out
         suite with no client id configured is a suite where the sign-in button
         does not render and half the landing tests fail for a reason that has
