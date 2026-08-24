@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { canWriteGame } from "@/lib/env";
+import { readAll } from "@/lib/supabase/read-all";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { whoWasHere } from "@/lib/game/roster";
 import { compareResults } from "@/lib/game/ranking";
@@ -163,16 +164,36 @@ export const getLeagueRecord = cache(async function getLeagueRecord(
     };
   }
 
-  const [{ data: scored }, { data: profiles }] = await Promise.all([
-    admin
-      .from("portfolios")
-      .select("user_id, cycle_id, return_percent, benchmark_diff")
-      .in("user_id", memberIds)
-      .in(
-        "cycle_id",
-        cycles.map((c) => c.id)
-      )
-      .not("return_percent", "is", null),
+  /*
+    One row per member per settled week, and this is the read that has to be
+    complete rather than small.
+
+    Every other place that fetched a page of rows to work out a number now
+    asks the database for the number (migration 0030). This one cannot: the
+    head-to-head below needs the whole grid, and whoWasHere decides which
+    cells count using a roster rule that lives in one place on purpose. Fifty
+    members over a year of weeks is 2,600 rows, past the 1,000 PostgREST will
+    return in one response, so it is read a page at a time. Truncated, a
+    league's record would simply have dropped its oldest weeks without saying
+    so.
+  */
+  const [scored, { data: profiles }] = await Promise.all([
+    readAll<{
+      user_id: string;
+      cycle_id: string;
+      return_percent: string;
+      benchmark_diff: string | null;
+    }>(() =>
+      admin
+        .from("portfolios")
+        .select("user_id, cycle_id, return_percent, benchmark_diff")
+        .in("user_id", memberIds)
+        .in(
+          "cycle_id",
+          cycles.map((c) => c.id)
+        )
+        .not("return_percent", "is", null)
+    ),
     admin
       .from("profiles")
       .select("id, display_name, handle")
@@ -194,12 +215,7 @@ export const getLeagueRecord = cache(async function getLeagueRecord(
     { userId: string; returnPercent: number; versusMarket: number }[]
   >();
 
-  for (const row of (scored ?? []) as {
-    user_id: string;
-    cycle_id: string;
-    return_percent: string;
-    benchmark_diff: string | null;
-  }[]) {
+  for (const row of scored) {
     const list = byCycle.get(row.cycle_id) ?? [];
     list.push({
       userId: row.user_id,

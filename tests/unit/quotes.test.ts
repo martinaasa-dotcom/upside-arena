@@ -264,3 +264,138 @@ describe("what the search box offers", () => {
     expect(matches.map((m) => m.symbol)).toEqual(["VFIAX", "VOO"]);
   });
 });
+
+/*
+  The search box, as a thing that costs money to run.
+
+  Search was the one call in this file with no cache and no dedupe behind it,
+  so every keystroke in two rooms was a request to Yahoo. These pin the
+  properties that fixes it, and one property it must not acquire along the
+  way: an outage must never be remembered as an answer.
+*/
+describe("what a search costs", () => {
+  function found(...symbols: string[]) {
+    search.mockResolvedValue({
+      quotes: symbols.map((symbol) => ({
+        symbol,
+        shortname: symbol,
+        quoteType: "EQUITY",
+        exchange: "NMS",
+        isYahooFinance: true,
+      })),
+    });
+  }
+
+  it("asks once however many people type the same word", async () => {
+    found("NVDA");
+
+    await searchSymbols("nvda");
+    await searchSymbols("nvda");
+    await searchSymbols("nvda");
+
+    expect(search).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks once when they all type it at the same moment", async () => {
+    found("NVDA");
+
+    const all = await Promise.all(
+      Array.from({ length: 10 }, () => searchSymbols("nvda"))
+    );
+
+    expect(search).toHaveBeenCalledTimes(1);
+    for (const matches of all) expect(matches.map((m) => m.symbol)).toEqual(["NVDA"]);
+  });
+
+  it("does not care about case or the space somebody pasted", async () => {
+    found("NVDA");
+
+    await searchSymbols("nvda");
+    await searchSymbols("  NVDA ");
+    await searchSymbols("NvDa");
+
+    expect(search).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps two contests' answers apart, because they asked different questions", async () => {
+    found("NVDA");
+    await searchSymbols("nv", ["EQUITY"]);
+
+    found("NVDA");
+    await searchSymbols("nv", ["CRYPTOCURRENCY"]);
+
+    // The same word, and it must not be answered from the other week's cache.
+    expect(search).toHaveBeenCalledTimes(2);
+  });
+
+  it("remembers that nothing is called that", async () => {
+    found();
+
+    expect(await searchSymbols("zzzzzz")).toEqual([]);
+    expect(await searchSymbols("zzzzzz")).toEqual([]);
+
+    expect(search).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not remember an outage as an answer", async () => {
+    search.mockRejectedValue(new Error("provider down"));
+    expect(await searchSymbols("nvda")).toEqual([]);
+
+    found("NVDA");
+    const matches = await searchSymbols("nvda");
+
+    expect(matches.map((m) => m.symbol)).toEqual(["NVDA"]);
+    expect(search).toHaveBeenCalledTimes(2);
+  });
+
+  it("serves the last good answer when the provider stops answering", async () => {
+    found("NVDA");
+    await searchSymbols("nvda");
+
+    // Past the search cache's lifetime, then break the provider.
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 7 * 60 * 60 * 1000);
+    search.mockRejectedValue(new Error("provider down"));
+
+    const matches = await searchSymbols("nvda");
+
+    expect(matches.map((m) => m.symbol)).toEqual(["NVDA"]);
+    vi.useRealTimers();
+  });
+
+  it("does not forward a query nobody could have typed", async () => {
+    found("NVDA");
+
+    await searchSymbols("n".repeat(4000));
+
+    expect(search.mock.calls[0][0].length).toBeLessThanOrEqual(40);
+  });
+
+  it("stops going upstream when the run of new queries stops looking like typing", async () => {
+    found("NVDA");
+
+    // Thirty distinct queries is the ceiling for one minute.
+    for (let i = 0; i < 30; i += 1) await searchSymbols(`q${i}`);
+    expect(search).toHaveBeenCalledTimes(30);
+
+    await searchSymbols("q30");
+    await searchSymbols("q31");
+    expect(search).toHaveBeenCalledTimes(30);
+
+    // A word already held is still answered, because that costs nothing.
+    expect((await searchSymbols("q0")).map((m) => m.symbol)).toEqual(["NVDA"]);
+    expect(search).toHaveBeenCalledTimes(30);
+  });
+
+  it("opens the ceiling again the next minute", async () => {
+    found("NVDA");
+    for (let i = 0; i < 30; i += 1) await searchSymbols(`q${i}`);
+
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 61_000);
+
+    await searchSymbols("q30");
+    expect(search).toHaveBeenCalledTimes(31);
+    vi.useRealTimers();
+  });
+});

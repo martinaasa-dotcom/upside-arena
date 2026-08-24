@@ -296,7 +296,14 @@ Before any deploy, run the checks:
 npm run check      # types, lint, unit tests
 npm run test:db    # migrations, triggers, row level security
 npm run test:e2e   # signed-out flows
+npm run test:scale # every room's query, against a launch's worth of players
+npm run test:race  # the three places two people can arrive at once
 ```
+
+`test:scale` is the one that needs saying twice. Everything else here is
+judged against a league of six, which is the one size at which an unbounded
+read cannot be told from a bounded one. It builds its own database from the
+migrations and needs no credentials.
 
 ### There is a daily cap, and it is easy to hit
 
@@ -543,15 +550,30 @@ like a key that should.
 | `0027_a_split_is_not_a_loss.sql` | Share splits: the ledger, the day's claim, the arithmetic |
 | `0028_a_season_table_that_reads_a_page.sql` | The season table ranked in SQL, and a tie broken the same way twice |
 | `0029_learning_about_a_bug_before_somebody_reports_it.sql` | Where a failure is written down |
+| `0030_counting_rows_by_fetching_them.sql` | **Three counts done in the database instead of on the wire** |
 
-### The two that are not optional
+### The three that are not optional
 
-**`0026` has to be applied before or with the deploy that carries it, and it
-is the only migration here that does.** It changes `score_cycle`'s signature,
+**`0026` and `0030` both have to be applied before or with the deploy that
+carries them.** It changes `score_cycle`'s signature,
 and `src/lib/game/settle.ts` calls the new one. Without the migration, every
 settlement raises a PostgREST error about a function that does not exist and
 **no week is scored at all** until it is applied. Everything else on the site
 carries on, which is exactly what makes that easy to miss for a weekend.
+
+**`0030` is the same shape of dependency.** It adds `league_member_counts`,
+`portfolio_trade_counts` and `symbols_in_cycle`, and `getLeagues`,
+`getLeagueTable`, `getLastWeekBooks` and `settle.ts` all call them. Without
+the migration the leagues list shows every league as having one member, a
+league room shows nobody as having traded, and **no week is scored at all**,
+because the settler cannot learn which companies to price. The first two
+degrade quietly; the third does not, and `/api/health` says so within half a
+day.
+
+The settler names that case rather than guessing at it: a failed read of the
+week's holdings comes back as `could not read what the week is holding:
+function symbols_in_cycle does not exist`, not as a complaint about a company
+that priced perfectly well.
 
 `0015` is the other one worth applying promptly, for the older reason: without
 it a settlement handed an incomplete set of closing prices values the missing

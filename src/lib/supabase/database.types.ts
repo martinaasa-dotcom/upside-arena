@@ -594,6 +594,18 @@ export type Database = {
         Args: Record<never, never>;
         Returns: { symbol: string }[];
       };
+      symbols_in_cycle: {
+        Args: { p_cycle_id: string };
+        Returns: { symbol: string }[];
+      };
+      league_member_counts: {
+        Args: { p_league_ids: string[] };
+        Returns: { league_id: string; members: number }[];
+      };
+      portfolio_trade_counts: {
+        Args: { p_portfolio_ids: string[] };
+        Returns: { portfolio_id: string; trades: number }[];
+      };
       claim_split_check: {
         Args: { p_day: string };
         Returns: boolean;
