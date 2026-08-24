@@ -224,12 +224,17 @@ export type SplitEvent = {
  *
  * Not cached. It is asked once a day, by one worker holding the day's claim,
  * and a cached answer here would be a split applied late for no gain.
+ *
+ * Null when the question could not be asked at all, which is a different
+ * answer from an empty list and the caller treats it as one: "nothing split"
+ * and "the provider did not answer" look identical from the outside and lead
+ * to opposite decisions.
  */
 export async function getSplits(
   symbol: string,
   fromIso: string,
   toIso: string
-): Promise<SplitEvent[]> {
+): Promise<SplitEvent[] | null> {
   try {
     const yahoo = await getYahoo();
     const result = (await (
@@ -271,9 +276,7 @@ export async function getSplits(
         denominator: split.denominator as number,
       }));
   } catch {
-    // Asked again tomorrow. A split nobody heard about is found by the next
-    // check, and the ledger means hearing about it twice costs nothing.
-    return [];
+    return null;
   }
 }
 

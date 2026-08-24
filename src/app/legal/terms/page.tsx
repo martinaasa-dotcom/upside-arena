@@ -2,7 +2,11 @@ import { LegalPage } from "@/components/LegalPage";
 import { AVAILABLE_IN, COMPANY, CONSUMER_DISPUTES } from "@/lib/company";
 import { MINIMUM_AGE, TERMS_VERSION } from "@/lib/legal";
 
-export const metadata = { title: "Terms" };
+export const metadata = {
+  title: "Terms",
+  description:
+    "The rules of playing Upside Arena. Play money only, nothing redeemable, and nothing here is advice.",
+};
 
 const markets = AVAILABLE_IN.join(" and ");
 

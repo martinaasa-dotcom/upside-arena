@@ -7,7 +7,19 @@ import {
 } from "@/lib/company";
 import { MINIMUM_AGE, PRIVACY_VERSION } from "@/lib/legal";
 
-export const metadata = { title: "Privacy policy" };
+/*
+  Its own description, rather than the app's.
+
+  A page with no description inherits the root's, which is the sentence that
+  sells the game. That sentence under a privacy policy in a search result
+  describes the wrong document, and this is one of the four pages a stranger
+  can reach without an account.
+*/
+export const metadata = {
+  title: "Privacy policy",
+  description:
+    "What Upside Arena records about you, why, who else sees it, and how to have it deleted.",
+};
 
 export default function PrivacyPage() {
   return (

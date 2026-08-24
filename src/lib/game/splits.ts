@@ -57,7 +57,7 @@ export type AppliedSplit = SplitEvent & {
 
 export type SplitCheck = {
   day: string;
-  status: "done" | "claimed-elsewhere" | "early" | "off";
+  status: "done" | "claimed-elsewhere" | "early" | "no-answer" | "off";
   symbols?: number;
   applied?: AppliedSplit[];
 };
@@ -132,13 +132,27 @@ export async function applyDueSplits(now = new Date()): Promise<SplitCheck> {
     split in a company nobody owns changes nothing here, so asking about it
     would be a request spent on nothing.
   */
-  const found = (
-    await Promise.all(
-      symbols.map(async (symbol) =>
-        splitsInWindow(await getSplits(symbol, from, day), day)
-      )
-    )
-  ).flat();
+  const answers = await Promise.all(
+    symbols.map((symbol) => getSplits(symbol, from, day))
+  );
+
+  /*
+    Nobody answered, which is not the same as nobody split.
+
+    The day's claim exists so one worker asks and the rest do not, and if that
+    one worker asked into a provider that was down, giving the claim back is
+    the difference between a split found an hour later and a split found
+    tomorrow, by which time somebody has looked at a portfolio that says they
+    are down ninety per cent.
+  */
+  if (answers.every((answer) => answer === null)) {
+    await admin.from("split_checks").delete().eq("day", day);
+    return { day, status: "no-answer", symbols: symbols.length };
+  }
+
+  const found = answers
+    .filter((answer): answer is SplitEvent[] => answer !== null)
+    .flatMap((events) => splitsInWindow(events, day));
 
   if (found.length === 0) {
     return { day, status: "done", symbols: symbols.length, applied: [] };

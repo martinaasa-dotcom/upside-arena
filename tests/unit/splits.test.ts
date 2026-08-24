@@ -85,9 +85,9 @@ describe("reading a split off the provider", () => {
       },
     });
 
-    const [event] = await getSplits("SIRI", "2024-09-01", "2024-09-20");
-    expect(event.numerator).toBe(1);
-    expect(event.denominator).toBe(10);
+    const events = await getSplits("SIRI", "2024-09-01", "2024-09-20");
+    expect(events?.[0].numerator).toBe(1);
+    expect(events?.[0].denominator).toBe(10);
   });
 
   it("says nothing happened when nothing did", async () => {
@@ -102,8 +102,14 @@ describe("reading a split off the provider", () => {
     expect(await getSplits("ZERO", "2026-06-01", "2026-06-10")).toEqual([]);
   });
 
-  it("comes back empty when the provider does, rather than throwing into a page", async () => {
+  it("says it could not ask, which is not the same as nothing happening", async () => {
+    /*
+      An empty list means the provider answered and there was no split. Null
+      means it did not answer. The caller hands the day's claim back on the
+      second and not on the first, so a provider having a bad minute costs an
+      hour rather than a day of everybody's shares being wrong.
+    */
     chart.mockRejectedValue(new Error("provider down"));
-    expect(await getSplits("AAPL", "2026-06-01", "2026-06-10")).toEqual([]);
+    expect(await getSplits("AAPL", "2026-06-01", "2026-06-10")).toBeNull();
   });
 });
