@@ -426,6 +426,21 @@ export type SplitCheckRow = {
   claimed_at: string;
 };
 
+/** One row of a season table, ranked and cut to a page by the database. */
+export type SeasonStandingRow = {
+  user_id: string;
+  /** Where they stand in the whole quarter, not on the page. */
+  place: number;
+  /** Whether they have played enough of the quarter to be placed at all. */
+  ranked: boolean;
+  weeks_played: number;
+  weeks_ahead: number;
+  sum_return_percent: string;
+  sum_benchmark_diff: string;
+  best_week_return: string | null;
+  final_rank: number | null;
+};
+
 type Table<Row> = {
   Row: Row;
   Insert: Partial<Row>;
@@ -543,6 +558,15 @@ export type Database = {
         itself whether the week in question is locked, which is what stops a
         caller naming the wrong week -- see 0021 for the one that did.
       */
+      season_standings: {
+        Args: {
+          p_season_id: string;
+          p_user_id: string;
+          p_min_weeks?: number;
+          p_limit?: number;
+        };
+        Returns: SeasonStandingRow[];
+      };
       claim_split_check: {
         Args: { p_day: string };
         Returns: boolean;
