@@ -3,7 +3,7 @@ import "server-only";
 import { canWriteGame } from "@/lib/env";
 import { MIN_WEEKS_TO_RANK } from "@/lib/game/season-rules";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { SeasonResultRow, SeasonRow } from "@/lib/supabase/database.types";
+import type { SeasonRow, SeasonStandingRow } from "@/lib/supabase/database.types";
 import { playerCache } from "@/lib/game/cache";
 
 /*
@@ -138,15 +138,32 @@ export async function getSeasonView(
   if (!seasonRow) return null;
   const season = toSeason(seasonRow as SeasonRow);
 
+  /*
+    The table, ranked and cut to a page by the database.
+
+    This used to ask for every season_results row in the quarter, then every
+    profile behind them, sort the lot here and keep the first fifty. That is
+    the shape that stops working first: a season is three months of an open
+    game, and the page it is on is the one people open to see whether they are
+    climbing. season_standings (0028) orders it once over an index, hands back
+    the page and the caller's own row wherever it is, and orders it in exactly
+    the way close_season awards the final places, so the table cannot read one
+    way all quarter and hand out its medals in another.
+  */
   const [{ data: results }, { count: weeksSettled }] = await Promise.all([
-    admin.from("season_results").select("*").eq("season_id", season.id),
+    admin.rpc("season_standings", {
+      p_season_id: season.id,
+      p_user_id: userId,
+      p_min_weeks: MIN_WEEKS_TO_RANK,
+      p_limit: limit,
+    }),
     admin
       .from("weekly_cycles")
       .select("id", { count: "exact", head: true })
       .eq("season_id", season.id),
   ]);
 
-  const rows = (results ?? []) as SeasonResultRow[];
+  const rows = (results ?? []) as SeasonStandingRow[];
 
   const profileIds = rows.map((row) => row.user_id);
   const { data: profiles } = profileIds.length
@@ -167,7 +184,7 @@ export async function getSeasonView(
     ).map((p) => [p.id, p])
   );
 
-  const scored = rows.map((row) => {
+  const standings: SeasonStanding[] = rows.map((row) => {
     const profile = profileById.get(row.user_id);
     const weeks = row.weeks_played;
 
@@ -184,34 +201,20 @@ export async function getSeasonView(
       bestWeekReturn:
         row.best_week_return == null ? null : num(row.best_week_return),
       isYou: row.user_id === userId,
-      ranked: weeks >= MIN_WEEKS_TO_RANK,
+      ranked: row.ranked,
+      position: row.place,
     };
   });
-
-  /*
-    Everybody appears, but only those who played enough of the quarter are
-    placed. Somebody two weeks in is shown where they would stand rather than
-    hidden, because a table you are missing from is not one you can see
-    yourself climbing.
-  */
-  scored.sort((a, b) => {
-    if (a.ranked !== b.ranked) return a.ranked ? -1 : 1;
-    if (b.averageVersusMarket !== a.averageVersusMarket) {
-      return b.averageVersusMarket - a.averageVersusMarket;
-    }
-    return b.weeksPlayed - a.weeksPlayed;
-  });
-
-  const standings: SeasonStanding[] = scored.map((row, index) => ({
-    ...row,
-    position: index + 1,
-  }));
 
   const you = standings.find((row) => row.isYou) ?? null;
 
   return {
     season,
-    standings: standings.slice(0, limit),
+    /*
+      The page, without the caller's own row when it came back from outside
+      it. They are shown where they stand separately, above the table.
+    */
+    standings: standings.filter((row) => row.position <= limit),
     you,
     weeksSettled: weeksSettled ?? 0,
     weeksUntilRanked: you

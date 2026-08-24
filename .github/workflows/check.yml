@@ -99,6 +99,46 @@ jobs:
 
       - run: ./scripts/test-db.sh
 
+  # A backup nobody has ever restored is a belief rather than a backup.
+  #
+  # This builds a database from the migrations, puts a trade in it, backs it
+  # up with the same script the nightly workflow runs, restores that backup
+  # into an empty database and checks that what comes back is what went in,
+  # foreign keys and all. It needs no production credentials, so it can run on
+  # every pull request rather than once a year in an emergency.
+  restore:
+    name: The backup restores
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install the matching psql and pg_dump
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client-16
+
+      - run: ./scripts/restore-rehearsal.sh
+
   e2e:
     name: Browser tests
     runs-on: ubuntu-latest

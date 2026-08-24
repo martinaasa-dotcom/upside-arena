@@ -405,6 +405,55 @@ export type AccountEmailRow = {
   created_at: string;
 };
 
+export type SymbolSplitRow = {
+  symbol: string;
+  /** The market open at which the new share count is the real one. */
+  effective_on: string;
+  /** Ten for one is 10 and 1. One for ten, the reverse, is 1 and 10. */
+  numerator: string;
+  denominator: string;
+  /** What a share was worth after it, which is what a fraction was paid at. */
+  price: string;
+  holdings_adjusted: number;
+  /** Positions left alone because that portfolio had already traded it. */
+  holdings_skipped: number;
+  applied_at: string;
+};
+
+export type SplitCheckRow = {
+  /** The New York day whose check this claim is for. */
+  day: string;
+  claimed_at: string;
+};
+
+/** One row of a season table, ranked and cut to a page by the database. */
+export type SeasonStandingRow = {
+  user_id: string;
+  /** Where they stand in the whole quarter, not on the page. */
+  place: number;
+  /** Whether they have played enough of the quarter to be placed at all. */
+  ranked: boolean;
+  weeks_played: number;
+  weeks_ahead: number;
+  sum_return_percent: string;
+  sum_benchmark_diff: string;
+  best_week_return: string | null;
+  final_rank: number | null;
+};
+
+export type ErrorReportRow = {
+  /** md5 of what broke and where, so a repeat is a count rather than a row. */
+  fingerprint: string;
+  kind: "client" | "server";
+  message: string;
+  /** The route it happened on, without a query string. */
+  at: string | null;
+  digest: string | null;
+  seen: number;
+  first_seen: string;
+  last_seen: string;
+};
+
 type Table<Row> = {
   Row: Row;
   Insert: Partial<Row>;
@@ -421,6 +470,9 @@ export type Database = {
       weekly_cycles: Table<WeeklyCycleRow>;
       weekly_goals: Table<WeeklyGoalRow>;
       lineup_orders: Table<LineupOrderRow>;
+      symbol_splits: Table<SymbolSplitRow>;
+      split_checks: Table<SplitCheckRow>;
+      error_reports: Table<ErrorReportRow>;
       pods: Table<PodRow>;
       pod_members: Table<PodMemberRow>;
       pod_tiers: Table<PodTierRow>;
@@ -520,6 +572,42 @@ export type Database = {
         itself whether the week in question is locked, which is what stops a
         caller naming the wrong week -- see 0021 for the one that did.
       */
+      record_error: {
+        Args: {
+          p_kind: "client" | "server";
+          p_message: string;
+          p_at?: string | null;
+          p_digest?: string | null;
+        };
+        Returns: ErrorReportRow;
+      };
+      season_standings: {
+        Args: {
+          p_season_id: string;
+          p_user_id: string;
+          p_min_weeks?: number;
+          p_limit?: number;
+        };
+        Returns: SeasonStandingRow[];
+      };
+      symbols_in_open_weeks: {
+        Args: Record<never, never>;
+        Returns: { symbol: string }[];
+      };
+      claim_split_check: {
+        Args: { p_day: string };
+        Returns: boolean;
+      };
+      apply_split: {
+        Args: {
+          p_symbol: string;
+          p_effective_on: string;
+          p_numerator: number;
+          p_denominator: number;
+          p_price: number;
+        };
+        Returns: SymbolSplitRow;
+      };
       queue_lineup_order: {
         Args: {
           p_user_id: string;
@@ -564,6 +652,11 @@ export type Database = {
           p_cycle_id: string;
           p_closing_prices: Json;
           p_benchmark_close: number;
+          /*
+            The companies the caller could not price, valued at what was paid
+            for them. Empty in the ordinary case. See 0026.
+          */
+          p_at_cost?: string[];
         };
         Returns: number;
       };

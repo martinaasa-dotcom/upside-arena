@@ -7,7 +7,19 @@ import {
 } from "@/lib/company";
 import { MINIMUM_AGE, PRIVACY_VERSION } from "@/lib/legal";
 
-export const metadata = { title: "Privacy policy" };
+/*
+  Its own description, rather than the app's.
+
+  A page with no description inherits the root's, which is the sentence that
+  sells the game. That sentence under a privacy policy in a search result
+  describes the wrong document, and this is one of the four pages a stranger
+  can reach without an account.
+*/
+export const metadata = {
+  title: "Privacy policy",
+  description:
+    "What Upside Arena records about you, why, who else sees it, and how to have it deleted.",
+};
 
 export default function PrivacyPage() {
   return (
@@ -98,6 +110,16 @@ export default function PrivacyPage() {
           <strong>What your portfolio was worth each day.</strong> Recorded once
           per trading day for everyone playing, so a shared week can show its
           shape rather than a single number.
+        </li>
+        <li>
+          <strong>What breaks.</strong> When a screen fails to draw, we record
+          the error message it produced and which page it was on, so we find
+          out about a broken screen without waiting for somebody to write in.
+          That record holds nothing about who it happened to: no name, no
+          address, no account, and the address of the page is stored without
+          anything after the question mark, so nothing you were looking at is
+          in it. Repeats of the same failure are counted rather than kept
+          separately.
         </li>
         <li>
           <strong>Notifications, only if you turn them on.</strong> If you allow

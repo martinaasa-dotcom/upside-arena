@@ -15,6 +15,9 @@ Supabase project. Nothing here is shared with Lab except the company behind it.
 > ground as a click-by-click walkthrough, in the order to do it. This file is
 > the reference.
 
+> Something has gone wrong rather than being set up? `docs/DISASTER_RECOVERY.md`
+> is what is backed up, how to restore it and how to roll a deploy back.
+
 ## Environment variables
 
 Set these in the Vercel project under Settings, Environment Variables, for
@@ -33,6 +36,7 @@ Production and Preview both. None of them belongs in the repository.
 | `VAPID_PRIVATE_KEY` | the VAPID private key | **Server only.** Signs every push. |
 | `RESEND_API_KEY` | a Resend API key | **Server only.** Only used for the email fallback. |
 | `RESEND_FROM` | `Upside Arena <arena@upsidearena.com>` | Optional. Must be a verified sender in Resend. |
+| `UNSUBSCRIBE_SECRET` | a long random string | **Server only.** Optional. Signs the one-click unsubscribe links in emails. With it unset the service role key signs them instead, which works; set it if you would rather the two were not the same string. With neither, emails carry no unsubscribe link at all. |
 | `ARENA_ADMIN_EMAILS` | your email address | **Server only.** Comma separated. Who may open `/metrics`. Unset means nobody. |
 | `STRIPE_SECRET_KEY` | from the Stripe dashboard | **Server only.** Without it nothing is on sale. |
 | `STRIPE_WEBHOOK_SECRET` | from the Stripe webhook endpoint | **Server only.** Without it the webhook refuses everything. |

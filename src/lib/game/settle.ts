@@ -3,7 +3,8 @@ import "server-only";
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClosingPrices, getSessionOpen } from "@/lib/market/benchmark";
-import { nyDate } from "@/lib/market/session";
+import { hoursSinceContestEnd, nyDate } from "@/lib/market/session";
+import { formatById } from "@/lib/game/formats";
 import { settleDuePods } from "@/lib/game/pods";
 import type { SeasonRow, WeeklyCycleRow } from "@/lib/supabase/database.types";
 
@@ -29,6 +30,73 @@ import type { SeasonRow, WeeklyCycleRow } from "@/lib/supabase/database.types";
 
 /** How long a claim may sit before another settler may take it over. */
 const STALE_CLAIM = "10 minutes";
+
+/**
+ * How long a company has to stay unpriceable before a week is settled around
+ * it.
+ *
+ * Six hours after the close, so a week whose companies all price settles on
+ * the Friday evening as it always did, and a week held up by one name that
+ * cannot be priced still has a result before the players are awake on
+ * Saturday.
+ *
+ * The number is a judgement about two different failures. Below it, a passing
+ * outage upstream would be mistaken for a company that has stopped existing,
+ * and a position would be settled at cost while the market has it at twice
+ * that. Above it, a league sits all weekend with no result and no explanation
+ * because one member held a company that was acquired on the Thursday.
+ */
+const PRICE_GRACE_HOURS = 6;
+
+/**
+ * How much of a week may be unpriceable before it is the provider rather than
+ * the companies.
+ *
+ * Delistings arrive one at a time. Half a week's symbols going missing at once
+ * is an outage, and settling a week at cost through an outage would be the
+ * invented figure this whole file exists to refuse.
+ */
+const OUTAGE_SHARE = 0.5;
+
+export type UnpricedPlan =
+  | { wait: true; reason: string }
+  | { wait: false; atCost: string[] };
+
+/**
+ * What to do about the companies a week could not price.
+ *
+ * Pure, and separate from everything that touches the database, because this
+ * is the judgement in the whole file most worth being able to test: it decides
+ * between a week that ends on a number nobody saw and a week that never ends
+ * at all.
+ */
+export function planForUnpriced(input: {
+  missing: readonly string[];
+  /** How many of the week's symbols did come back with a price. */
+  priced: number;
+  hoursSinceEnd: number;
+}): UnpricedPlan {
+  const { missing, priced, hoursSinceEnd } = input;
+
+  if (missing.length === 0) return { wait: false, atCost: [] };
+
+  const total = missing.length + priced;
+  if (total > 0 && missing.length / total >= OUTAGE_SHARE) {
+    return {
+      wait: true,
+      reason: `${missing.length} of ${total} companies have no closing price, which is the provider rather than the companies`,
+    };
+  }
+
+  if (hoursSinceEnd < PRICE_GRACE_HOURS) {
+    return {
+      wait: true,
+      reason: `no closing price for ${missing.join(", ")} yet, and the week ended too recently to give up on it`,
+    };
+  }
+
+  return { wait: false, atCost: [...missing] };
+}
 
 export type SettlementResult = {
   cycleId: string;
@@ -203,20 +271,41 @@ async function settleCycle(input: WeeklyCycleRow): Promise<SettlementResult> {
       };
     }
 
+    /*
+      The companies that could not be priced, and what to do about them.
+
+      A holding whose company was acquired, delisted, renamed or halted on the
+      Thursday has no closing price and never will again. Refusing the whole
+      week for it does not protect anybody: it stops every player in that week
+      being scored, forever, and from the outside that is indistinguishable
+      from a week that has not finished yet.
+
+      So after the grace period, and only while the rest of the week priced
+      normally, those names are handed to the database as valued at cost. That
+      is not an invented figure: it is what Arena paid for the position, and it
+      is what every screen has shown the position as worth for as long as the
+      price has been missing.
+    */
     const missing = symbols.filter((s) => prices[s] == null);
-    if (missing.length > 0) {
+    const plan = planForUnpriced({
+      missing,
+      priced: symbols.length - missing.length,
+      hoursSinceEnd: hoursSinceContestEnd(
+        lastDay,
+        formatById(cycle.format).tradingHours === "always"
+      ),
+    });
+
+    if (plan.wait) {
       await admin.rpc("release_cycle_claim", { p_cycle_id: cycle.id });
-      return {
-        ...base,
-        status: "no-prices",
-        detail: `no closing price for ${missing.join(", ")} on ${lastDay}`,
-      };
+      return { ...base, status: "no-prices", detail: `${plan.reason} (${lastDay})` };
     }
 
     const { data: scored, error: scoreError } = await admin.rpc("score_cycle", {
       p_cycle_id: cycle.id,
       p_closing_prices: prices,
       p_benchmark_close: benchmarkClose,
+      p_at_cost: plan.atCost,
     });
 
     if (scoreError) {
@@ -224,7 +313,15 @@ async function settleCycle(input: WeeklyCycleRow): Promise<SettlementResult> {
       return { ...base, status: "failed", detail: scoreError.message };
     }
 
-    return { ...base, status: "settled", portfolios: num(scored) ?? 0 };
+    return {
+      ...base,
+      status: "settled",
+      portfolios: num(scored) ?? 0,
+      detail:
+        plan.atCost.length > 0
+          ? `${plan.atCost.join(", ")} could not be priced and was counted at what it cost`
+          : undefined,
+    };
   } catch (error) {
     await admin.rpc("release_cycle_claim", { p_cycle_id: cycle.id });
     return {

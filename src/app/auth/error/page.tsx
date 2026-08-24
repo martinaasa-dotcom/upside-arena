@@ -13,6 +13,13 @@ import { PAGE, PAGE_FRAME } from "@/lib/page-shell";
   in. There is a test that keeps this list level with the reasons the code
   actually emits.
 */
+/*
+  Named, rather than inheriting the app's own title. A tab that says "Upside
+  Arena" while the page says somebody could not be signed in is a tab they
+  cannot find again among four others.
+*/
+export const metadata = { title: "Could not sign you in" };
+
 const REASONS: Record<string, string> = {
   expired: "That sign-in link has already been used, or it timed out. Links last one hour.",
   "missing-token": "That link is missing part of its address. Ask for a fresh one.",

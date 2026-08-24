@@ -25,6 +25,25 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error("the app failed to render", error);
+
+    /*
+      Sent by hand rather than through lib/report-error, because this file
+      replaces the root layout and is kept to what cannot fail: no imports
+      beyond React, no components, nothing that could itself be the thing
+      that is broken.
+    */
+    try {
+      void fetch("/api/error", {
+        method: "POST",
+        keepalive: true,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          message: (error?.message ?? "").split("\n")[0].slice(0, 300),
+          at: window.location.pathname,
+          digest: error.digest ?? null,
+        }),
+      }).catch(() => {});
+    } catch {}
   }, [error]);
 
   return (

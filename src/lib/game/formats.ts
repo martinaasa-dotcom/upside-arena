@@ -1,3 +1,5 @@
+import { formatMoney } from "@/lib/format";
+
 /*
   Formats: the different games you can play with the same market.
 
@@ -150,6 +152,53 @@ const CRYPTO = [
 
 /** Instrument types the ordinary game accepts: shares and funds, nothing else. */
 export const SHARE_TYPES = ["EQUITY", "ETF", "MUTUALFUND", "INDEX"] as const;
+
+/**
+ * The least a share may cost for this game to buy it.
+ *
+ * A dollar, which is where the exchanges themselves draw the line: Nasdaq and
+ * the NYSE both start delisting a company that closes under it for thirty
+ * days. Below that price a name is quoted in fractions of a penny, and one
+ * tick is a percentage move nobody traded for. A player who put the whole
+ * hundred thousand into a stock at $0.0008 needs it to print $0.0009 once to
+ * finish the week up twelve percent, ahead of everybody who spent the week
+ * actually picking companies.
+ *
+ * That is not a hypothetical: it is the cheapest way to win a leaderboard
+ * here, it requires no skill, and the first person to find it makes every
+ * result on the table meaningless to everybody else.
+ *
+ * The floor applies where the universe is a kind of thing rather than a named
+ * list. The lists are chosen by hand and every name on them is a large
+ * company, and the coin list is exempt for a reason the floor would get
+ * wrong: a coin trading at forty cents is an ordinary coin, not a shell.
+ */
+export const MIN_SHARE_PRICE = 1;
+
+/** Whether the floor has anything to say about this format. */
+export function hasPriceFloor(format: Pick<Format, "universe">): boolean {
+  return format.universe.kind === "types";
+}
+
+/**
+ * Whether a name is too cheap for this game.
+ *
+ * The price is always one the server read from the quote layer. Nothing here
+ * ever sees a number that came up from a form: that is what makes this a rule
+ * rather than a suggestion.
+ */
+export function belowPriceFloor(
+  format: Pick<Format, "universe">,
+  price: number
+): boolean {
+  if (!hasPriceFloor(format)) return false;
+  return Number.isFinite(price) && price < MIN_SHARE_PRICE;
+}
+
+/** What somebody is told when a name is under the floor. */
+export function priceFloorRefusal(symbol: string, price: number): string {
+  return `${symbol} is at ${formatMoney(price, "USD", price < 0.01 ? 4 : 2)}, and Arena does not buy shares under ${formatMoney(MIN_SHARE_PRICE)}. At that price one tick is a bigger week than anybody can trade for.`;
+}
 
 export const FORMATS = [
   {
@@ -428,6 +477,17 @@ export function checkTrade(
           ? `${format.name} is ${format.universe.label} only, and ${symbol} is not one of them.`
           : `${format.name} is ${format.universe.label} only, and ${symbol} is not one.`,
     };
+  }
+
+  /*
+    Too cheap to be a result. See MIN_SHARE_PRICE.
+
+    After the universe check and before everything else, so somebody buying a
+    sub-penny name in a format that would not have allowed it anyway is told
+    the rule they actually broke.
+  */
+  if (belowPriceFloor(format, input.price)) {
+    return { ok: false, error: priceFloorRefusal(symbol, input.price) };
   }
 
   const existing = input.positions.find((p) => p.symbol.toUpperCase() === symbol);

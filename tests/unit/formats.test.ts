@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   FORMATS,
+  MIN_SHARE_PRICE,
   allowedSymbols,
+  belowPriceFloor,
   checkTrade,
   formatById,
+  hasPriceFloor,
   isFormatId,
   positionValue,
 } from "@/lib/game/formats";
@@ -215,5 +218,78 @@ describe("how much of one thing", () => {
       startingBalance: 100_000,
     });
     expect(generous.ok).toBe(true);
+  });
+});
+
+/*
+  The floor.
+
+  This is the cheapest way to win a leaderboard, and it needs no skill: a
+  hundred thousand dollars of a stock quoted at $0.0001 is a billion shares,
+  and the day it prints $0.0002 that week is up a hundred percent. Every one
+  of these is here because the rule has to hold at the trade, in every format
+  that lets you name your own company, and has to leave the hand-picked lists
+  alone.
+*/
+describe("what is too cheap to be a result", () => {
+  const base = {
+    side: "buy" as const,
+    quantity: 1,
+    price: 100,
+    startingBalance: 100_000,
+    positions: [],
+    quoteType: "EQUITY",
+  };
+
+  it("refuses a sub-penny name in the house week", () => {
+    const result = checkTrade(open, { ...base, symbol: "HCMC", price: 0.0001 });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain("HCMC");
+      // The price is in the sentence, because "too cheap" without a number is
+      // a rule somebody has to guess at.
+      expect(result.error).toMatch(/0\.0001/);
+    }
+  });
+
+  it("refuses it in every format that lets you name your own company", () => {
+    for (const format of FORMATS) {
+      if (format.universe.kind !== "types") continue;
+      const check = checkTrade(formatById(format.id), {
+        ...base,
+        symbol: "SPY",
+        price: 0.4,
+        quoteType: format.universe.types[0],
+      });
+      expect(check.ok, format.id).toBe(false);
+    }
+  });
+
+  it("takes anything at a dollar or over", () => {
+    expect(checkTrade(open, { ...base, symbol: "UAVS", price: MIN_SHARE_PRICE }).ok).toBe(true);
+    expect(checkTrade(open, { ...base, symbol: "SNDL", price: 1.37 }).ok).toBe(true);
+    expect(checkTrade(open, { ...base, symbol: "SNDL", price: 0.99 }).ok).toBe(false);
+  });
+
+  it("leaves the hand-picked lists alone, because a coin at forty cents is an ordinary coin", () => {
+    expect(hasPriceFloor(crypto)).toBe(false);
+    expect(belowPriceFloor(crypto, 0.4)).toBe(false);
+    expect(
+      checkTrade(crypto, { ...base, symbol: "XRP-USD", price: 0.4, quoteType: "CRYPTOCURRENCY" })
+        .ok
+    ).toBe(true);
+  });
+
+  it("still lets somebody out of a name that fell through the floor", () => {
+    // Selling is always allowed. A holding bought at $4 that ends the week at
+    // 30 cents is a bad week, not a trap.
+    const positions = [{ symbol: "PENNY", quantity: 100, costBasis: 400 }];
+    expect(
+      checkTrade(open, { ...base, side: "sell", symbol: "PENNY", price: 0.3, positions }).ok
+    ).toBe(true);
+  });
+
+  it("says nothing about a price it does not have", () => {
+    expect(belowPriceFloor(open, Number.NaN)).toBe(false);
   });
 });

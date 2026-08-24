@@ -204,6 +204,82 @@ export async function getClosingPrices(
   return out;
 }
 
+export type SplitEvent = {
+  symbol: string;
+  /** The market open at which the new share count is the real one. */
+  effectiveOn: string;
+  /** Ten for one is 10 and 1. One for ten, the reverse, is 1 and 10. */
+  numerator: number;
+  denominator: number;
+};
+
+/**
+ * The share splits a company has had in a window of days.
+ *
+ * The same chart endpoint the closing prices come from, asked for its events
+ * as well as its bars. Nothing else upstream reports this, and a split that
+ * goes unnoticed is a position valued at the wrong number of shares: ten for
+ * one leaves a holder apparently down ninety per cent, and a reverse split
+ * hands one a week they did not trade for.
+ *
+ * Not cached. It is asked once a day, by one worker holding the day's claim,
+ * and a cached answer here would be a split applied late for no gain.
+ *
+ * Null when the question could not be asked at all, which is a different
+ * answer from an empty list and the caller treats it as one: "nothing split"
+ * and "the provider did not answer" look identical from the outside and lead
+ * to opposite decisions.
+ */
+export async function getSplits(
+  symbol: string,
+  fromIso: string,
+  toIso: string
+): Promise<SplitEvent[] | null> {
+  try {
+    const yahoo = await getYahoo();
+    const result = (await (
+      yahoo as { chart: (s: string, o: Record<string, unknown>) => Promise<unknown> }
+    ).chart(symbol, {
+      period1: new Date(`${fromIso}T00:00:00Z`),
+      // A day past the end, because the window is inclusive and the bar for
+      // the last day has to be inside it.
+      period2: new Date(new Date(`${toIso}T00:00:00Z`).getTime() + 24 * 60 * 60 * 1000),
+      interval: "1d",
+      events: "split",
+    })) as {
+      events?: {
+        splits?: Array<{ date?: Date; numerator?: number; denominator?: number }>;
+      };
+    };
+
+    const splits = result.events?.splits ?? [];
+
+    return splits
+      .filter(
+        (split) =>
+          split.date instanceof Date &&
+          Number.isFinite(split.numerator) &&
+          Number.isFinite(split.denominator) &&
+          (split.numerator as number) > 0 &&
+          (split.denominator as number) > 0
+      )
+      .map((split) => ({
+        symbol: symbol.toUpperCase(),
+        /*
+          Yahoo timestamps a split at the opening bell, which is 13:30 UTC in
+          summer and 14:30 in winter, so the UTC date and the New York date
+          are the same day either way and slicing it is safe here in a way it
+          would not be for an evening timestamp.
+        */
+        effectiveOn: (split.date as Date).toISOString().slice(0, 10),
+        numerator: split.numerator as number,
+        denominator: split.denominator as number,
+      }));
+  } catch {
+    return null;
+  }
+}
+
 /** Clears the cache. Tests only. */
 export function __resetBenchmarkCache() {
   openCache.clear();

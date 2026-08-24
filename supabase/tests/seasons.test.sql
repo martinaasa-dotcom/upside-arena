@@ -380,3 +380,101 @@ begin
     raise notice 'ok: a player cannot add a week to their own season';
   end;
 end $$;
+
+-- ---------------------------------------------------------------------------
+-- The table a page actually reads
+-- ---------------------------------------------------------------------------
+--
+-- season_standings ranks the quarter in the database and hands back a page of
+-- it. What is worth pinning is not the speed but the agreement: it has to
+-- order the season exactly as close_season awards the final places, or the
+-- table reads one way all quarter and the medals go out in another order on
+-- the last day.
+
+insert into public.seasons (id, starts_on, ends_on, name)
+values ('77770000-0000-0000-0000-0000000000ff', '2027-01-04', '2027-03-26', 'Table');
+
+insert into auth.users (id, email)
+values
+  ('77770000-0000-0000-0000-000000000001', 'top@example.com'),
+  ('77770000-0000-0000-0000-000000000002', 'mid@example.com'),
+  ('77770000-0000-0000-0000-000000000003', 'new@example.com'),
+  ('77770000-0000-0000-0000-000000000004', 'low@example.com');
+
+insert into public.season_results
+  (season_id, user_id, weeks_played, weeks_ahead, sum_return_percent, sum_benchmark_diff)
+values
+  -- Four weeks, three points ahead per week.
+  ('77770000-0000-0000-0000-0000000000ff', '77770000-0000-0000-0000-000000000001', 4, 3, 20, 12),
+  -- Four weeks, one point ahead per week.
+  ('77770000-0000-0000-0000-0000000000ff', '77770000-0000-0000-0000-000000000002', 4, 2, 10, 4),
+  -- One week and a huge one, which must not outrank a played quarter.
+  ('77770000-0000-0000-0000-0000000000ff', '77770000-0000-0000-0000-000000000003', 1, 1, 40, 30),
+  -- Four weeks and behind the market every one of them.
+  ('77770000-0000-0000-0000-0000000000ff', '77770000-0000-0000-0000-000000000004', 4, 0, -8, -12);
+
+select public.assert(
+  (select array_agg(user_id order by place) from public.season_standings(
+     '77770000-0000-0000-0000-0000000000ff',
+     '77770000-0000-0000-0000-000000000001', 3, 50))
+  = array[
+      '77770000-0000-0000-0000-000000000001',
+      '77770000-0000-0000-0000-000000000002',
+      '77770000-0000-0000-0000-000000000004',
+      '77770000-0000-0000-0000-000000000003'
+    ]::uuid[],
+  'the table is ordered on points ahead per week, with the unranked below it'
+);
+
+select public.assert(
+  (select ranked from public.season_standings(
+     '77770000-0000-0000-0000-0000000000ff',
+     '77770000-0000-0000-0000-000000000001', 3, 50)
+   where user_id = '77770000-0000-0000-0000-000000000003') = false,
+  'somebody one week into a quarter is shown, and shown as not placed yet'
+);
+
+-- A page of one, asked for by the player standing fourth.
+select public.assert(
+  (select count(*) from public.season_standings(
+     '77770000-0000-0000-0000-0000000000ff',
+     '77770000-0000-0000-0000-000000000003', 3, 1)) = 2,
+  'a page comes back as a page, not as the whole quarter'
+);
+
+select public.assert(
+  (select place from public.season_standings(
+     '77770000-0000-0000-0000-0000000000ff',
+     '77770000-0000-0000-0000-000000000003', 3, 1)
+   where user_id = '77770000-0000-0000-0000-000000000003') = 4,
+  'and the reader always gets their own row, with where they really stand'
+);
+
+-- ---------------------------------------------------------------------------
+-- A tie is broken the same way twice
+-- ---------------------------------------------------------------------------
+-- Two players level on the average and level on weeks played were placed in
+-- whatever order Postgres returned them, so which of them was champion could
+-- change between two page loads. Arbitrary is fine. Unstable is not.
+
+insert into public.seasons (id, starts_on, ends_on, name, status)
+values ('77770000-0000-0000-0000-0000000000ee', '2027-04-05', '2027-06-25', 'Level', 'open');
+
+insert into public.season_results
+  (season_id, user_id, weeks_played, weeks_ahead, sum_return_percent, sum_benchmark_diff)
+values
+  ('77770000-0000-0000-0000-0000000000ee', '77770000-0000-0000-0000-000000000001', 4, 2, 10, 8),
+  ('77770000-0000-0000-0000-0000000000ee', '77770000-0000-0000-0000-000000000002', 4, 2, 10, 8);
+
+select public.close_season('77770000-0000-0000-0000-0000000000ee', 3, 8);
+
+select public.assert(
+  (select final_rank from public.season_results
+   where season_id = '77770000-0000-0000-0000-0000000000ee'
+     and user_id = '77770000-0000-0000-0000-000000000001') = 1
+  and (select place from public.season_standings(
+        '77770000-0000-0000-0000-0000000000ee',
+        '77770000-0000-0000-0000-000000000001', 3, 50)
+       where user_id = '77770000-0000-0000-0000-000000000001') = 1,
+  'a level pair is split the same way by the live table and by the final places'
+);

@@ -3,7 +3,7 @@ import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
 import { TrackView } from "@/components/TrackView";
 import { PAGE, PAGE_FRAME } from "@/lib/page-shell";
 import { MAX_LINEUP_ORDERS, STARTING_BALANCE } from "@/lib/game";
-import { FORMATS } from "@/lib/game/formats";
+import { FORMATS, MIN_SHARE_PRICE } from "@/lib/game/formats";
 import { LENGTHS } from "@/lib/game/lengths";
 import { MIN_WEEKS_TO_RANK } from "@/lib/game/seasons";
 import { DAILY_CAP, QUIET_HOURS } from "@/lib/notify/timing";
@@ -83,6 +83,13 @@ export default function HowPage() {
             <p>
               Whole shares only, no borrowing, no leverage. Cash earns nothing,
               so sitting on it is a decision rather than a safe place to hide.
+            </p>
+            <p>
+              You buy companies and funds listed on the American exchanges, in
+              dollars, at {formatMoney(MIN_SHARE_PRICE)} a share or more.
+              Anything cheaper is quoted in fractions of a penny, where one
+              tick is a double and a week is won by nobody in particular, so
+              Arena will not buy it.
             </p>
           </Section>
 
@@ -232,8 +239,9 @@ export default function HowPage() {
           <Section title="7. What keeps going underneath">
             <p>
               A <strong>streak</strong> counts days you opened Arena and looked
-              at your week. It counts trading days only, so a weekend never
-              breaks one, and it has nothing to do with how well you did.
+              at your week. It counts days the market was open, so neither a
+              weekend nor a public holiday can break one, and it has nothing to
+              do with how well you did.
             </p>
             <p>
               Your <strong>own record</strong> is on your profile: every week
@@ -247,6 +255,13 @@ export default function HowPage() {
               you made in total, because otherwise it would rank whoever showed up
               most. Play {MIN_WEEKS_TO_RANK} weeks of a quarter and you are
               placed in it.
+            </p>
+            <p>
+              When a company <strong>splits its shares</strong>, and they do,
+              your holding is adjusted the morning it happens: ten for one and
+              a hundred shares become a thousand at a tenth of the price, which
+              is the same money. Anything left over that is smaller than a
+              share is paid to you in cash, exactly as a broker would.
             </p>
             <p>
               Everything you can earn, titles and flair and themes, is worn next to

@@ -16,6 +16,8 @@ import { placeInPod } from "@/lib/game/pods";
 import { cycleMonday, isTradingOpen, nyDate } from "@/lib/market/session";
 import { hasDueCycle, settleDueCycles } from "@/lib/game/settle";
 import { needsMarkToday, recordDailyMarks } from "@/lib/game/marks";
+import { applyDueSplits } from "@/lib/game/splits";
+import { reportServerError } from "@/lib/errors";
 import { fillLineup, hasLineupToFill } from "@/lib/game/lineup";
 import { checkTrade, formatById } from "@/lib/game/formats";
 import { cycleCache, playerCache } from "@/lib/game/cache";
@@ -139,22 +141,48 @@ export const getCurrentCycle = cache(async (): Promise<Cycle | null> => {
   after(async () => {
     try {
       if (await hasDueCycle()) await settleDueCycles();
-    } catch {
-      // The next request tries again. A failed settle must never turn into
-      // a failed page.
+    } catch (error) {
+      /*
+        The next request tries again, and a failed settle must never turn into
+        a failed page. It is still written down: this is background work
+        nobody is watching, so a settle that fails every time from now on
+        would otherwise look exactly like a settle that has not run yet.
+      */
+      await reportServerError(error, "settle");
+    }
+  });
+
+  /*
+    Share splits, which change a position without anybody trading it.
+
+    On the schedule this rides the trading day pass, and this is the backstop
+    for a day the pass did not run. It costs one claim attempt: the first
+    caller after the opening bell takes the day and looks, and everybody after
+    that is told it is taken and stops. Before the bell it does not even
+    claim.
+  */
+  after(async () => {
+    try {
+      await applyDueSplits();
+    } catch (error) {
+      // Tomorrow's check finds it, and the ledger means finding it twice
+      // costs nothing. Never worth failing a page over, and worth knowing.
+      await reportServerError(error, "splits");
     }
   });
 
   after(async () => {
     try {
       if (await needsMarkToday()) await recordDailyMarks();
-    } catch {
+    } catch (error) {
       /*
         A missing mark used to cost a bar on a share card. Since 0022 it also
         costs a day of every running battle's trajectory, and a day not
         recorded on the day cannot be worked out afterwards -- so this is
         worth more than it was, though still not worth failing a page over.
+        Which is exactly why it is written down rather than swallowed.
       */
+      await reportServerError(error, "marks");
     }
   });
 

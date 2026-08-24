@@ -37,6 +37,23 @@ const PUBLIC_API_PATHS: string[] = [
   // session. Left off this list the endpoint answers 401 to Stripe, which
   // retries for days while nobody's subscription is ever recorded.
   "/api/stripe/webhook",
+
+  /*
+    Whether the app is working, asked by a schedule that has no account and
+    never will. It is safe to leave open because there is nothing in the
+    answer: three booleans and a handful of words, no counts, no names, no
+    versions and no configuration. Behind a session it would be a check that
+    only answers while the thing it is checking is already working.
+  */
+  "/api/health",
+
+  /*
+    The link at the foot of an email. Somebody who has stopped using Arena has
+    no session, and that is exactly the person it is for. What makes it safe
+    to leave open is that the url carries a signature of whose mail it is and
+    the only thing that signature permits is turning that person's email off.
+  */
+  "/api/unsubscribe",
 ];
 
 function isPublic(pathname: string) {

@@ -12,14 +12,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 */
 
 const quote = vi.fn();
+const search = vi.fn();
 
 vi.mock("yahoo-finance2", () => ({
   default: class {
     quote = quote;
+    search = search;
   },
 }));
 
-const { getQuotes, __resetQuoteCache } = await import("@/lib/market/quotes");
+const { getQuotes, searchSymbols, __resetQuoteCache } = await import(
+  "@/lib/market/quotes"
+);
 
 function raw(symbol: string, price: number) {
   return {
@@ -43,6 +47,7 @@ function batch(prices: Record<string, number>) {
 beforeEach(() => {
   __resetQuoteCache();
   quote.mockReset();
+  search.mockReset();
 });
 
 describe("getQuotes", () => {
@@ -171,5 +176,91 @@ describe("getQuotes", () => {
     expect(quotes.AAPL.stale).toBe(true);
     expect(quotes.MSFT.stale).toBe(true);
     vi.useRealTimers();
+  });
+});
+
+/*
+  What this game is allowed to put a price on, which is a narrower question
+  than what Yahoo can price.
+
+  Both of these were findable from the trade screen the day they were written.
+  A search for BMW offered BMW.DE at 58.52, which is euros, and Arena would
+  have spent dollars at that number and then valued the position as though the
+  two were the same money. A search for HCMC offered a stock quoted at
+  $0.0001, where one tick is a hundred percent and a week is decided by
+  nobody's judgement at all.
+*/
+describe("the universe the quote layer will price", () => {
+  it("refuses a listing quoted in anything but dollars", async () => {
+    quote.mockResolvedValue({
+      AAPL: raw("AAPL", 100),
+      "BMW.DE": { ...raw("BMW.DE", 58.52), currency: "EUR" },
+    });
+
+    const quotes = await getQuotes(["AAPL", "BMW.DE"]);
+
+    expect(quotes.AAPL.price).toBe(100);
+    expect(quotes["BMW.DE"]).toBeUndefined();
+  });
+
+  it("refuses the over-the-counter venues, whatever the price is", async () => {
+    quote.mockResolvedValue({
+      AAPL: raw("AAPL", 100),
+      // Priced well above the floor, and still not something to own here.
+      RHHBY: { ...raw("RHHBY", 58.1), exchange: "OQX" },
+      HCMC: { ...raw("HCMC", 0.0001), exchange: "PNK" },
+    });
+
+    const quotes = await getQuotes(["AAPL", "RHHBY", "HCMC"]);
+
+    expect(quotes.AAPL.price).toBe(100);
+    expect(quotes.RHHBY).toBeUndefined();
+    expect(quotes.HCMC).toBeUndefined();
+  });
+
+  it("keeps every venue an American exchange actually uses", async () => {
+    const venues = ["NMS", "NGM", "NCM", "NYQ", "ASE", "PCX", "BTS", "NAS", "SNP", "CCC"];
+    quote.mockResolvedValue(
+      Object.fromEntries(
+        venues.map((venue, i) => [venue, { ...raw(venue, 10 + i), exchange: venue }])
+      )
+    );
+
+    const quotes = await getQuotes(venues);
+
+    for (const venue of venues) expect(quotes[venue], venue).toBeDefined();
+  });
+});
+
+describe("what the search box offers", () => {
+  function found(rows: Array<{ symbol: string; quoteType: string; exchange: string }>) {
+    search.mockResolvedValue({
+      quotes: rows.map((row) => ({ ...row, shortname: row.symbol, isYahooFinance: true })),
+    });
+  }
+
+  it("offers nothing it would then refuse to buy", async () => {
+    found([
+      { symbol: "BMW.DE", quoteType: "EQUITY", exchange: "GER" },
+      { symbol: "APC.F", quoteType: "EQUITY", exchange: "FRA" },
+      { symbol: "HCMC", quoteType: "EQUITY", exchange: "PNK" },
+      { symbol: "AAPL", quoteType: "EQUITY", exchange: "NMS" },
+    ]);
+
+    const matches = await searchSymbols("apple");
+
+    expect(matches.map((m) => m.symbol)).toEqual(["AAPL"]);
+  });
+
+  it("still finds funds, which come back under their own venue", async () => {
+    found([
+      { symbol: "VFIAX", quoteType: "MUTUALFUND", exchange: "NAS" },
+      { symbol: "VOO", quoteType: "ETF", exchange: "PCX" },
+      { symbol: "SPYY.L", quoteType: "ETF", exchange: "LSE" },
+    ]);
+
+    const matches = await searchSymbols("vanguard");
+
+    expect(matches.map((m) => m.symbol)).toEqual(["VFIAX", "VOO"]);
   });
 });
