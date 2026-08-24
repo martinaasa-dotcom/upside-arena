@@ -19,7 +19,8 @@
     "gallery": "ARENA_UI_GALLERY=1 next dev",
     "test:a11y": "playwright test tests/e2e/accessibility.spec.ts",
     "test:instant": "playwright test --config playwright.instant.config.ts",
-    "check:prerender": "node scripts/prerender-check.mjs"
+    "check:prerender": "node scripts/prerender-check.mjs",
+    "test:scale": "./scripts/scale-rehearsal.sh"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.23",

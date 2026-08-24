@@ -296,7 +296,13 @@ Before any deploy, run the checks:
 npm run check      # types, lint, unit tests
 npm run test:db    # migrations, triggers, row level security
 npm run test:e2e   # signed-out flows
+npm run test:scale # every room's query, against a launch's worth of players
 ```
+
+`test:scale` is the one that needs saying twice. Everything else here is
+judged against a league of six, which is the one size at which an unbounded
+read cannot be told from a bounded one. It builds its own database from the
+migrations and needs no credentials.
 
 ### There is a daily cap, and it is easy to hit
 
