@@ -240,13 +240,32 @@ async function settleCycle(input: WeeklyCycleRow): Promise<SettlementResult> {
       };
     }
 
-    const { data: holdings } = await admin
-      .from("holdings")
-      .select("symbol, portfolios!inner(cycle_id)")
-      .eq("portfolios.cycle_id", cycle.id);
+    /*
+      Which companies this week holds.
+
+      Asked of the database rather than fetched and de-duplicated here, and
+      this is the one read in the app where getting it short is not a slower
+      page but a week that never ends. It used to select every holding row in
+      the week: at two thousand players holding eight names each that is
+      16,000 rows to produce about forty symbols, and PostgREST answers with
+      at most db-max-rows, which a Supabase project is set to 1,000.
+
+      Past roughly a hundred and twenty-five players the list would have come
+      back short. Nothing here would notice: missing is computed against the
+      short list, so plan.atCost stays empty and everything looks well, and
+      then score_cycle raises 'no closing price for X' about a company this
+      function never heard of. The claim is released, the next attempt does
+      exactly the same thing, and no week ever settles again.
+
+      Now it is forty rows whatever the week holds, and it no longer depends
+      on a project setting at all.
+    */
+    const { data: held } = await admin.rpc("symbols_in_cycle", {
+      p_cycle_id: cycle.id,
+    });
 
     const symbols = [
-      ...new Set(((holdings ?? []) as { symbol: string }[]).map((h) => h.symbol)),
+      ...new Set(((held ?? []) as { symbol: string }[]).map((h) => h.symbol)),
     ];
 
     const prices = await getClosingPrices(

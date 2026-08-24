@@ -2,6 +2,7 @@ import "server-only";
 
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { readAll } from "@/lib/supabase/read-all";
 import { whoWasHere } from "@/lib/game/roster";
 import { compareResults } from "@/lib/game/ranking";
 import { playerCache } from "@/lib/game/cache";
@@ -155,13 +156,25 @@ export async function getLastWeekBooks(
 
   const portfolioIds = portfolios.map((row) => row.id);
 
-  const [{ data: holdingRows }, { data: tradeRows }, { data: profileRows }] =
+  const [holdingRows, { data: tradeRows }, { data: profileRows }] =
     await Promise.all([
-      admin
-        .from("holdings")
-        .select("portfolio_id, symbol, quantity, cost_basis")
-        .in("portfolio_id", portfolioIds),
-      admin.from("trades").select("portfolio_id").in("portfolio_id", portfolioIds),
+      // A page at a time: a settled week's reveal shows every position every
+      // member held, and nothing caps how many that is.
+      readAll<{
+        portfolio_id: string;
+        symbol: string;
+        quantity: string;
+        cost_basis: string;
+      }>(() =>
+        admin
+          .from("holdings")
+          .select("portfolio_id, symbol, quantity, cost_basis")
+          .in("portfolio_id", portfolioIds)
+      ),
+      // Counted in the database. A week's worth of one member's trades is up
+      // to MAX_TRADES_PER_CYCLE rows, and all this needs is whether the
+      // number is zero. See migration 0030.
+      admin.rpc("portfolio_trade_counts", { p_portfolio_ids: portfolioIds }),
       admin.from("profiles").select("id, display_name").in("id", memberIds),
     ]);
 
@@ -169,12 +182,7 @@ export async function getLastWeekBooks(
     string,
     { symbol: string; quantity: number; costBasis: number }[]
   >();
-  for (const row of (holdingRows ?? []) as {
-    portfolio_id: string;
-    symbol: string;
-    quantity: string;
-    cost_basis: string;
-  }[]) {
+  for (const row of holdingRows) {
     const list = byPortfolio.get(row.portfolio_id) ?? [];
     list.push({
       symbol: row.symbol,
@@ -185,7 +193,9 @@ export async function getLastWeekBooks(
   }
 
   const traded = new Set(
-    ((tradeRows ?? []) as { portfolio_id: string }[]).map((row) => row.portfolio_id)
+    ((tradeRows ?? []) as { portfolio_id: string; trades: number }[])
+      .filter((row) => row.trades > 0)
+      .map((row) => row.portfolio_id)
   );
 
   const nameById = new Map(
