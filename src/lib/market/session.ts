@@ -142,12 +142,15 @@ const CLOSE_MINUTES = MARKET_CLOSE.hour * 60 + MARKET_CLOSE.minute;
  * open or after the close, because a price outside the session moves on thin
  * volume and would make a week turn on who happened to be awake.
  *
- * Market holidays are not handled here. A holiday shows no new prices, so a
- * trade placed on one fills at the previous close, which is the same outcome
- * as a quiet day and is not worth a holiday calendar to avoid.
+ * Holidays count, now that there is a calendar to ask. That is not tidiness:
+ * a trade on a day the market is shut fills at the last close, and the last
+ * close on a holiday Monday is Friday's. Three days of news would be known
+ * and the price would not have moved yet, which is the one thing a paper
+ * game must never sell.
  */
 export function isTradingOpen(now = new Date()): boolean {
   if (isWeekend(now)) return false;
+  if (isMarketHoliday(nyDate(now))) return false;
   const minutes = nyMinutes(now);
   return minutes >= OPEN_MINUTES && minutes < CLOSE_MINUTES;
 }
@@ -162,7 +165,7 @@ export function isTradingOpen(now = new Date()): boolean {
  * is the one thing a lineup must never become.
  */
 export function hasOpenedToday(now = new Date(), afterMinutes = 0): boolean {
-  if (isWeekend(now)) return false;
+  if (!isTradingDay(nyDate(now))) return false;
   return nyMinutes(now) >= OPEN_MINUTES + afterMinutes;
 }
 
@@ -281,10 +284,126 @@ export function hoursUntilClose(now = new Date()): number | null {
   only counts the days that mattered is also the honest claim: you showed up
   when it counted.
 
-  Market holidays are not modelled. A holiday is treated as a trading day, so
-  the worst case is a streak that survives a day it might not have. Being
-  generous in the player's favour is the right direction for that error.
+  Market holidays used to be left out of this, on the reasoning that treating
+  one as a trading day only ever left a streak surviving a day it might not
+  have. That reasoning was wrong in the direction that matters. Crediting a
+  visit on a holiday is indeed harmless; counting one as missed is not, and
+  that is the case that actually happens. Somebody who looked in on the
+  Wednesday, spent Thanksgiving away from a screen and came back on the Friday
+  had a day counted against them for not opening a game whose market was shut,
+  which is exactly the manufactured anxiety the paragraph above rules out.
+
+  So the calendar is here, in full, computed rather than listed: ten holidays
+  a year with the weekend rules the exchange actually uses. A holiday now
+  behaves precisely as a Saturday does everywhere in the app. It costs no
+  network call, no data file and nothing to maintain.
+
+  What is deliberately not modelled is a half day. The market closes at 13:00
+  on the day after Thanksgiving and on Christmas Eve when it falls midweek,
+  and everything Arena does with a session either happens before that or after
+  16:00, so the early close changes nothing here.
 */
+
+/**
+ * Easter Sunday, by the anonymous Gregorian algorithm.
+ *
+ * Here because Good Friday is the one market holiday with no fixed date and
+ * no simple weekday rule, and it is a real one: the exchange is shut, no
+ * price moves, and a streak must not care.
+ */
+function easterSunday(year: number): { month: number; day: number } {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return { month, day };
+}
+
+function iso(year: number, month: number, day: number): string {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/** The nth given weekday of a month, as a date. 0 is Sunday. */
+function nthWeekday(year: number, month: number, weekday: number, nth: number): string {
+  const first = new Date(Date.UTC(year, month - 1, 1, 12));
+  const shift = (weekday - first.getUTCDay() + 7) % 7;
+  return iso(year, month, 1 + shift + (nth - 1) * 7);
+}
+
+/** The last given weekday of a month. */
+function lastWeekday(year: number, month: number, weekday: number): string {
+  const last = new Date(Date.UTC(year, month, 0, 12));
+  const shift = (last.getUTCDay() - weekday + 7) % 7;
+  return iso(year, month, last.getUTCDate() - shift);
+}
+
+/**
+ * A fixed-date holiday, moved to the day the exchange actually shuts.
+ *
+ * Saturday is observed on the Friday before and Sunday on the Monday after,
+ * with one exception the exchange makes and this follows: New Year's Day on a
+ * Saturday is not observed at all, because the Friday belongs to the year
+ * before.
+ */
+function observed(year: number, month: number, day: number): string | null {
+  const date = new Date(Date.UTC(year, month - 1, day, 12));
+  const weekday = date.getUTCDay();
+
+  if (weekday === 6) {
+    if (month === 1 && day === 1) return null;
+    date.setUTCDate(date.getUTCDate() - 1);
+  } else if (weekday === 0) {
+    date.setUTCDate(date.getUTCDate() + 1);
+  }
+
+  return date.toISOString().slice(0, 10);
+}
+
+const holidayCache = new Map<number, Set<string>>();
+
+/** Every day of a year the New York exchange is shut, other than weekends. */
+function holidaysIn(year: number): Set<string> {
+  const held = holidayCache.get(year);
+  if (held) return held;
+
+  const easter = easterSunday(year);
+  const easterDay = new Date(Date.UTC(year, easter.month - 1, easter.day, 12));
+  easterDay.setUTCDate(easterDay.getUTCDate() - 2);
+
+  const days = [
+    observed(year, 1, 1), // New Year's Day
+    nthWeekday(year, 1, 1, 3), // Martin Luther King Jr Day
+    nthWeekday(year, 2, 1, 3), // Washington's Birthday
+    easterDay.toISOString().slice(0, 10), // Good Friday
+    lastWeekday(year, 5, 1), // Memorial Day
+    observed(year, 6, 19), // Juneteenth
+    observed(year, 7, 4), // Independence Day
+    nthWeekday(year, 9, 1, 1), // Labor Day
+    nthWeekday(year, 11, 4, 4), // Thanksgiving
+    observed(year, 12, 25), // Christmas Day
+  ].filter((day): day is string => day != null);
+
+  const set = new Set(days);
+  holidayCache.set(year, set);
+  return set;
+}
+
+/** Whether the exchange was shut on a New York calendar date for a holiday. */
+export function isMarketHoliday(isoDate: string): boolean {
+  const year = Number(isoDate.slice(0, 4));
+  if (!Number.isFinite(year)) return false;
+  return holidaysIn(year).has(isoDate);
+}
 
 function isoToUtcNoon(iso: string) {
   return new Date(`${iso}T12:00:00Z`);
@@ -307,10 +426,11 @@ export function addDays(isoDate: string, days: number): string {
   return utcToIso(date);
 }
 
-/** Whether a New York calendar date fell on a weekday. */
+/** Whether the market was open on a New York calendar date at all. */
 export function isTradingDay(isoDate: string): boolean {
   const day = isoToUtcNoon(isoDate).getUTCDay();
-  return day !== 0 && day !== 6;
+  if (day === 0 || day === 6) return false;
+  return !isMarketHoliday(isoDate);
 }
 
 /** The trading day before the given date. */
@@ -318,8 +438,23 @@ export function previousTradingDay(isoDate: string): string {
   const date = isoToUtcNoon(isoDate);
   do {
     date.setUTCDate(date.getUTCDate() - 1);
-  } while (date.getUTCDay() === 0 || date.getUTCDay() === 6);
+  } while (!isTradingDay(utcToIso(date)));
   return utcToIso(date);
+}
+
+/** The first day at or after the given one that the market is open. */
+export function nextSessionOnOrAfter(isoDate: string): string {
+  const date = isoToUtcNoon(isoDate);
+
+  // Bounded, so a corrupt date cannot spin here for ever. Nothing shuts the
+  // exchange for a fortnight.
+  for (let guard = 0; guard < 14; guard++) {
+    const day = utcToIso(date);
+    if (isTradingDay(day)) return day;
+    date.setUTCDate(date.getUTCDate() + 1);
+  }
+
+  return isoDate;
 }
 
 /**
@@ -338,12 +473,40 @@ export function previousTradingDay(isoDate: string): string {
  * somebody who has shown up twice has not.
  */
 export function tradingDaysSoFarThisWeek(now = new Date()): number {
-  const { weekday } = nyParts(now);
-  const index = WEEKDAY_INDEX[weekday] ?? 1;
+  const monday = cycleMonday(now);
+  const today = nyDate(now);
 
-  // Saturday and Sunday sit after a finished week, not inside the next one.
-  if (index === 0 || index === 6) return 5;
-  return index;
+  /*
+    Counted rather than taken from the weekday, because a week with a holiday
+    in it is a shorter week. Somebody who showed up on the Tuesday of a week
+    whose Monday was Memorial Day has missed nothing, and a goal measured
+    against five days in a four day week is one nobody can meet.
+
+    On a Saturday or a Sunday the Monday of the week ahead is the one that
+    comes back, and the week just finished is over, so every one of its
+    trading days counts.
+  */
+  if (monday > today) {
+    let count = 0;
+    for (let day = 0; day < 5; day++) {
+      if (isTradingDay(addDays(previousWeekMonday(monday), day))) count++;
+    }
+    return count;
+  }
+
+  let count = 0;
+  for (let day = 0; day < 5; day++) {
+    const date = addDays(monday, day);
+    if (date > today) break;
+    if (isTradingDay(date)) count++;
+  }
+
+  return count;
+}
+
+/** The Monday before a Monday, for a weekend looking back at a finished week. */
+function previousWeekMonday(monday: string): string {
+  return addDays(monday, -7);
 }
 
 export function tradingDaysBetween(fromIso: string, toIso: string): number {
@@ -357,8 +520,7 @@ export function tradingDaysBetween(fromIso: string, toIso: string): number {
   for (let guard = 0; guard < 400; guard++) {
     cursor.setUTCDate(cursor.getUTCDate() + 1);
     if (cursor >= end) break;
-    const day = cursor.getUTCDay();
-    if (day !== 0 && day !== 6) count++;
+    if (isTradingDay(utcToIso(cursor))) count++;
   }
 
   return count;
@@ -434,6 +596,20 @@ const OPEN_PRICE_GRACE_MINUTES = 30;
 
 export function lineupReady(monday: string, now = new Date()): boolean {
   const today = nyDate(now);
-  if (today > monday) return true;
-  return today === monday && hasOpenedToday(now, OPEN_PRICE_GRACE_MINUTES);
+
+  /*
+    The first day the week actually trades, which is not always its Monday.
+
+    Memorial Day, Labor Day and Martin Luther King Jr Day are all Mondays, and
+    on one of those there is no opening price to fill at. This used to say the
+    fill was ready at 10:00 on the Monday regardless, so every order queued
+    for such a week was run against a session that did not exist and came back
+    as "we had no opening price for that morning" -- a lineup silently thrown
+    away on three weeks of the year, which is exactly the promise the feature
+    was built on.
+  */
+  const first = nextSessionOnOrAfter(monday);
+
+  if (today > first) return true;
+  return today === first && hasOpenedToday(now, OPEN_PRICE_GRACE_MINUTES);
 }

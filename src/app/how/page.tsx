@@ -239,8 +239,9 @@ export default function HowPage() {
           <Section title="7. What keeps going underneath">
             <p>
               A <strong>streak</strong> counts days you opened Arena and looked
-              at your week. It counts trading days only, so a weekend never
-              breaks one, and it has nothing to do with how well you did.
+              at your week. It counts days the market was open, so neither a
+              weekend nor a public holiday can break one, and it has nothing to
+              do with how well you did.
             </p>
             <p>
               Your <strong>own record</strong> is on your profile: every week
