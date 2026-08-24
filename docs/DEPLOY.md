@@ -297,6 +297,7 @@ npm run check      # types, lint, unit tests
 npm run test:db    # migrations, triggers, row level security
 npm run test:e2e   # signed-out flows
 npm run test:scale # every room's query, against a launch's worth of players
+npm run test:race  # the three places two people can arrive at once
 ```
 
 `test:scale` is the one that needs saying twice. Everything else here is

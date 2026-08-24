@@ -150,6 +150,49 @@ jobs:
 
       - run: ./scripts/scale-rehearsal.sh
 
+  # The three places two people arrive at once.
+  #
+  # Every other database test runs in one session, which is the one shape that
+  # cannot catch a claim that two servers can both win. This opens sixteen real
+  # connections, queues them all on an advisory lock, and lets go.
+  #
+  # It is checked against a mutation rather than trusted: replacing
+  # claim_cycle_for_scoring's conditional update with a read-then-write makes
+  # it fail with "15 of 16 claimed the week". The header says what it does not
+  # catch as well, which is worth reading before trusting a pass.
+  race:
+    name: Two people at once
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install the matching psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client-16
+
+      - run: ./scripts/race-rehearsal.sh
+
   # A published advisory in something Arena ships is the one class of bug
   # that arrives without anybody touching the code, so a scan that only runs
   # when somebody pushes is a scan that finds it late. This runs on every pull
