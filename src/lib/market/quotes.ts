@@ -82,6 +82,7 @@ type YahooQuote = {
   shortName?: string | null;
   longName?: string | null;
   quoteType?: string | null;
+  exchange?: string | null;
 };
 
 /*
@@ -103,6 +104,44 @@ const PRICEABLE_TYPES = new Set([
   "INDEX",
   "CRYPTOCURRENCY",
 ]);
+
+/**
+ * The money the game is played in.
+ *
+ * Everything about Arena is dollars: the hundred thousand everybody starts
+ * with, the benchmark, the market hours, every figure on every screen. Yahoo
+ * will happily quote a company from any exchange on earth in whatever it
+ * trades in, and until this existed a search for BMW offered BMW.DE, whose
+ * price is in euros. Buying it spent dollars at a euro price and valued the
+ * position in euros as though they were dollars, which is not a rounding
+ * error: it is a portfolio whose number means nothing, ranked against
+ * portfolios whose numbers mean something.
+ *
+ * Converting instead was considered and is the wrong trade. It would put a
+ * second moving number under every result, so a week could be won on the
+ * dollar rather than on the company, and it needs a rate feed nobody is
+ * asking for. The game is the American market. This is that sentence, in
+ * code.
+ */
+const TRADING_CURRENCY = "USD";
+
+/**
+ * Where a name has to be listed for this game to price it.
+ *
+ * A blocklist of the over-the-counter venues rather than a list of the ones
+ * that are allowed, so a legitimate venue nobody thought of still works. The
+ * OTC market has no listing standards: no minimum price, no reporting
+ * requirement, no exchange asking questions. It is where the shells are, it
+ * is thin enough that one buyer moves it, and it is where a leaderboard goes
+ * to die. HCMC, quoted at $0.0001 the day this was written, is one tick from
+ * doubling and would have been findable from the trade screen.
+ *
+ * OTCQX is in the blocklist too, which loses a handful of respectable foreign
+ * ADRs. They are a smaller loss than a tier-by-tier rule nobody can hold in
+ * their head, and every company worth owning in a week of American shares is
+ * listed on an American exchange.
+ */
+const OTC_EXCHANGES = new Set(["PNK", "OQX", "OQB", "OTC", "OTCBB", "PK"]);
 
 function toQuote(raw: YahooQuote, symbol: string): Quote | null {
   const { price, previousClose } = sessionMark({
@@ -136,6 +175,8 @@ function toQuote(raw: YahooQuote, symbol: string): Quote | null {
 function accept(raw: YahooQuote | null | undefined, symbol: string): Quote | null {
   if (!raw) return null;
   if (raw.quoteType && !PRICEABLE_TYPES.has(raw.quoteType.toUpperCase())) return null;
+  if (raw.currency && raw.currency.toUpperCase() !== TRADING_CURRENCY) return null;
+  if (raw.exchange && OTC_EXCHANGES.has(raw.exchange.toUpperCase())) return null;
   return toQuote(raw, symbol);
 }
 
@@ -358,6 +399,34 @@ export function isPriceable(quoteType: string | null | undefined): boolean {
  * its companies one by one does not search at all -- the trade screen offers
  * the list instead, which is both faster and impossible to be refused by.
  */
+/**
+ * The venues a search may offer, which is the American market and nothing
+ * else.
+ *
+ * An allowlist here, where the quote layer uses a blocklist, and the
+ * difference is deliberate. The quote layer answers "can this be priced at
+ * all", so an unknown venue should work. This answers "what do we put in
+ * front of somebody", and the rule that governs it is that nothing findable
+ * here may be refused two clicks later. Yahoo returns nine listings of the
+ * same German carmaker before it returns anything an American exchange has
+ * ever heard of, and every one of them would have been refused.
+ *
+ * Nasdaq's three tiers, the NYSE, NYSE American, NYSE Arca, Cboe, the code
+ * mutual funds come back under, and the one indices use. Read off real
+ * search results rather than guessed at.
+ */
+const US_EXCHANGES = new Set([
+  "NMS", // Nasdaq Global Select
+  "NGM", // Nasdaq Global Market
+  "NCM", // Nasdaq Capital Market
+  "NYQ", // New York Stock Exchange
+  "ASE", // NYSE American
+  "PCX", // NYSE Arca
+  "BTS", // Cboe BZX
+  "NAS", // where mutual funds come back
+  "SNP", // where the indices do
+]);
+
 export async function searchSymbols(
   query: string,
   types: readonly string[] = ["EQUITY", "ETF", "MUTUALFUND", "INDEX"]
@@ -387,6 +456,7 @@ export async function searchSymbols(
     return (result.quotes ?? [])
       .filter((q) => q.isYahooFinance !== false)
       .filter((q) => q.symbol && allowed.has((q.quoteType ?? "").toUpperCase()))
+      .filter((q) => US_EXCHANGES.has((q.exchange ?? "").toUpperCase()))
       .slice(0, 8)
       .map((q) => ({
         symbol: normaliseSymbol(q.symbol as string),

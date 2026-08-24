@@ -3,7 +3,7 @@ import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
 import { TrackView } from "@/components/TrackView";
 import { PAGE, PAGE_FRAME } from "@/lib/page-shell";
 import { MAX_LINEUP_ORDERS, STARTING_BALANCE } from "@/lib/game";
-import { FORMATS } from "@/lib/game/formats";
+import { FORMATS, MIN_SHARE_PRICE } from "@/lib/game/formats";
 import { LENGTHS } from "@/lib/game/lengths";
 import { MIN_WEEKS_TO_RANK } from "@/lib/game/seasons";
 import { DAILY_CAP, QUIET_HOURS } from "@/lib/notify/timing";
@@ -83,6 +83,13 @@ export default function HowPage() {
             <p>
               Whole shares only, no borrowing, no leverage. Cash earns nothing,
               so sitting on it is a decision rather than a safe place to hide.
+            </p>
+            <p>
+              You buy companies and funds listed on the American exchanges, in
+              dollars, at {formatMoney(MIN_SHARE_PRICE)} a share or more.
+              Anything cheaper is quoted in fractions of a penny, where one
+              tick is a double and a week is won by nobody in particular, so
+              Arena will not buy it.
             </p>
           </Section>
 

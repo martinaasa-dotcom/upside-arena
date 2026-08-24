@@ -4,7 +4,15 @@ import { MAX_LINEUP_ORDERS } from "@/lib/game";
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSessionOpen } from "@/lib/market/benchmark";
-import { getQuotes, normaliseSymbol, type Quote } from "@/lib/market/quotes";
+import { getQuote, getQuotes, normaliseSymbol, type Quote } from "@/lib/market/quotes";
+import {
+  belowPriceFloor,
+  DEFAULT_FORMAT,
+  formatById,
+  MIN_SHARE_PRICE,
+  priceFloorRefusal,
+} from "@/lib/game/formats";
+import { formatMoney } from "@/lib/format";
 import {
   hasOpenedToday,
   lineupLocked,
@@ -167,6 +175,26 @@ export async function queueOrder(
 
   if (!Number.isInteger(quantity) || quantity <= 0) {
     return { ok: false, error: "Enter a whole number of shares." };
+  }
+
+  /*
+    Too cheap to be a result, told on the Saturday rather than on the Monday.
+
+    The fill checks this again against the opening price, and that is the
+    check that counts: a name at $1.04 on Sunday can open at 96 cents. This
+    one exists so that the ordinary case, somebody typing in a sub-penny
+    ticker to see what happens, is answered while they are still looking at
+    the screen instead of two days later in a line of small print.
+
+    A price we cannot read is not a refusal. The lineup already handles a name
+    it has no opening price for, and refusing to queue something because Yahoo
+    was briefly down would be a worse failure than filling it.
+  */
+  // The lineup is the house week, and the house week is the open market.
+  const house = formatById(DEFAULT_FORMAT);
+  const quote = await getQuote(clean);
+  if (quote && belowPriceFloor(house, quote.price)) {
+    return { ok: false, error: priceFloorRefusal(clean, quote.price) };
   }
 
   /*
@@ -348,10 +376,43 @@ export async function fillLineup(
     symbols.map(async (symbol) => [symbol, await getSessionOpen(symbol, cycle.monday)] as const)
   );
 
+  const format = formatById(cycle.format);
   const prices: Record<string, number> = {};
+  const tooCheap: string[] = [];
+
   for (const [symbol, open] of opens) {
-    if (open != null && open > 0) prices[symbol] = open;
+    if (open == null || open <= 0) continue;
+    if (belowPriceFloor(format, open)) tooCheap.push(symbol);
+    else prices[symbol] = open;
   }
+
+  /*
+    Anything that opened under the floor, closed off before the fill runs
+    rather than left to it.
+
+    The database is handed prices and fills what it is given, so a name left
+    out of that map would come back as "we had no opening price", which is a
+    sentence about Yahoo being down. This one was priced perfectly well and
+    refused on a rule, and being told the rule is the difference between a
+    player who knows what happened and a player who thinks Arena is broken.
+  */
+  if (tooCheap.length > 0) {
+    await admin
+      .from("lineup_orders")
+      .update({
+        ran_at: new Date().toISOString(),
+        outcome: "refused",
+        detail: `Arena does not buy shares under ${formatMoney(MIN_SHARE_PRICE)}, and that is where this one opened.`,
+      })
+      .eq("user_id", userId)
+      .eq("monday", cycle.monday)
+      .is("ran_at", null)
+      .in("symbol", tooCheap);
+  }
+
+  const refused = tooCheap.length;
+
+  if (Object.keys(prices).length === 0) return { filled: 0, missed: refused };
 
   const { data, error } = await admin.rpc("fill_lineup", {
     p_user_id: userId,
@@ -361,13 +422,13 @@ export async function fillLineup(
     p_today: nyDate(now),
   });
 
-  if (error) return nothing;
+  if (error) return { filled: 0, missed: refused };
 
   const rows = (data ?? []) as unknown as LineupOrderRow[];
 
   return {
     filled: rows.filter((row) => row.outcome === "filled").length,
-    missed: rows.filter((row) => row.outcome !== "filled").length,
+    missed: rows.filter((row) => row.outcome !== "filled").length + refused,
   };
 }
 
