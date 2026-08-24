@@ -204,6 +204,52 @@ export async function getClosingPrices(
   return out;
 }
 
+/**
+ * The biggest term a real split has once the fraction is reduced.
+ *
+ * Every genuine split is a small whole ratio: 2 for 1, 3 for 2, 10 for 1,
+ * 1 for 8. Yahoo's split feed also carries **spinoff adjustment factors**,
+ * which are not splits and do not look like them. GE reports three events on
+ * that feed: a real 1 for 8 reverse in August 2021, and then `1281:1000` in
+ * January 2023 and `1253:1000` in April 2024, which are the GE HealthCare and
+ * Vernova spinoffs.
+ *
+ * A spinoff leaves the share count alone. It restates the historical price
+ * series, and the holder keeps the shares they had plus shares in a new
+ * company that Arena does not model at all. Applying 1281:1000 as a split
+ * would hand every holder 28% more shares at the current price, which is a
+ * position worth 28% more than it is, settled and printed on a leaderboard.
+ *
+ * 50 admits every split anybody actually does and rejects a ratio in
+ * thousandths, which is what an adjustment factor is. Upside Lab's
+ * `corporate-actions.ts` draws the line in the same place and found it first.
+ */
+const MAX_SPLIT_TERM = 50;
+
+function greatestCommonDivisor(a: number, b: number): number {
+  let x = Math.abs(Math.round(a));
+  let y = Math.abs(Math.round(b));
+  while (y > 0) {
+    const next = x % y;
+    x = y;
+    y = next;
+  }
+  return x || 1;
+}
+
+/** Whether a ratio is a split rather than an adjustment factor. */
+function isRealSplit(numerator: number, denominator: number): boolean {
+  if (!Number.isFinite(numerator) || !Number.isFinite(denominator)) return false;
+  if (!(numerator > 0) || !(denominator > 0)) return false;
+  if (numerator === denominator) return false;
+
+  // Whole numbers, or it is not a share count anybody could hold.
+  if (!Number.isInteger(numerator) || !Number.isInteger(denominator)) return false;
+
+  const divisor = greatestCommonDivisor(numerator, denominator);
+  return numerator / divisor <= MAX_SPLIT_TERM && denominator / divisor <= MAX_SPLIT_TERM;
+}
+
 export type SplitEvent = {
   symbol: string;
   /** The market open at which the new share count is the real one. */
@@ -258,10 +304,7 @@ export async function getSplits(
       .filter(
         (split) =>
           split.date instanceof Date &&
-          Number.isFinite(split.numerator) &&
-          Number.isFinite(split.denominator) &&
-          (split.numerator as number) > 0 &&
-          (split.denominator as number) > 0
+          isRealSplit(split.numerator as number, split.denominator as number)
       )
       .map((split) => ({
         symbol: symbol.toUpperCase(),
