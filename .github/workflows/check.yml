@@ -103,6 +103,12 @@ jobs:
 
       - run: ./scripts/test-db.sh
 
+      # And the thing that answers "is production behind?", checked against two
+      # databases whose state is known exactly. It got three answers wrong
+      # while it was being written, one of which read the migration that stops
+      # settlement as nothing to do.
+      - run: ./scripts/test-migration-state.sh
+
   # Every room, measured against a launch's worth of players.
   #
   # Everything about how these queries read has only ever been judged against
