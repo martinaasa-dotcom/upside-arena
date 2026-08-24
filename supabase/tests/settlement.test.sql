@@ -221,8 +221,17 @@ end $$;
 insert into auth.users (id, email) values
   ('99990000-0000-0000-0000-000000000001', 'unpriced@example.com');
 
+--
+-- The Monday is written out, like every other one in this file, and that is
+-- the point. It used to be `current_date - 7`, which is the same date as the
+-- fixture week above on exactly one day of the year: 24 August 2026, when the
+-- whole suite went red on a duplicate house week and said nothing about
+-- settlement at all. A suite that mixes a relative date with hardcoded ones
+-- has an appointment with itself, so this one keeps its own Monday, months
+-- clear of the others. Nothing here reads the calendar: score_cycle is handed
+-- the prices and does not care when the week was.
 insert into public.weekly_cycles (id, monday, status, starting_balance, benchmark_open)
-values ('99990000-0000-0000-0000-00000000cccc', current_date - 7, 'open', 100000, 100);
+values ('99990000-0000-0000-0000-00000000cccc', '2026-06-08', 'open', 100000, 100);
 
 select public.ensure_portfolio(
   '99990000-0000-0000-0000-000000000001', '99990000-0000-0000-0000-00000000cccc');
