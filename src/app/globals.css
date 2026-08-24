@@ -901,6 +901,40 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    /*
+      The delays go too, and leaving them out was a real bug rather than an
+      oversight in principle.
+
+      `.rise` is `both`, so it holds the first frame of its keyframes until it
+      starts, and the first frame is `opacity: 0`. The stagger on the hero
+      runs to 0.26s. So somebody who had asked for less motion still watched a
+      blank hero for a quarter of a second and then had the whole thing appear
+      at once, which is the one thing that setting is asking not to happen.
+
+      It is also why Chrome reported no Largest Contentful Paint for the
+      landing page at all: an element whose first paint is transparent is
+      never recorded as a candidate, and it is not gone back over when it
+      becomes visible. With the delay gone the hero is drawn when the page is,
+      and the measurement exists again. See scripts/vitals.mjs.
+    */
+    animation-delay: 0s !important;
+    transition-delay: 0s !important;
+    /*
+      And the fill goes with them. `both` is what holds an element in its
+      first keyframe before the animation starts and its last one after, and
+      the first keyframe of every arrival in this file is `opacity: 0`. With
+      the duration cut to a hundredth of a millisecond that state lasts less
+      than a frame, but it is still what the element is when the browser first
+      paints it, which is enough for Chrome to refuse it as a candidate for
+      Largest Contentful Paint and enough, on a slow first frame, to be a
+      flash of nothing.
+
+      The duration stays at 0.01ms rather than going to `none` on purpose:
+      that is the shape of this rule everywhere it is recommended, and it is
+      what keeps an `animationend` listener firing for anything that grows one
+      later.
+    */
+    animation-fill-mode: none !important;
     scroll-behavior: auto !important;
   }
 }
