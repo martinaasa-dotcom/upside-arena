@@ -32,6 +32,21 @@ function who(request: NextRequest): string | null {
   );
 }
 
+/*
+  The form's target, rebuilt from the two parameters that mean anything rather
+  than echoed back.
+
+  `request.nextUrl.search` is whatever was in the address bar, and only `u`
+  and `s` of it are ever checked. Writing the rest of it back into the page
+  would put a stranger's text inside our own HTML on our own origin, which is
+  a cross-site scripting hole with a valid signature attached to it. So the
+  action is built from the two values, encoded, and nothing else survives.
+*/
+function actionFor(userId: string, signature: string): string {
+  const params = new URLSearchParams({ u: userId, s: signature });
+  return `/api/unsubscribe?${params.toString()}`;
+}
+
 /** Plain, self-contained and tiny: this is read in a browser tab with no app around it. */
 function page(title: string, body: string, action?: string): NextResponse {
   const form = action
@@ -70,7 +85,7 @@ export async function GET(request: NextRequest) {
   return page(
     "Turn Arena's emails off?",
     "You will still be able to sign in, and nothing about your weeks changes. Notifications in the browser are separate and stay as they are.",
-    `${request.nextUrl.pathname}${request.nextUrl.search}`
+    actionFor(userId, request.nextUrl.searchParams.get("s") ?? "")
   );
 }
 

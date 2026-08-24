@@ -101,7 +101,7 @@ describe("what the endpoint does with it", () => {
 
     expect(get).not.toContain("saveNotificationSettings");
     // It offers the button instead, which posts back to the same link.
-    expect(get).toContain("request.nextUrl.pathname");
+    expect(get).toContain("actionFor(");
     expect(route).toContain('<form method="post"');
   });
 
@@ -110,6 +110,16 @@ describe("what the endpoint does with it", () => {
     expect(post).toContain("saveNotificationSettings(userId, { email: false })");
     // Browser notifications are a different channel and a different consent.
     expect(post).not.toContain("push: false");
+  });
+
+  it("builds the form's target rather than echoing the address bar", () => {
+    /*
+      Only `u` and `s` are ever checked, so anything else in the query string
+      is a stranger's text. Written back into the page it would be their HTML
+      on our origin, with a valid signature attached to it.
+    */
+    expect(route).toContain("new URLSearchParams({ u: userId, s: signature })");
+    expect(route).not.toContain("request.nextUrl.search}`");
   });
 
   it("says so when the save did not happen", () => {
