@@ -14,6 +14,10 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Monday morning, for the one check here that can go red without anybody
+  # having changed anything: a new advisory against something already shipped.
+  schedule:
+    - cron: "0 6 * * 1"
   workflow_dispatch:
 
 # A new push to a branch makes the run in progress pointless.
@@ -98,6 +102,31 @@ jobs:
           sudo apt-get install -y --no-install-recommends postgresql-client-16
 
       - run: ./scripts/test-db.sh
+
+  # A published advisory in something Arena ships is the one class of bug
+  # that arrives without anybody touching the code, so a scan that only runs
+  # when somebody pushes is a scan that finds it late. This runs on every pull
+  # request and on the weekly schedule below.
+  #
+  # Production dependencies only, and only a high or critical advisory stops a
+  # merge. A dev-only or moderate finding is worth reading and is not worth
+  # blocking on, which is the difference between a check people act on and one
+  # they learn to re-run until it passes. Upside Lab's is the same job for the
+  # same reasons. Clean as of 2026-08-24: 0 vulnerabilities, dev included.
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
 
   # A backup nobody has ever restored is a belief rather than a backup.
   #
