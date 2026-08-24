@@ -260,9 +260,30 @@ async function settleCycle(input: WeeklyCycleRow): Promise<SettlementResult> {
       Now it is forty rows whatever the week holds, and it no longer depends
       on a project setting at all.
     */
-    const { data: held } = await admin.rpc("symbols_in_cycle", {
+    const { data: held, error: heldError } = await admin.rpc("symbols_in_cycle", {
       p_cycle_id: cycle.id,
     });
+
+    /*
+      A failure here is not an empty week, and treating it as one is how a
+      missing migration turns into a mystery.
+
+      Without 0030 this call answers "function does not exist", and the old
+      code would have shrugged that off as a week holding nothing, priced
+      nothing, and handed score_cycle an empty map -- which then raises about
+      every company anybody owns. What the log says is 'no closing price for
+      AAPL' on a day AAPL priced perfectly well, and what is actually wrong is
+      a migration nobody applied. So the week is put back with the real
+      reason, which is also what /api/health will be reporting on.
+    */
+    if (heldError) {
+      await admin.rpc("release_cycle_claim", { p_cycle_id: cycle.id });
+      return {
+        ...base,
+        status: "no-prices",
+        detail: `could not read what the week is holding: ${heldError.message}`,
+      };
+    }
 
     const symbols = [
       ...new Set(((held ?? []) as { symbol: string }[]).map((h) => h.symbol)),

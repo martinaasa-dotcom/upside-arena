@@ -570,6 +570,11 @@ because the settler cannot learn which companies to price. The first two
 degrade quietly; the third does not, and `/api/health` says so within half a
 day.
 
+The settler names that case rather than guessing at it: a failed read of the
+week's holdings comes back as `could not read what the week is holding:
+function symbols_in_cycle does not exist`, not as a complaint about a company
+that priced perfectly well.
+
 `0015` is the other one worth applying promptly, for the older reason: without
 it a settlement handed an incomplete set of closing prices values the missing
 companies at zero and writes the result as final.
