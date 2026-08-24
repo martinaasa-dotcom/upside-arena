@@ -1,0 +1,60 @@
+name: Is it up
+
+# Nothing was watching.
+#
+# Arena settles weeks, records marks and sends messages from background work
+# that nobody is looking at, and the failure that matters most is the quiet
+# one: every page renders, nothing errors, and a finished week is never
+# scored. A person finds that out on Monday when their result is missing,
+# which is a fortnight of trust spent on a bug that took a day to notice.
+#
+# So: a scheduled ping at /api/health, which answers whether the game can be
+# read and written, whether there are prices, and whether a finished week is
+# still sitting unscored. A non-200 fails this job, and GitHub mails the
+# owner when a scheduled workflow fails, which is the whole alerting system
+# and costs nothing.
+
+on:
+  schedule:
+    # Every half hour. Often enough that an outage is found while it is still
+    # this morning's problem, rare enough to be free.
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+# One at a time. A run that is still going has not finished asking.
+concurrency:
+  group: health
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the app how it is
+        env:
+          SITE_URL: ${{ vars.SITE_URL || 'https://upsidearena.com' }}
+        run: |
+          body=$(mktemp)
+
+          # Two tries, thirty seconds apart. A single failed request is as
+          # likely to be a cold start or a deploy as an outage, and an alarm
+          # that cries wolf is an alarm nobody reads.
+          for attempt in 1 2; do
+            code=$(curl -sS --max-time 20 -o "$body" -w "%{http_code}" \
+              "$SITE_URL/api/health" || echo "000")
+
+            echo "attempt $attempt: HTTP $code"
+            cat "$body"
+            echo
+
+            if [ "$code" = "200" ]; then
+              exit 0
+            fi
+
+            if [ "$attempt" = "1" ]; then
+              sleep 30
+            fi
+          done
+
+          echo "::error::$SITE_URL/api/health did not answer 200. See the body above."
+          exit 1

@@ -24,11 +24,14 @@ export type AnalyticsEvent =
   // Getting in
   | "signin_viewed"
   | "age_gate_blocked"
-  | "signin_link_requested"
-  /* The address was one edit from a common domain and the person was asked. */
-  | "signin_email_questioned"
-  /* The address could not receive mail, so nothing was sent. */
-  | "signin_email_refused"
+  /*
+    There were three more here, all of them about a mailed sign-in link: one
+    requested, one where the address was a keystroke from a common domain and
+    the person was asked, and one where the address could not receive mail at
+    all. They went when Google became the only way in, and they went from here
+    too, because an event nothing can fire is a row in a chart that will always
+    read zero and a reader who cannot tell that from nobody trying.
+  */
   | "signin_google_started"
   | "signin_completed"
   | "onboarding_viewed"
