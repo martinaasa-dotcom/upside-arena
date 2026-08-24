@@ -6,9 +6,10 @@ import { Scoreboard, Score } from "@/components/Scoreboard";
 import { getSession } from "@/lib/profile";
 import { isAdmin } from "@/lib/env";
 import { getMetrics } from "@/lib/metrics";
+import { recentErrors } from "@/lib/errors";
 import { percentOf } from "@/lib/metrics/ratio";
 import { PAGE, STACK } from "@/lib/page-shell";
-import { plural } from "@/lib/format";
+import { formatDate, plural } from "@/lib/format";
 
 /*
   The four numbers the loop is tuned by, on one screen.
@@ -267,6 +268,10 @@ async function Counts() {
         </HairlineGrid>
       </Panel>
 
+      <Suspense fallback={null}>
+        <Broken />
+      </Suspense>
+
       <Panel title="What is not here">
         <p className="text-sm text-muted-foreground">
           Which buttons people press is measured separately, through the
@@ -276,5 +281,49 @@ async function Counts() {
         </p>
       </Panel>
     </>
+  );
+}
+
+/*
+  What broke, and how often.
+
+  Its own boundary, so a failure reading the failures cannot take the numbers
+  down with it, which would be a joke at the wrong moment.
+
+  Ordered by when it last happened rather than by how often, because a bug
+  that stopped a week ago matters less than one happening now, however many
+  times it used to.
+*/
+async function Broken() {
+  const errors = await recentErrors(12);
+
+  return (
+    <Panel
+      title="What broke"
+      description="Written down as it happens, in the app and in the browser. Nothing here records who it happened to."
+    >
+      {errors.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Nothing has failed. That is either good news or a reason to check
+          that this is wired up.
+        </p>
+      ) : (
+        <ul className="divide-y divide-border">
+          {errors.map((report) => (
+            <li key={report.fingerprint} className="flex flex-wrap gap-x-3 gap-y-1 py-3">
+              <span className="min-w-0 flex-1 text-sm">{report.message}</span>
+              <span className="figure text-sm text-muted-foreground">
+                {report.seen}
+              </span>
+              <span className="w-full text-xs text-muted-foreground">
+                {report.kind === "client" ? "In the browser" : "On the server"}
+                {report.at ? `, at ${report.at}` : ""}. Last seen{" "}
+                {formatDate(report.lastSeen)}.
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
   );
 }

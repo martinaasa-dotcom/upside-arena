@@ -100,6 +100,16 @@ export default function PrivacyPage() {
           shape rather than a single number.
         </li>
         <li>
+          <strong>What breaks.</strong> When a screen fails to draw, we record
+          the error message it produced and which page it was on, so we find
+          out about a broken screen without waiting for somebody to write in.
+          That record holds nothing about who it happened to: no name, no
+          address, no account, and the address of the page is stored without
+          anything after the question mark, so nothing you were looking at is
+          in it. Repeats of the same failure are counted rather than kept
+          separately.
+        </li>
+        <li>
           <strong>Notifications, only if you turn them on.</strong> If you allow
           notifications in your browser, we store the address your browser&rsquo;s
           push service gives us, the keys needed to encrypt a message to it, a

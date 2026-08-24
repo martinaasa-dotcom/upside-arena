@@ -441,6 +441,19 @@ export type SeasonStandingRow = {
   final_rank: number | null;
 };
 
+export type ErrorReportRow = {
+  /** md5 of what broke and where, so a repeat is a count rather than a row. */
+  fingerprint: string;
+  kind: "client" | "server";
+  message: string;
+  /** The route it happened on, without a query string. */
+  at: string | null;
+  digest: string | null;
+  seen: number;
+  first_seen: string;
+  last_seen: string;
+};
+
 type Table<Row> = {
   Row: Row;
   Insert: Partial<Row>;
@@ -459,6 +472,7 @@ export type Database = {
       lineup_orders: Table<LineupOrderRow>;
       symbol_splits: Table<SymbolSplitRow>;
       split_checks: Table<SplitCheckRow>;
+      error_reports: Table<ErrorReportRow>;
       pods: Table<PodRow>;
       pod_members: Table<PodMemberRow>;
       pod_tiers: Table<PodTierRow>;
@@ -558,6 +572,15 @@ export type Database = {
         itself whether the week in question is locked, which is what stops a
         caller naming the wrong week -- see 0021 for the one that did.
       */
+      record_error: {
+        Args: {
+          p_kind: "client" | "server";
+          p_message: string;
+          p_at?: string | null;
+          p_digest?: string | null;
+        };
+        Returns: ErrorReportRow;
+      };
       season_standings: {
         Args: {
           p_season_id: string;

@@ -6,6 +6,7 @@ import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
 import { Panel } from "@/components/Panel";
 import { Button } from "@/components/ui/button";
 import { PAGE, PAGE_FRAME } from "@/lib/page-shell";
+import { reportError } from "@/lib/report-error";
 
 /*
   When a screen cannot be drawn.
@@ -30,8 +31,12 @@ export default function ErrorBoundary({
   reset: () => void;
 }) {
   useEffect(() => {
-    // The server logs its own. This is the half that only the browser sees.
+    // The server logs its own. This is the half that only the browser sees,
+    // which is why it is also sent somewhere it can be counted: a console
+    // line is read by one person, with the console open, on the one machine
+    // it happened on.
     console.error("screen failed to render", error);
+    reportError(error);
   }, [error]);
 
   return (
