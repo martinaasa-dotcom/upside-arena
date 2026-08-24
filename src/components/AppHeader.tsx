@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { Suspense } from "react";
 
 import Link from "next/link";
@@ -22,20 +21,20 @@ const ROOM_TITLES: Record<string, string> = {
 
 /*
   Same chrome as Lab, left to right: mark and wordmark, hairline, current room
-  title, then Arena Plus and the account avatar. Glass over the field, 3.5rem
-  tall.
+  title, then Arena Plus. Glass over the field, 3.5rem tall.
 
-  Arena Plus lives here rather than in the dock because the dock is measured to
-  the pixel and a sixth room does not fit on a 320px screen; see BottomDock.
-  It was previously reachable from one button seven panels down the profile
-  page, which is not reachable at all in any sense a player would recognise.
-  The shop is the only room somebody arrives at wanting to spend money in, so
-  it is the one room that cannot be a scavenger hunt.
+  Arena Plus lives here rather than in the dock because the shop is the only
+  room somebody arrives at wanting to spend money in, so it is the one room
+  that cannot be a scavenger hunt. It was previously reachable from one button
+  seven panels down the profile page, which is not reachable at all in any
+  sense a player would recognise.
 
-  Everything here is the same for every player: the mark, the room title,
-  the link to the shop. Only the avatar is theirs, so only the avatar is
-  passed in, and the bar around it is part of the prerendered shell rather
-  than something that waits on a session to be read.
+  THE FACE IS NOT HERE ANY MORE. It is the last cell of the dock, which is
+  where a person's thumb already is and where every app they use keeps it.
+  Two pictures of the same player on one screen is one too many, and the one
+  that had to go is the one four inches from the thumb. `aria-label="Your
+  profile"` moved with it. Nothing here is personal now, so nothing here waits
+  on a session to be read.
 
   The bar pads itself by the top safe area rather than sitting at a flat
   top: 0. Arena runs as an installed app with a translucent status bar and
@@ -43,7 +42,7 @@ const ROOM_TITLES: Record<string, string> = {
   above the status bar. Without this the glass stops short of it and the page
   scrolls through the strip above the header.
 */
-export function AppHeader({ avatar }: { avatar: React.ReactNode }) {
+export function AppHeader() {
   return (
     <header className="glass-bar sticky top-0 z-40 border-b border-border pt-[env(safe-area-inset-top)]">
       <div className={`${PAGE} flex h-14 items-center gap-3`}>
@@ -69,14 +68,6 @@ export function AppHeader({ avatar }: { avatar: React.ReactNode }) {
           <Suspense fallback={<PlusLink onPlus={false} />}>
             <CurrentPlusLink />
           </Suspense>
-
-          <Link
-            href="/profile"
-            className="rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-            aria-label="Your profile"
-          >
-            {avatar}
-          </Link>
         </div>
       </div>
     </header>

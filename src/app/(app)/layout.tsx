@@ -19,8 +19,8 @@ import { PAGE_FRAME } from "@/lib/page-shell";
   Nothing in the frame, the header bar or the dock belongs to one player: they
   are the same markup for everybody, and they are what a room is recognisable
   as before any of its figures arrive. So they are the shell, and the two
-  things that really are personal -- the avatar and the theme -- stream into
-  it.
+  things that really are personal -- the face in the dock and the theme --
+  stream into it.
 
   This matters most where it is least visible. Moving between rooms was
   already instant, because the layout stays mounted and each room's
@@ -35,20 +35,25 @@ export default function AppLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className={PAGE_FRAME}>
-      <AppHeader
-        avatar={
-          <Suspense fallback={<AvatarPending />}>
-            <PlayerAvatar />
-          </Suspense>
-        }
-      />
+      <AppHeader />
 
       {/* Bottom padding clears the dock. */}
       <main id="main" className="pt-8 pb-32">
         {children}
       </main>
 
-      <BottomDock />
+      {/*
+        The face in the last cell of the dock is the one personal thing in the
+        chrome, so it is the one thing that streams into it. Everything else
+        down there is the same markup for everybody.
+      */}
+      <BottomDock
+        me={
+          <Suspense fallback={<AvatarPending />}>
+            <PlayerAvatar />
+          </Suspense>
+        }
+      />
 
       <Suspense fallback={null}>
         <PlayerChrome />
@@ -69,10 +74,19 @@ export default function AppLayout({
   );
 }
 
-/** The avatar's own outline, at its own size, so the bar does not reflow. */
+/*
+  The face, at the size the dock's cell is built around.
+
+  Round rather than the `Avatar` default, because it sits inside a
+  `rounded-full` cell under a `rounded-full` marker, and a rounded square
+  inside those reads as a photograph somebody pasted onto the bar.
+*/
+const FACE = "size-7 rounded-full text-xs";
+
+/** The face's own outline, at its own size, so the dock does not reflow. */
 function AvatarPending() {
   return (
-    <Avatar>
+    <Avatar className={FACE}>
       <AvatarFallback>
         <span className="sr-only">Loading your profile</span>
       </AvatarFallback>
@@ -85,7 +99,7 @@ async function PlayerAvatar() {
   const name = profile?.display_name ?? "Player";
 
   return (
-    <Avatar>
+    <Avatar className={FACE}>
       {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt="" /> : null}
       <AvatarFallback>{initials(name)}</AvatarFallback>
     </Avatar>

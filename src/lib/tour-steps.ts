@@ -52,8 +52,7 @@ export const ROOM_BLURB: Record<string, string> = {
   "/home": "What you own, what it is worth, what moved today, and where your week stands against the market.",
   "/trade": "Buy and sell. Real companies, real prices, whole shares, no borrowing.",
   "/leagues": "Your leagues, the tables, the invite codes, weekly goals, and battles.",
-  "/season": "The quarter's ranking, and how many weeks you still need to be placed in it.",
-  "/profile": "Every week you have played, your streak, what you have earned, and every switch.",
+  "/profile": "Every week you have played, your streak, what you have earned, the season table, and every switch.",
 };
 
 export const STEPS: Step[] = [
@@ -107,7 +106,7 @@ export const STEPS: Step[] = [
   {
     key: "Rooms",
     title: "Where everything is",
-    lede: "Five rooms, on the bar along the bottom of the screen. Nothing is hidden behind a menu. Only two things sit off that bar: your profile, which is also the picture in the top corner, and Plus beside it.",
+    lede: "Four things on the bar along the bottom, and the last one is your own face. Nothing is hidden behind a menu. Press and hold any of them and it tells you where it goes. The only room off the bar is Plus, in the top corner.",
     rows: ROOMS.map((room) => ({
       icon: room.icon,
       term: room.label,
