@@ -115,12 +115,16 @@ Vercel.
 Under Authentication, URL Configuration:
 
 - Site URL: `https://upsidearena.com`
-- Redirect URLs: `https://upsidearena.com/auth/confirm`,
-  `https://upsidearena.com/auth/callback`, and the same two on
+- Redirect URLs: `https://upsidearena.com/auth/callback`, and the same on
   `http://localhost:3000` for local work.
 
 Supabase refuses to redirect anywhere not on this list, which is what stops a
 sign-in being returned to somewhere it should not go.
+
+`/auth/confirm` used to be on that list and is not any more: it was the return
+leg of the magic link, which went when Google became the only way in. An entry
+left behind on the allow list does nothing, since nothing sends anybody there,
+but it is one fewer place a sign-in could be returned to.
 
 ## Settling the week, without paying for a scheduler
 

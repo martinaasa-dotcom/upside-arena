@@ -52,9 +52,9 @@ security mistake must not be able to reach the real-money product.
 2. Apply `supabase/migrations/0001_profiles.sql`, either with
    `npx supabase db push` against a linked project, or by pasting it into the
    SQL editor.
-3. In Authentication, add `http://localhost:3000/auth/confirm` and
-   `http://localhost:3000/auth/callback` to the redirect allow list.
-4. Email sign-in works immediately. For Google, set `GOOGLE_CLIENT_ID` and
+3. In Authentication, add `http://localhost:3000/auth/callback` to the
+   redirect allow list.
+4. Google is the only way in: set `GOOGLE_CLIENT_ID` and
    `GOOGLE_CLIENT_SECRET`; the button appears when both are present and not
    otherwise, so there is no flag to turn on.
 
