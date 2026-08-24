@@ -564,6 +564,11 @@ export type Database = {
           p_cycle_id: string;
           p_closing_prices: Json;
           p_benchmark_close: number;
+          /*
+            The companies the caller could not price, valued at what was paid
+            for them. Empty in the ordinary case. See 0026.
+          */
+          p_at_cost?: string[];
         };
         Returns: number;
       };

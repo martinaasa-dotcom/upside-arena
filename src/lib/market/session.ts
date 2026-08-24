@@ -193,6 +193,33 @@ export function beforeContestEnd(
   return allDay || nyMinutes(moment) < CLOSE_MINUTES;
 }
 
+/**
+ * How long ago a contest ended, in hours, from New York's clock.
+ *
+ * Negative before it ends. Used by settlement to tell a company that has
+ * stopped existing from an upstream hiccup: an hour after the close, a
+ * missing price is most likely Yahoo having a moment, and six hours after it
+ * the company is not coming back.
+ *
+ * allDay for the formats whose market never shuts, where the day ends at
+ * midnight rather than at the bell.
+ */
+export function hoursSinceContestEnd(
+  endsOn: string,
+  allDay = false,
+  now = new Date()
+): number {
+  const today = nyDate(now);
+  const days =
+    (Date.parse(`${today}T12:00:00Z`) - Date.parse(`${endsOn}T12:00:00Z`)) /
+    (24 * 60 * 60 * 1000);
+
+  if (!Number.isFinite(days)) return 0;
+
+  const endMinutes = allDay ? 24 * 60 : CLOSE_MINUTES;
+  return (days * 24 * 60 + nyMinutes(now) - endMinutes) / 60;
+}
+
 /** The New York calendar date, as YYYY-MM-DD. */
 export function nyDate(now = new Date()): string {
   const { year, month, day } = nyParts(now);

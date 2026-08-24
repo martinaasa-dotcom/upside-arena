@@ -296,3 +296,90 @@ select public.assert(
    where cycle_id = '99990000-0000-0000-0000-00000000cccc') = 0,
   'and with every price present the flat week scores as the flat week it was'
 );
+
+-- ---------------------------------------------------------------------------
+-- A company nobody can price must not stop the week for everybody else
+-- ---------------------------------------------------------------------------
+--
+-- The refusal above is right, and on its own it deadlocks. A company acquired
+-- on the Thursday has no closing price and never will again, so every pass
+-- raises, releases its claim and tries again forever: nobody in that week is
+-- scored, not just the player holding it. So the caller may name what it could
+-- not price, and those positions are worth what was paid for them, which is
+-- both a price Arena really saw and the figure every screen has been showing
+-- for that holding all week.
+
+insert into auth.users (id, email) values
+  ('99990000-0000-0000-0000-000000000002', 'gone@example.com');
+
+insert into public.weekly_cycles (id, monday, status, starting_balance, benchmark_open)
+values ('99990000-0000-0000-0000-00000000dddd', '2026-06-15', 'open', 100000, 100);
+
+select public.ensure_portfolio(
+  '99990000-0000-0000-0000-000000000002', '99990000-0000-0000-0000-00000000dddd');
+
+-- 10,000 of a company that still trades, and 5,000 of one that stops.
+select public.execute_trade(
+  '99990000-0000-0000-0000-000000000002', '99990000-0000-0000-0000-00000000dddd',
+  'AAPL', 'buy', 100, 100);
+select public.execute_trade(
+  '99990000-0000-0000-0000-000000000002', '99990000-0000-0000-0000-00000000dddd',
+  'GONE', 'buy', 100, 50);
+
+do $$
+begin
+  perform public.score_cycle(
+    '99990000-0000-0000-0000-00000000dddd', '{"AAPL": 110}'::jsonb, 110);
+  perform public.assert(false, 'a company that is neither priced nor named still stops the week');
+exception when others then
+  perform public.assert(
+    sqlerrm like '%no closing price for GONE%',
+    'a company that is neither priced nor named still stops the week'
+  );
+end;
+$$;
+
+select public.score_cycle(
+  '99990000-0000-0000-0000-00000000dddd', '{"AAPL": 110}'::jsonb, 110,
+  array['GONE']);
+
+-- 85,000 in cash, 11,000 of Apple at the close, and the 5,000 that went into
+-- the company nobody can price. One per cent, and not a wipeout.
+select public.assert(
+  (select final_value from public.portfolios
+   where cycle_id = '99990000-0000-0000-0000-00000000dddd') = 101000,
+  'a named company is worth what was paid for it, and the week is scored'
+);
+
+select public.assert(
+  (select status from public.weekly_cycles
+   where id = '99990000-0000-0000-0000-00000000dddd') = 'closed',
+  'and the week is closed rather than left for a pass that will never come'
+);
+
+-- Naming one is not permission to skip the others.
+insert into public.weekly_cycles (id, monday, status, starting_balance, benchmark_open)
+values ('99990000-0000-0000-0000-00000000eeee', '2026-06-22', 'open', 100000, 100);
+
+select public.ensure_portfolio(
+  '99990000-0000-0000-0000-000000000002', '99990000-0000-0000-0000-00000000eeee');
+
+select public.execute_trade(
+  '99990000-0000-0000-0000-000000000002', '99990000-0000-0000-0000-00000000eeee',
+  'GONE', 'buy', 100, 50);
+select public.execute_trade(
+  '99990000-0000-0000-0000-000000000002', '99990000-0000-0000-0000-00000000eeee',
+  'MSFT', 'buy', 100, 100);
+
+do $$
+begin
+  perform public.score_cycle(
+    '99990000-0000-0000-0000-00000000eeee', '{}'::jsonb, 110, array['GONE']);
+  perform public.assert(false, 'naming one company does not excuse the rest');
+exception when others then
+  perform public.assert(
+    sqlerrm like '%no closing price for MSFT%',
+    'naming one company does not excuse the rest'
+  );
+end;
+$$;
