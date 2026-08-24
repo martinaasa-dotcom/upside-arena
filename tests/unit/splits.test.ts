@@ -19,7 +19,7 @@ vi.mock("yahoo-finance2", () => ({
 }));
 
 const { getSplits } = await import("@/lib/market/benchmark");
-const { splitsInWindow } = await import("@/lib/game/splits");
+const { isRealSplitRatio, splitsInWindow } = await import("@/lib/game/splits");
 
 beforeEach(() => {
   chart.mockReset();
@@ -28,6 +28,52 @@ beforeEach(() => {
 function split(symbol: string, effectiveOn: string, numerator = 10, denominator = 1) {
   return { symbol, effectiveOn, numerator, denominator };
 }
+
+describe("a spinoff is not a split", () => {
+  /*
+    Checked against the live Yahoo feed. GE reports a real 1 for 8 reverse in
+    August 2021, then 1281:1000 and 1253:1000, which are the GE HealthCare and
+    Vernova spinoffs. A spinoff restates the price history and leaves the share
+    count alone, so applying one here would move every lineup holding that
+    company and, because this game holds whole shares only, pay the leftover
+    fraction out in cash. A leaderboard moved by an event that did not happen.
+  */
+  const GE_FEED = [
+    split("GE", "2021-08-02", 1, 8),
+    split("GE", "2023-01-04", 1281, 1000),
+    split("GE", "2024-04-02", 1253, 1000),
+  ];
+
+  it("knows an adjustment factor from a split", () => {
+    expect(isRealSplitRatio(1, 8)).toBe(true);
+    expect(isRealSplitRatio(1281, 1000)).toBe(false);
+    expect(isRealSplitRatio(1253, 1000)).toBe(false);
+  });
+
+  it("never lets one through the window a morning applies from", () => {
+    expect(splitsInWindow(GE_FEED, "2023-01-05", 4)).toEqual([]);
+    expect(splitsInWindow(GE_FEED, "2024-04-03", 4)).toEqual([]);
+    expect(splitsInWindow(GE_FEED, "2021-08-03", 4)).toEqual([GE_FEED[0]]);
+  });
+
+  it("takes every ratio a real split is written as", () => {
+    for (const [n, d] of [[2, 1], [3, 2], [5, 4], [10, 1], [20, 1], [1, 10], [1, 8]]) {
+      expect(isRealSplitRatio(n!, d!)).toBe(true);
+    }
+  });
+
+  it("reduces the fraction before judging it", () => {
+    expect(isRealSplitRatio(20, 10)).toBe(true);
+  });
+
+  it("refuses a ratio that is not whole shares, or moves nothing", () => {
+    expect(isRealSplitRatio(1.5, 1)).toBe(false);
+    expect(isRealSplitRatio(1, 1)).toBe(false);
+    expect(isRealSplitRatio(0, 1)).toBe(false);
+    expect(isRealSplitRatio(2, 0)).toBe(false);
+    expect(isRealSplitRatio(Number.NaN, 1)).toBe(false);
+  });
+});
 
 describe("which splits a morning is responsible for", () => {
   it("takes the ones that have happened inside the window", () => {
