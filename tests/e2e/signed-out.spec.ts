@@ -304,50 +304,87 @@ test.describe("landing", () => {
     await expect(footer.getByRole("link", { name: "Privacy" })).toBeVisible();
   });
 
-  test("says the page continues, and stops saying it once you scroll", async ({
+  test("says the page continues only when the page is not saying it", async ({
     page,
-  }, testInfo) => {
+  }) => {
     await page.goto("/");
 
     /*
-      A landing page that reads as finished at the fold is one nobody scrolls,
-      and the sections under the hero are most of what this page has to say.
-      The guard below is the other half of it: on a window the whole page fits
-      inside there is nothing down there and the cue must not claim otherwise,
-      because a hint pointing at nothing teaches a reader to ignore hints.
-    */
-    /*
-      Answer the measurement question first. Below `sm` it is a full-width
-      strip on the very line this cue takes, and two things cannot have it,
-      so the cue deliberately stands down until the question is gone. On a
-      phone's first visit the fold is doing the work on its own: the sample
-      league is cut in half by it.
+      A landing page that reads as finished at the fold is one nobody
+      scrolls, and the sections under the hero are most of what this page
+      has to say. But the page has three ways of ending a first screen and
+      only one of them wants words, so what this walks is which one the
+      window it is running in actually produced.
+
+      1. The sample card is cut by the fold. That is the loudest
+         continuation cue there is and it is what a phone always gets.
+      2. The next section has reached the screen, which is what the hero's
+         own height floor arranges on a tall display.
+      3. Neither, and the first screen ends clean. That is the one case the
+         cue exists for.
+
+      The old version of this asserted the cue was visible on any page that
+      scrolled at all, which is precisely the behaviour that put a floating
+      pill over a card already hanging off the bottom of every phone.
     */
     const noThanks = page.getByRole("button", { name: "No thanks" });
     if (await noThanks.isVisible()) await noThanks.click();
 
     const cue = page.getByRole("button", { name: /More below/ });
-    const scrollable = await page.evaluate(() => {
+
+    const first = await page.evaluate(() => {
       const doc = document.scrollingElement!;
-      return doc.scrollHeight - doc.clientHeight > 240;
+      const vh = window.innerHeight;
+      const still = document.querySelector("[data-scroll-cue-still]")!;
+      const hero = document.querySelector("main > section")!;
+      const next = hero.nextElementSibling!.firstElementChild!;
+      return {
+        scrolls: doc.scrollHeight - doc.clientHeight > 240,
+        cardCut: still.getBoundingClientRect().bottom > vh,
+        nextReached: next.getBoundingClientRect().top < vh,
+        vh,
+      };
     });
 
-    if (!scrollable) {
+    if (!first.scrolls || first.cardCut || first.nextReached) {
       await expect(cue).toBeHidden();
       return;
     }
 
     await expect(cue).toBeVisible();
 
-    // In view at the fold, which is the one moment it is any use. The old
-    // version of this hint on Upside Lab was laid out under the last card,
-    // so it was off screen exactly when it was needed.
-    const box = (await cue.boundingBox())!;
-    expect(box.y).toBeGreaterThan(testInfo.project.use.viewport!.height * 0.6);
-    expect(box.y + box.height).toBeLessThanOrEqual(
-      testInfo.project.use.viewport!.height
-    );
+    /*
+      In the band at the bottom of the first screen, which is the one moment
+      it is any use, and clear of the card above it. The old chevron on
+      Upside Lab was laid out under the card, which is to say off screen at
+      exactly the moment the hint was needed.
+    */
+    const placed = await page.evaluate(() => {
+      const btn = [...document.querySelectorAll("button")].find((b) =>
+        /More below/.test(b.textContent ?? "")
+      )!;
+      const box = btn.getBoundingClientRect();
+      const card = document
+        .querySelector("[data-scroll-cue-still]")!
+        .getBoundingClientRect();
+      return {
+        top: box.top,
+        bottom: box.bottom,
+        clearOfCard: box.top - card.bottom,
+        // Nothing about it may be pinned to the window, and nothing about
+        // it may filter its backdrop. Both together were what made the page
+        // repaint its bottom band on every frame of a scroll.
+        position: getComputedStyle(btn.parentElement!).position,
+        backdrop: getComputedStyle(btn).backdropFilter,
+      };
+    });
+    expect(placed.position).toBe("absolute");
+    expect(placed.backdrop === "none" || placed.backdrop === "").toBe(true);
+    expect(placed.top).toBeGreaterThan(first.vh * 0.6);
+    expect(placed.bottom).toBeLessThanOrEqual(first.vh);
+    expect(placed.clearOfCard).toBeGreaterThanOrEqual(0);
 
+    // And it stops saying it the moment they act on it.
     await page.mouse.wheel(0, 400);
     await expect(cue).toBeHidden();
   });

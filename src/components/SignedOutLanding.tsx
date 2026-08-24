@@ -267,11 +267,14 @@ const SAMPLE_LEAGUE = [
  *
  * The card is deliberately allowed to run past the bottom of the window,
  * because a page whose content is visibly severed by the fold is one nobody
- * mistakes for finished. That cut only exists while the hero is taller than
- * the window, so on a window taller than it the height floor below keeps the
- * next section in view and `ScrollCue` says the same thing in words. An
- * arrow laid out under this card would be off screen at exactly the moment
- * the hint is needed, which is why that one is pinned to the window instead.
+ * mistakes for finished, and on every phone and most laptops that is what
+ * happens. On a taller window there is no cut, so the height floor below
+ * keeps the next section's heading in view instead. Between those two, on a
+ * window where the card clears the fold whole and nothing after it has
+ * started, `ScrollCue` says it in words. Which of the three a reader gets is
+ * measured on the real page rather than guessed at, and the cue is laid out
+ * inside this section so that it scrolls with the page rather than hovering
+ * over it.
  */
 function Hero({ signIn }: { signIn: ReactNode }) {
   return (
@@ -285,13 +288,17 @@ function Hero({ signIn }: { signIn: ReactNode }) {
       taller than this and the card is cut instead, which says the same thing
       more loudly.
 
-      9rem and not less, because `ScrollCue` fades the bottom 5rem of the
-      window into the field and a peek shorter than that would be faded out
-      by the thing meant to be pointing at it. `svh` rather than `dvh`, so a
-      phone that later retracts its address bar does not find the hero taller
-      than the window it was sized against.
+      9rem and not less, because what has to be in view is a heading rather
+      than a section's own top padding: 48px of that peek is the pad, which
+      leaves 96px of the heading showing. That is also what makes `ScrollCue`
+      stand down on a tall window, since the page is already saying it. `svh`
+      rather than `dvh`, so a phone that later retracts its address bar does
+      not find the hero taller than the window it was sized against.
+
+      `relative`, because the cue is laid out against the top of this
+      section, which is the top of the document.
     */
-    <section className="min-h-[calc(100svh-9rem)] px-6 pb-12 pt-[max(2.5rem,env(safe-area-inset-top))] sm:pb-16">
+    <section className="relative min-h-[calc(100svh-9rem)] px-6 pb-12 pt-[max(2.5rem,env(safe-area-inset-top))] sm:pb-16">
       <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col items-center text-center">
         <ArenaWordmark className="rise rise-1" size={38} />
 
@@ -321,9 +328,25 @@ function Hero({ signIn }: { signIn: ReactNode }) {
         <Consent className="rise rise-4 mt-5" />
       </div>
 
-      <div className="rise rise-4 mx-auto mt-14 w-full min-w-0 max-w-5xl sm:mt-16">
+      {/*
+        Marked, because `ScrollCue` measures this card against the fold. A
+        card the fold cuts needs no words under it, and a card that clears
+        the fold whole leaves nothing else on the screen saying the page
+        continues.
+      */}
+      <div
+        data-scroll-cue-still
+        className="rise rise-4 mx-auto mt-14 w-full min-w-0 max-w-5xl sm:mt-16"
+      >
         <FridayClose />
       </div>
+
+      {/*
+        In the page rather than over it: it draws in the band just above the
+        first fold and scrolls away with the hero. See ScrollCue.tsx for what
+        pinning it to the window cost.
+      */}
+      <ScrollCue />
     </section>
   );
 }
@@ -740,12 +763,6 @@ export function SignedOutLanding({
         <Closing signInAgain={signInAgain} />
       </main>
       <Footer />
-
-      {/*
-        Fixed to the window, so where it sits in the tree only decides what it
-        stacks against: under the measurement question, which is `z-50`.
-      */}
-      <ScrollCue />
     </div>
   );
 }
