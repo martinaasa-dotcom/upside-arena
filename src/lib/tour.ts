@@ -15,8 +15,13 @@ import type { Profile } from "@/lib/types";
   1 -- the first full walkthrough of the rooms (2026-08-23). Replaces a tour
       that did not exist: before it, everything Arena knew how to say about
       itself was on a signed-out page most players never opened.
+  2 -- the dock became four glyphs and a face (2026-08-24). Version 1 told
+      every player there were five rooms along the bottom, pointed at a
+      picture in the top corner that is no longer there, and named a Season
+      tab that has moved into Profile. Three sentences about the navigation
+      that are now wrong is exactly what this constant is for.
 */
-export const TOUR_VERSION = 1;
+export const TOUR_VERSION = 2;
 
 /**
  * Whether this player is owed the walkthrough.

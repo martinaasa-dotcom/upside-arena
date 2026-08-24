@@ -120,7 +120,7 @@ test.describe("a room arrives whole", () => {
   });
 
   /*
-    And the rest of the dock, each arriving from somewhere else.
+    And the rest of the rooms, each arriving from somewhere else.
 
     Every room reads the session, so a hole at that root shows up in all of
     them -- but each also reads things no other room does, and a hole in one
@@ -128,22 +128,45 @@ test.describe("a room arrives whole", () => {
     was written, which is the coverage that let a loading.tsx sit above all
     five while a test checked one directory at a time.
 
-    Driven from Home rather than from a fixed page, because a client
-    navigation only re-renders below the layout two routes share, and the dock
-    is how a player actually moves.
+    Driven by clicking a link rather than by loading the page, because a
+    client navigation only re-renders below the layout two routes share, and
+    a link is how a player actually moves. Each row says which page that
+    link is on.
   */
   const ROOMS = [
     // Each with a string that can only be on screen if the room's own data
-    // arrived with it, rather than after it.
-    ["/trade", "the portfolio and the lineup", "$"],
-    ["/leagues", "standings, pods and battles", "not in a league yet"],
-    ["/season", "the season table", "Season"],
-    ["/profile", "the wardrobe, the record and the cards", NAME],
+    // arrived with it, rather than after it, and the page a player is on
+    // when they go there.
+    { from: "/home", href: "/trade", reads: "the portfolio and the lineup", figure: "$" },
+    {
+      from: "/home",
+      href: "/leagues",
+      reads: "standings, pods and battles",
+      figure: "not in a league yet",
+    },
+    {
+      from: "/home",
+      href: "/profile",
+      reads: "the wardrobe, the record and the cards",
+      figure: NAME,
+    },
+    /*
+      Season is reached from Profile, not from the dock.
+
+      It left the bar because every figure in it was settled on a Friday and
+      has not been touched since, which is a record rather than a room, and
+      Profile is where the rest of a player's record lives. The room still
+      has to arrive whole, so it is still measured here; only the door
+      moved. Starting from Profile is the point rather than a detail -- if
+      that link ever stops being drawn, this fails, and a season table
+      nothing links to is a room nobody can open.
+    */
+    { from: "/profile", href: "/season", reads: "the season table", figure: "Season" },
   ] as const;
 
-  for (const [href, reads, FIGURE] of ROOMS) {
+  for (const { from, href, reads, figure: FIGURE } of ROOMS) {
     test(`${href} arrives whole too, and it reads ${reads}`, async ({ page }) => {
-      await page.goto("/home");
+      await page.goto(from);
       await page.waitForLoadState("networkidle");
 
       let firstFrame = "";

@@ -2,6 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 
 /*
+  Held empty for the whole file. Every other test here supplies
+  UNSUBSCRIBE_SECRET, which wins over this, so mocking it away costs those
+  nothing and gives the one test that needs it something it can rely on.
+*/
+vi.mock("@/lib/env", async () => ({
+  ...(await vi.importActual<typeof import("@/lib/env")>("@/lib/env")),
+  SUPABASE_SERVICE_ROLE_KEY: "",
+}));
+
+/*
   Turning the emails off from inside the email.
 
   The link used to go to /profile, which is behind a sign-in, so somebody who
@@ -76,8 +86,18 @@ describe("the link in the mail", () => {
     // An unset variable must never be the thing that opens something. With no
     // key, a forged link would let a stranger turn off a stranger's mail, so
     // there is no link and no header.
+    //
+    // The service role key is mocked rather than stubbed, and that is the
+    // whole reason this test is honest. `unsubscribe.ts` reads it through
+    // `@/lib/env`, which captures `process.env` once at import, so
+    // `vi.stubEnv` moves the variable and leaves the constant holding
+    // whatever the machine had when the module loaded. On a machine with a
+    // real key in its environment the "no key" case signed a link and the
+    // test failed; in CI, where the variable is unset, the constant was
+    // already empty and it passed for a reason that has nothing to do with
+    // the code. A test whose answer depends on what the machine happens to
+    // export is not testing anything.
     vi.stubEnv("UNSUBSCRIBE_SECRET", "");
-    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
     expect(unsubscribeUrlFor(ANA)).toBeNull();
     expect(userFromUnsubscribe(ANA, "anything")).toBeNull();
   });

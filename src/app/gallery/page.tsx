@@ -99,14 +99,14 @@ export default function GalleryPage() {
         everything. So they sit here instead, out of the inventory and still
         in front of the probe.
       */}
-      <AppHeader
-        avatar={
-          <Avatar>
+      <AppHeader />
+      <BottomDock
+        me={
+          <Avatar className="size-7 rounded-full text-xs">
             <AvatarFallback>UA</AvatarFallback>
           </Avatar>
         }
       />
-      <BottomDock />
 
       <h1>Gallery</h1>
 

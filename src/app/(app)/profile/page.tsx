@@ -31,6 +31,13 @@ import { PAGE, STACK } from "@/lib/page-shell";
 import { formatDate, initials, ordinal, plural } from "@/lib/format";
 import { signOut } from "@/app/auth/actions";
 
+/*
+  One season row, whether it is a settled quarter or the one you are in.
+  Both are links to the same table, so both are the same row.
+*/
+const SEASON_ROW =
+  "glass-well flex h-14 items-center gap-3 rounded-lg px-4 transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+
 export const metadata = { title: "Profile" };
 
 /*
@@ -181,18 +188,30 @@ async function Player({
         </Panel>
       ) : null}
 
-      {seasons.length > 0 ? (
-        <Panel
-          title="Your seasons"
-          description="A quarter of weeks at a time. A finished season keeps the place you finished in; a running one has none yet."
-        >
-          <div className="flex flex-col gap-2">
-            {seasons.map(({ season, rank, weeksPlayed }) => (
-              <Link
-                key={season.id}
-                href="/season"
-                className="glass-well flex h-14 items-center gap-3 rounded-lg px-4 transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-              >
+      {/*
+        This panel is always drawn, and that is not a style choice.
+
+        Season used to be a tab on the dock. It is not any more, because a
+        room whose every figure was settled on a Friday is a record rather
+        than a room, and this page is where the rest of a player's record
+        lives. That makes this the only way into the season table, so a
+        version of this panel that renders nothing until somebody has a
+        settled season is a room with no door: a new player could not reach
+        it at all, which is worse than the tab it replaced.
+
+        With nothing settled yet the row is still a row, still a link, and
+        still true. It says the quarter is running and that no weeks of it
+        have been counted, which is exactly what a person in their first
+        week wants to know.
+      */}
+      <Panel
+        title="Your seasons"
+        description="A quarter of weeks at a time. A finished season keeps the place you finished in; a running one has none yet."
+      >
+        <div className="flex flex-col gap-2">
+          {seasons.length > 0 ? (
+            seasons.map(({ season, rank, weeksPlayed }) => (
+              <Link key={season.id} href="/season" className={SEASON_ROW}>
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">
                   {season.name}
                 </span>
@@ -207,10 +226,22 @@ async function Player({
                       : "Running"}
                 </span>
               </Link>
-            ))}
-          </div>
-        </Panel>
-      ) : null}
+            ))
+          ) : (
+            <Link href="/season" className={SEASON_ROW}>
+              <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                This quarter
+              </span>
+              <span className="figure shrink-0 text-sm text-muted-foreground">
+                {plural(0, "week")}
+              </span>
+              <span className="figure w-20 shrink-0 text-right text-sm font-semibold">
+                Running
+              </span>
+            </Link>
+          )}
+        </div>
+      </Panel>
 
       <Panel
         title="How you look"
