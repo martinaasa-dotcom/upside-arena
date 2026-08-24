@@ -236,6 +236,35 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------------------
+-- symbols_in_open_weeks
+-- ---------------------------------------------------------------------------
+-- Which companies anybody currently holds, which is the list worth asking the
+-- provider about. A split in a company nobody owns changes nothing here.
+--
+-- A function rather than an embedded join from the application, because that
+-- join is two levels deep -- holdings to portfolios to weeks -- and the
+-- failure mode of getting it subtly wrong is an empty list, which looks
+-- exactly like a day on which nothing split.
+
+create or replace function public.symbols_in_open_weeks()
+returns table (symbol text)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select distinct h.symbol
+  from public.holdings h
+  join public.portfolios p on p.id = h.portfolio_id
+  join public.weekly_cycles c on c.id = p.cycle_id
+  where c.status = 'open'
+    and h.quantity > 0;
+$$;
+
+revoke all on function public.symbols_in_open_weeks() from public, anon, authenticated;
+grant execute on function public.symbols_in_open_weeks() to service_role;
+
 revoke all on function public.claim_split_check(date) from public, anon, authenticated;
 revoke all on function public.apply_split(text, date, numeric, numeric, numeric)
   from public, anon, authenticated;

@@ -80,16 +80,21 @@ export function splitsInWindow(
   );
 }
 
-/** Every company held in a week that is still running. */
+/**
+ * Every company held in a week that is still running.
+ *
+ * Asked as one function rather than as an embedded join, because the join is
+ * two levels deep and the failure mode of writing it slightly wrong is an
+ * empty list, which looks exactly like a day on which nothing split. A silent
+ * nothing is the worst possible answer from a check like this one.
+ */
 async function heldSymbols(): Promise<string[]> {
   const admin = createAdminClient();
+  const { data } = await admin.rpc("symbols_in_open_weeks");
 
-  const { data } = await admin
-    .from("holdings")
-    .select("symbol, portfolios!inner(weekly_cycles!inner(status))")
-    .eq("portfolios.weekly_cycles.status", "open");
-
-  return [...new Set(((data ?? []) as { symbol: string }[]).map((row) => row.symbol))];
+  return [
+    ...new Set(((data ?? []) as { symbol: string }[]).map((row) => row.symbol)),
+  ];
 }
 
 /**

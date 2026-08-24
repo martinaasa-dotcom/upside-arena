@@ -211,6 +211,29 @@ select public.assert(
 );
 
 -- ---------------------------------------------------------------------------
+-- What to ask the provider about
+-- ---------------------------------------------------------------------------
+-- Only companies somebody actually holds in a week that is still running. A
+-- split in a company nobody owns changes nothing here, and a week that is
+-- already scored is history.
+
+select public.assert(
+  (select array_agg(symbol order by symbol) from public.symbols_in_open_weeks())
+    = array['LATE', 'NVDA', 'ODDS'],
+  'the list is what is held in a week still running, and nothing else'
+);
+
+select public.assert(
+  not exists (select 1 from public.symbols_in_open_weeks() where symbol = 'TINY'),
+  'a position the reverse split turned into cash is off it, since nobody holds it'
+);
+
+select public.assert(
+  not exists (select 1 from public.symbols_in_open_weeks() where symbol = 'PAST'),
+  'a holding in a week that is already scored is not on it'
+);
+
+-- ---------------------------------------------------------------------------
 -- The day's claim
 -- ---------------------------------------------------------------------------
 -- One worker asks the provider what split today. Everybody else gets on with

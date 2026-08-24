@@ -590,6 +590,10 @@ export type Database = {
         };
         Returns: SeasonStandingRow[];
       };
+      symbols_in_open_weeks: {
+        Args: Record<never, never>;
+        Returns: { symbol: string }[];
+      };
       claim_split_check: {
         Args: { p_day: string };
         Returns: boolean;
