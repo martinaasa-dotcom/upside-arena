@@ -16,6 +16,7 @@ import { placeInPod } from "@/lib/game/pods";
 import { cycleMonday, isTradingOpen, nyDate } from "@/lib/market/session";
 import { hasDueCycle, settleDueCycles } from "@/lib/game/settle";
 import { needsMarkToday, recordDailyMarks } from "@/lib/game/marks";
+import { applyDueSplits } from "@/lib/game/splits";
 import { fillLineup, hasLineupToFill } from "@/lib/game/lineup";
 import { checkTrade, formatById } from "@/lib/game/formats";
 import { cycleCache, playerCache } from "@/lib/game/cache";
@@ -142,6 +143,24 @@ export const getCurrentCycle = cache(async (): Promise<Cycle | null> => {
     } catch {
       // The next request tries again. A failed settle must never turn into
       // a failed page.
+    }
+  });
+
+  /*
+    Share splits, which change a position without anybody trading it.
+
+    On the schedule this rides the trading day pass, and this is the backstop
+    for a day the pass did not run. It costs one claim attempt: the first
+    caller after the opening bell takes the day and looks, and everybody after
+    that is told it is taken and stops. Before the bell it does not even
+    claim.
+  */
+  after(async () => {
+    try {
+      await applyDueSplits();
+    } catch {
+      // Tomorrow's check finds it, and the ledger means finding it twice
+      // costs nothing. Never worth failing a page over.
     }
   });
 

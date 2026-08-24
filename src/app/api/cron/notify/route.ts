@@ -7,6 +7,7 @@ import {
   notifyWeekResults,
 } from "@/lib/notify/events";
 import { recordDailyMarks } from "@/lib/game/marks";
+import { applyDueSplits } from "@/lib/game/splits";
 
 /*
   The outside nudge that runs a notification pass.
@@ -49,7 +50,17 @@ function authorised(request: NextRequest) {
 }
 
 const JOBS = {
-  // First, so a mark is written before anything is sent about the day.
+  /*
+    Before everything, including the mark. A company that split this morning
+    is held in the wrong number of shares until this runs, and every figure
+    after it, the mark, the standings and the message saying somebody was
+    passed, would otherwise be built on that number.
+
+    It refuses by itself before the opening bell, because the price a
+    fraction of a share is paid out at has to be the post-split one.
+  */
+  splits: applyDueSplits,
+  // Then the mark, so it is written before anything is sent about the day.
   marks: recordDailyMarks,
   standings: notifyStandingChanges,
   week: notifyWeekResults,

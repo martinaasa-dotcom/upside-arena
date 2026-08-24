@@ -405,6 +405,27 @@ export type AccountEmailRow = {
   created_at: string;
 };
 
+export type SymbolSplitRow = {
+  symbol: string;
+  /** The market open at which the new share count is the real one. */
+  effective_on: string;
+  /** Ten for one is 10 and 1. One for ten, the reverse, is 1 and 10. */
+  numerator: string;
+  denominator: string;
+  /** What a share was worth after it, which is what a fraction was paid at. */
+  price: string;
+  holdings_adjusted: number;
+  /** Positions left alone because that portfolio had already traded it. */
+  holdings_skipped: number;
+  applied_at: string;
+};
+
+export type SplitCheckRow = {
+  /** The New York day whose check this claim is for. */
+  day: string;
+  claimed_at: string;
+};
+
 type Table<Row> = {
   Row: Row;
   Insert: Partial<Row>;
@@ -421,6 +442,8 @@ export type Database = {
       weekly_cycles: Table<WeeklyCycleRow>;
       weekly_goals: Table<WeeklyGoalRow>;
       lineup_orders: Table<LineupOrderRow>;
+      symbol_splits: Table<SymbolSplitRow>;
+      split_checks: Table<SplitCheckRow>;
       pods: Table<PodRow>;
       pod_members: Table<PodMemberRow>;
       pod_tiers: Table<PodTierRow>;
@@ -520,6 +543,20 @@ export type Database = {
         itself whether the week in question is locked, which is what stops a
         caller naming the wrong week -- see 0021 for the one that did.
       */
+      claim_split_check: {
+        Args: { p_day: string };
+        Returns: boolean;
+      };
+      apply_split: {
+        Args: {
+          p_symbol: string;
+          p_effective_on: string;
+          p_numerator: number;
+          p_denominator: number;
+          p_price: number;
+        };
+        Returns: SymbolSplitRow;
+      };
       queue_lineup_order: {
         Args: {
           p_user_id: string;

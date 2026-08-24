@@ -256,6 +256,13 @@ export default function HowPage() {
               placed in it.
             </p>
             <p>
+              When a company <strong>splits its shares</strong>, and they do,
+              your holding is adjusted the morning it happens: ten for one and
+              a hundred shares become a thousand at a tenth of the price, which
+              is the same money. Anything left over that is smaller than a
+              share is paid to you in cash, exactly as a broker would.
+            </p>
+            <p>
               Everything you can earn, titles and flair and themes, is worn next to
               your name and affects no score. Nothing in Arena can be bought
               that changes a result, and nothing ever will be.
