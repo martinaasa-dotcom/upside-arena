@@ -29,6 +29,13 @@ describe("what the health check asks", () => {
     expect(route).toContain('"cache-control": "no-store"');
   });
 
+  it("holds an answer briefly, because it is open to anybody", () => {
+    // Every fresh answer costs two queries and a quote. A status code
+    // twenty seconds old is the same status code.
+    expect(route).toContain("ANSWER_FOR_MS");
+    expect(route).toContain("lastAnswer");
+  });
+
   it("gives a stuck week longer than settling itself waits for a price", () => {
     // Settlement waits six hours before scoring around a company it cannot
     // price. An alarm inside that window would fire on a week that is doing

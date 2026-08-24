@@ -31,6 +31,42 @@ export const maxDuration = 10;
 const MAX_MESSAGE = 300;
 const MAX_BODY = 4_000;
 
+/*
+  How many reports one account may file in a minute.
+
+  A page can fail in a loop, and a person can hold a key down. Neither is
+  worth more than a handful of rows, and without a ceiling somebody signed in
+  could write an unbounded number of distinct fingerprints, which is the one
+  way this endpoint could cost anything. Held in memory rather than in the
+  database, because the point is to avoid the write.
+*/
+const PER_MINUTE = 10;
+const MINUTE = 60_000;
+
+const filed = new Map<string, { count: number; since: number }>();
+
+function withinLimit(userId: string, now = Date.now()): boolean {
+  const seen = filed.get(userId);
+
+  if (!seen || now - seen.since > MINUTE) {
+    filed.set(userId, { count: 1, since: now });
+
+    // The map is bounded by whoever has reported in the last minute, which is
+    // nobody on an ordinary day. Swept here rather than on a timer, so an idle
+    // process holds nothing.
+    if (filed.size > 500) {
+      for (const [key, entry] of filed) {
+        if (now - entry.since > MINUTE) filed.delete(key);
+      }
+    }
+
+    return true;
+  }
+
+  seen.count += 1;
+  return seen.count <= PER_MINUTE;
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const {
@@ -41,6 +77,15 @@ export async function POST(request: NextRequest) {
   // route that depends on something else having checked is a route that stops
   // being checked the day that something else moves.
   if (!user) return NextResponse.json({ ok: false }, { status: 401 });
+
+  /*
+    The one thing the id of whoever is signed in is used for, and it does not
+    leave this function: a key in a counter that is thrown away a minute
+    later. It is never passed to recordError and never written down.
+  */
+  if (!withinLimit(user.id)) {
+    return NextResponse.json({ ok: false }, { status: 429 });
+  }
 
   let body: unknown;
   try {

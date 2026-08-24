@@ -49,7 +49,21 @@ export const maxDuration = 15;
  */
 const SETTLEMENT_ALARM_HOURS = 12;
 
+/**
+ * How long an answer is reused.
+ *
+ * This is open to anybody, and every answer costs an indexed query, a second
+ * one and a quote. Twenty seconds is shorter than any sensible ping interval
+ * and long enough that pointing a thousand requests a second at it costs the
+ * database nothing at all. An uptime check reads a status code, and a status
+ * code twenty seconds old is the same status code.
+ */
+const ANSWER_FOR_MS = 20_000;
+
+let lastAnswer: { at: number; ok: boolean; body: Health } | null = null;
+
 type Check = { ok: boolean; detail?: string };
+type Health = { ok: boolean; checks: Record<string, Check> };
 
 async function database(): Promise<Check> {
   if (!canWriteGame) return { ok: false, detail: "not configured" };
@@ -109,19 +123,27 @@ async function settlement(): Promise<Check> {
   }
 }
 
+function answer(body: Health, ok: boolean) {
+  return NextResponse.json(body, {
+    // 503 rather than 200 with a sad word in it, so a ping that reads
+    // nothing but the status code still notices.
+    status: ok ? 200 : 503,
+    headers: { "cache-control": "no-store" },
+  });
+}
+
 export async function GET() {
+  const held = lastAnswer;
+  if (held && Date.now() - held.at < ANSWER_FOR_MS) {
+    return answer(held.body, held.ok);
+  }
+
   const [db, price, settle] = await Promise.all([database(), prices(), settlement()]);
 
   const checks = { database: db, prices: price, settlement: settle };
   const ok = Object.values(checks).every((check) => check.ok);
 
-  return NextResponse.json(
-    { ok, checks },
-    {
-      // 503 rather than 200 with a sad word in it, so a ping that reads
-      // nothing but the status code still notices.
-      status: ok ? 200 : 503,
-      headers: { "cache-control": "no-store" },
-    }
-  );
+  lastAnswer = { at: Date.now(), ok, body: { ok, checks } };
+
+  return answer({ ok, checks }, ok);
 }

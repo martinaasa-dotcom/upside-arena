@@ -56,10 +56,23 @@ describe("what the endpoint will write down", () => {
   });
 
   it("never writes down who it was", () => {
-    // The session is a gate, not a field. `user` is read to refuse a
-    // stranger and must not travel any further than that.
-    expect(route).not.toMatch(/user\.id/);
+    /*
+      The session is a gate, not a field. The id is allowed exactly one use,
+      as a key in the per-minute counter, and it must not reach the row: what
+      is written down is what broke, never who hit it.
+    */
     expect(route).toContain("The session is a gate, not a field");
+
+    const recording = route.slice(route.indexOf("await recordError("));
+    expect(recording).not.toMatch(/user\.id/);
+    expect(recording).not.toContain("user");
+  });
+
+  it("caps how many reports one account can file in a minute", () => {
+    // A page can fail in a loop and a person can hold a key down. Without a
+    // ceiling, one signed-in account could write unbounded rows.
+    expect(route).toContain("PER_MINUTE");
+    expect(route).toContain("status: 429");
   });
 
   it("caps what one report can be", () => {
