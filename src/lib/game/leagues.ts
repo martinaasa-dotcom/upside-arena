@@ -7,6 +7,7 @@ import { hasPlus } from "@/lib/billing/entitlements";
 import { MAX_LEAGUES_JOINED, MAX_LEAGUES_OWNED } from "@/lib/game";
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { readAll } from "@/lib/supabase/read-all";
 import { byResult, compareResults } from "@/lib/game/ranking";
 import { getQuotes } from "@/lib/market/quotes";
 import { BENCHMARK_SYMBOL } from "@/lib/game";
@@ -114,15 +115,24 @@ export async function getLeagues(userId: string): Promise<League[]> {
   const ids = (memberships ?? []).map((m) => m.league_id as string);
   if (ids.length === 0) return [];
 
-  const [{ data: leagues }, { data: everyone }] = await Promise.all([
+  /*
+    The counts come back counted.
+
+    This used to read every membership row of every league you belong to and
+    add them up here. At the Plus tier, which is thirty leagues of fifty, that
+    is 1,500 rows fetched to produce thirty integers -- and PostgREST answers
+    with at most db-max-rows, which a Supabase project is set to 1,000. Over
+    that it does not fail; it returns a shorter list, and a league would have
+    quietly shown fewer members than it has.
+  */
+  const [{ data: leagues }, { data: counted }] = await Promise.all([
     admin.from("leagues").select("*").in("id", ids),
-    admin.from("league_members").select("league_id").in("league_id", ids),
+    admin.rpc("league_member_counts", { p_league_ids: ids }),
   ]);
 
   const counts = new Map<string, number>();
-  for (const row of everyone ?? []) {
-    const id = row.league_id as string;
-    counts.set(id, (counts.get(id) ?? 0) + 1);
+  for (const row of (counted ?? []) as { league_id: string; members: number }[]) {
+    counts.set(row.league_id, row.members);
   }
 
   return ((leagues ?? []) as LeagueRow[])
@@ -202,21 +212,36 @@ export const getLeagueStandings = cache(async function getLeagueStandings(
 
   const portfolioIds = (portfolios ?? []).map((p) => p.id as string);
 
-  const [{ data: holdings }, { data: trades }] = await Promise.all([
+  /*
+    A page at a time, because a full league can hold more rows than one
+    response carries. Fifty members is the Plus ceiling and most formats put
+    no cap on how many companies one of them may hold, so this is the read
+    with no arithmetic bound on it. Short, it would quietly value somebody's
+    portfolio as cash.
+  */
+  const [holdings, { data: trades }] = await Promise.all([
     portfolioIds.length
-      ? admin
-          .from("holdings")
-          .select("portfolio_id, symbol, quantity")
-          .in("portfolio_id", portfolioIds)
-      : Promise.resolve({ data: [] as never[] }),
+      ? readAll<{ portfolio_id: string; symbol: string; quantity: string }>(() =>
+          admin
+            .from("holdings")
+            .select("portfolio_id, symbol, quantity")
+            .in("portfolio_id", portfolioIds)
+        )
+      : Promise.resolve([]),
+    /*
+      Whether each member has traded at all, which is a set of at most fifty
+      answers and used to be fetched as one row per trade. A player may place
+      MAX_TRADES_PER_CYCLE in a week, which is 500, so a full league could put
+      25,000 rows on the wire to answer it -- and PostgREST would have handed
+      back the first 1,000, leaving members who traded looking as though they
+      had not.
+    */
     portfolioIds.length
-      ? admin.from("trades").select("portfolio_id").in("portfolio_id", portfolioIds)
+      ? admin.rpc("portfolio_trade_counts", { p_portfolio_ids: portfolioIds })
       : Promise.resolve({ data: [] as never[] }),
   ]);
 
-  const symbols = [
-    ...new Set(((holdings ?? []) as { symbol: string }[]).map((h) => h.symbol)),
-  ];
+  const symbols = [...new Set(holdings.map((h) => h.symbol))];
 
   /*
     Prices, and every close already in the book for this room.
@@ -249,15 +274,13 @@ export const getLeagueStandings = cache(async function getLeagueStandings(
       : null;
 
   const tradedPortfolios = new Set(
-    ((trades ?? []) as { portfolio_id: string }[]).map((t) => t.portfolio_id)
+    ((trades ?? []) as { portfolio_id: string; trades: number }[])
+      .filter((row) => row.trades > 0)
+      .map((row) => row.portfolio_id)
   );
 
   const holdingsByPortfolio = new Map<string, { symbol: string; quantity: number }[]>();
-  for (const row of (holdings ?? []) as {
-    portfolio_id: string;
-    symbol: string;
-    quantity: string;
-  }[]) {
+  for (const row of holdings) {
     const list = holdingsByPortfolio.get(row.portfolio_id) ?? [];
     list.push({ symbol: row.symbol, quantity: num(row.quantity) });
     holdingsByPortfolio.set(row.portfolio_id, list);
@@ -520,21 +543,18 @@ export async function getLeaguePositions(
     starting_balance: string;
   }[];
 
-  const { data: holdings } = portfolioRows.length
-    ? await admin
-        .from("holdings")
-        .select("portfolio_id, symbol, quantity")
-        .in(
-          "portfolio_id",
-          portfolioRows.map((p) => p.id)
-        )
-    : { data: [] as never[] };
-
-  const holdingRows = (holdings ?? []) as {
-    portfolio_id: string;
-    symbol: string;
-    quantity: string;
-  }[];
+  // A page at a time, for the same reason as the room above.
+  const holdingRows = portfolioRows.length
+    ? await readAll<{ portfolio_id: string; symbol: string; quantity: string }>(() =>
+        admin
+          .from("holdings")
+          .select("portfolio_id, symbol, quantity")
+          .in(
+            "portfolio_id",
+            portfolioRows.map((p) => p.id)
+          )
+      )
+    : [];
 
   const quotes = await getQuotes([...new Set(holdingRows.map((h) => h.symbol))]);
 
