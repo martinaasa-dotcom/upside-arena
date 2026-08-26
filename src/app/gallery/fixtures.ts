@@ -6,6 +6,8 @@ import type { Quote } from "@/lib/market/quotes";
 import type { PodView } from "@/lib/game/pods";
 import type { Recap } from "@/lib/share/card";
 import type { Battle } from "@/lib/game/battles";
+import type { DraftSeat, DraftShell, DraftState } from "@/lib/game/draft";
+import type { DraftRow } from "@/lib/supabase/database.types";
 import type { LineupView } from "@/lib/game/lineup";
 import type { HeadToHead, Honour, PlayedWeek, RecordedWeek } from "@/lib/game/record";
 import type { MoversView } from "@/lib/market/movers";
@@ -474,6 +476,7 @@ export const battle: Battle = {
   isYours: true,
   timeLeft: "About 3 months left",
   notStarted: false,
+  drafted: false,
 };
 
 /*
@@ -680,3 +683,122 @@ export const playedWeeks: PlayedWeek[] = [
   { cycleId: "p3", monday: "2026-08-03", returnPercent: 0.0, versusMarket: null, finalValue: 100_000 },
   { cycleId: "p4", monday: "2026-07-27", returnPercent: -128.5, versusMarket: -129.4, finalValue: 0 },
 ];
+
+/*
+  Draft night, in the shape that is hardest to lay out.
+
+  Twenty-four names on the board, so a phone gets the full grid; the longest
+  company names Yahoo actually returns for them, because "Advanced Micro
+  Devices, Inc." under a cashtag and a price is what decides whether a tile
+  crops; and a running order deep enough to scroll.
+*/
+const SILICON = formatById("silicon");
+
+export const draftShell: DraftShell = {
+  id: "d1",
+  cycleId: "b1",
+  leagueId: "l1",
+  leagueName: LONG_LEAGUE,
+  format: SILICON,
+  length: lengthById("week"),
+  rounds: 3,
+  pickSeconds: 60,
+  startsOn: "2026-08-31",
+  endsOn: "2026-09-04",
+  budget: 33_333.33,
+  board: (SILICON.universe.kind === "list" ? SILICON.universe.symbols : []).map(
+    (symbol, index) => ({
+      symbol,
+      name:
+        index === 1
+          ? "Advanced Micro Devices, Inc."
+          : index === 3
+            ? "Taiwan Semiconductor Manufacturing Company Limited"
+            : `${symbol} Corporation`,
+      price: 100 + index * 37.5,
+    })
+  ),
+  isOpener: true,
+};
+
+const DRAFT_SEATS: DraftSeat[] = [
+  { userId: "u1", name: "You", seat: 0, isYou: true },
+  { userId: "u2", name: "Rasmus Marjapuu", seat: 1, isYou: false },
+  { userId: "u3", name: "Karoliine", seat: 2, isYou: false },
+  { userId: "u4", name: "Amanda", seat: 3, isYou: false },
+];
+
+/** Mid-draft: five names gone, the sixth turn live and it is somebody else's. */
+export const draftState: DraftState = {
+  now: 0,
+  status: "picking",
+  currentPick: 5,
+  totalPicks: 12,
+  deadline: null,
+  seats: DRAFT_SEATS,
+  taken: {
+    NVDA: { userId: "u1", name: "You" },
+    AMD: { userId: "u2", name: "Rasmus Marjapuu" },
+    TSM: { userId: "u3", name: "Karoliine" },
+    AVGO: { userId: "u4", name: "Amanda" },
+    QCOM: { userId: "u4", name: "Amanda" },
+  },
+  turns: Array.from({ length: 12 }, (_, pick) => {
+    const seat = Math.floor(pick / 4) % 2 === 0 ? pick % 4 : 3 - (pick % 4);
+    const who = DRAFT_SEATS[seat];
+    const taken = ["NVDA", "AMD", "TSM", "AVGO", "QCOM"][pick] ?? null;
+    return {
+      pickNumber: pick,
+      userId: who.userId,
+      name: who.name,
+      isYou: who.isYou,
+      round: Math.floor(pick / 4) + 1,
+      symbol: taken,
+      byClock: pick === 4,
+      outcome: null,
+      shares: null,
+      fillPrice: null,
+      detail: null,
+    };
+  }),
+  onTheClock: DRAFT_SEATS[2],
+  yourTurnsAway: 2,
+  youAreSeated: true,
+};
+
+/** The lobby, before any seat has a number. */
+export const draftLobby: DraftState = {
+  ...draftState,
+  status: "waiting",
+  currentPick: 0,
+  turns: [],
+  taken: {},
+  onTheClock: null,
+  yourTurnsAway: null,
+  seats: DRAFT_SEATS.map((seat) => ({ ...seat, seat: null })),
+};
+
+/** The draft as the league page shows it while it is being picked. */
+export const draftRow: DraftRow = {
+  id: "d1",
+  cycle_id: "b1",
+  league_id: "l1",
+  status: "picking",
+  rounds: 3,
+  pick_seconds: 60,
+  current_pick: 5,
+  deadline: null,
+  created_by: "u1",
+  created_at: "2026-08-30T19:00:00Z",
+  started_at: "2026-08-30T19:05:00Z",
+  picked_at: null,
+  filled_at: null,
+};
+
+/** The same, before anybody has picked. */
+export const draftRowWaiting: DraftRow = {
+  ...draftRow,
+  status: "waiting",
+  current_pick: 0,
+  started_at: null,
+};

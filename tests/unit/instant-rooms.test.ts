@@ -41,6 +41,17 @@ const UNCACHED_ON_PURPOSE: Record<string, string> = {
   // visit from inside one would count days nobody opened. It renders a card
   // that is already drawn from a cached read, so nothing waits on it.
   recordVisit: "a write, and a prefetch must not count a visit",
+  /*
+    The draft room is the one screen here that several people watch at once and
+    expect to change under them, so a value carried in the App Shell is exactly
+    the wrong thing: it would paint a board a minute old, with a turn that has
+    already passed and names still on it that somebody took while the page was
+    being prefetched. Everything about a draft that does not move is cached
+    (getLeagueDraft, getDraftShell) and does ride in the shell, so the board
+    still arrives with the tap. This is the live half, and the first poll
+    replaces it two seconds later regardless.
+  */
+  getDraftState: "the live half of a room several people are watching at once",
 };
 
 /** Every routable segment under the signed-in layout. */

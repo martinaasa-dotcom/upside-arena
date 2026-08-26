@@ -28,6 +28,7 @@ the group.
 | `/leagues` | The leagues you are in, and joining one | Dock |
 | `/leagues/[id]` | One league: standings, goals, battles, invite | The list at `/leagues` |
 | `/leagues/[id]/battle` | The league's current contest | The league page, and a card on Home |
+| `/leagues/[id]/draft` | Draft night: picking a battle's holdings in turn, off one board | The league page, while a draft is open. A drafted battle's own route redirects here until it has been bought |
 | `/leagues/[id]/record` | What that league has done over time | The league page |
 | `/season` | The quarter's table | Dock |
 | `/profile` | Your record, wardrobe, addresses, notifications, account | Dock |

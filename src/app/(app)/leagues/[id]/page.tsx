@@ -15,7 +15,11 @@ import { getBattleView, getLeagueBattle } from "@/lib/game/battles";
 import { FORM_WEEKS, getLeagueRecord } from "@/lib/game/record";
 import { FormStrip } from "@/components/LeagueRecord";
 import { BattleCard } from "@/components/BattleCard";
+import { DraftCard } from "@/components/DraftCard";
 import { StartBattleForm } from "@/components/StartBattleForm";
+import { StartDraftForm } from "@/components/StartDraftForm";
+import { getLeagueDraft } from "@/lib/game/draft";
+import { formatById } from "@/lib/game/formats";
 import { getGoals } from "@/lib/game/goals";
 import { goalLabel, goalMet } from "@/lib/game/goal-kinds";
 import { getWeekStreaks } from "@/lib/game/streaks";
@@ -155,6 +159,37 @@ async function Battle({ params }: Params) {
   const { id } = await params;
   const battle = await getLeagueBattle(user.id, id);
   if (!battle) return null;
+
+  /*
+    A draft that has not been bought yet is not a battle card.
+
+    The cycle exists from the moment somebody opens the lobby, which is what
+    holds the league's one contest slot, so without this a room where nobody
+    has picked anything would show up here as a contest under way with a
+    scoreboard behind it. What that slot actually wants from the reader is for
+    them to come to the room.
+  */
+  /*
+    Only while it is still a draft. Once the contest has settled it is a
+    battle with a result on it, and the card that says so is the battle's:
+    a draft whose picking never finished still reaches its end date and is
+    scored like anything else, and it must not leave a "See the board" card on
+    the league page forever.
+  */
+  if (battle.drafted && !battle.finished) {
+    const found = await getLeagueDraft(user.id, id);
+    if (found && found.draft.status !== "filled") {
+      return (
+        <DraftCard
+          draft={found.draft}
+          format={formatById(battle.format.id)}
+          seats={found.seats}
+          href={`/leagues/${id}/draft`}
+          youAreSeated={found.youAreSeated}
+        />
+      );
+    }
+  }
 
   /*
     A finished battle says how it went on the card, so somebody scrolling past
@@ -346,7 +381,10 @@ async function Aside({ params }: Params) {
         of setup for a table with a single row on it.
       */}
       {alone || (battle && !battle.finished) ? null : (
-        <StartBattleForm leagueId={league.id} />
+        <>
+          <StartDraftForm leagueId={league.id} />
+          <StartBattleForm leagueId={league.id} />
+        </>
       )}
 
       {alone ? null : (

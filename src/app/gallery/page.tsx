@@ -11,6 +11,8 @@ import { WeekRecap } from "@/components/WeekRecap";
 import { Ticker } from "@/components/Ticker";
 import { WeeklyGoal, GoalMark } from "@/components/WeeklyGoal";
 import { BattleCard } from "@/components/BattleCard";
+import { DraftCard } from "@/components/DraftCard";
+import { DraftBoard, DraftRunningOrder } from "@/components/DraftRoom";
 import { StartBattleForm } from "@/components/StartBattleForm";
 import { Lineup, LineupReport } from "@/components/Lineup";
 import {
@@ -343,6 +345,53 @@ export default function GalleryPage() {
           href="#"
           result={{ rank: 3, players: 12, returnPercent: -2.4 }}
         />
+      </Case>
+
+      {/*
+        Draft night, which is the widest thing on this page after the format
+        picker.
+
+        The board is twenty-four tiles carrying a cashtag, a price and a
+        company name, and the names are the real ones: "Taiwan Semiconductor
+        Manufacturing Company Limited" under a five-figure price is what
+        decides whether a tile crops, and it is fine at 1440 by definition.
+
+        The room itself is not here on purpose. It polls, and a polling
+        component in the inventory would fire a server action every two seconds
+        against a draft that does not exist, so the two pieces worth measuring
+        are drawn without it.
+      */}
+      <Case name="draft-card-picking">
+        <DraftCard
+          draft={fixture.draftRow}
+          format={fixture.draftShell.format}
+          seats={4}
+          href="#"
+          youAreSeated
+        />
+      </Case>
+
+      <Case name="draft-card-waiting">
+        <DraftCard
+          draft={fixture.draftRowWaiting}
+          format={fixture.draftShell.format}
+          seats={1}
+          href="#"
+          youAreSeated={false}
+        />
+      </Case>
+
+      <Case name="draft-board">
+        <DraftBoard
+          shell={fixture.draftShell}
+          state={fixture.draftState}
+          yourTurn={false}
+          picking={null}
+        />
+      </Case>
+
+      <Case name="draft-running-order">
+        <DraftRunningOrder shell={fixture.draftShell} state={fixture.draftState} />
       </Case>
 
       {/*

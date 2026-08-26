@@ -37,6 +37,7 @@ import {
 import { getMarksFor } from "@/lib/game/marks";
 import { byResult, compareResults } from "@/lib/game/ranking";
 import type { RevealedBook } from "@/lib/game/books";
+import { draftedRoster } from "@/lib/game/draft";
 import { dayMove, lastCloseBefore, runTrail } from "@/lib/game/shape";
 import type { LeagueRow, WeeklyCycleRow } from "@/lib/supabase/database.types";
 import { playerCache } from "@/lib/game/cache";
@@ -79,6 +80,14 @@ export type Battle = {
   timeLeft: string;
   /** True before the first day, which happens when one is started at the weekend. */
   notStarted: boolean;
+  /*
+    True for a battle whose holdings were drafted.
+
+    It takes no trades: you hold what you drafted, or the board runs out on
+    Sunday evening and is undone at 09:31 on Monday. See 0031 and
+    src/lib/game/draft.ts.
+  */
+  drafted: boolean;
 };
 
 export type BattlePosition = {
@@ -220,6 +229,7 @@ function toBattle(
     isYours: row.created_by === viewerId,
     timeLeft: row.status === "closed" ? "Finished" : timeLeft(row.ends_on, today),
     notStarted: today < row.monday,
+    drafted: row.drafted,
   };
 }
 
@@ -475,6 +485,20 @@ export function battleTrading(battle: Battle, now = new Date()): {
   }
 
   /*
+    A drafted battle, which takes no trades at all.
+
+    Checked before the market hours below it, because the answer does not
+    depend on them: telling somebody the market is shut invites them back at
+    09:30 to a form that will still refuse them.
+  */
+  if (battle.drafted) {
+    return {
+      open: false,
+      reason: "You hold what you drafted. Nothing here is bought or sold until it settles.",
+    };
+  }
+
+  /*
     Past its last day but not yet settled.
 
     A contest is due the day after it ends and is scored by whoever notices,
@@ -561,7 +585,7 @@ export const getBattleView = cache(async function getBattleView(
     Everybody who played, plus everybody who was a member by the day it ended
     and did not. Somebody who joined the league afterwards was never in it.
   */
-  const memberIds = [
+  const everybody = [
     ...new Set([
       ...((played ?? []) as { user_id: string }[]).map((row) => row.user_id),
       ...roster
@@ -575,6 +599,17 @@ export const getBattleView = cache(async function getBattleView(
         .map((row) => row.user_id),
     ]),
   ];
+
+  /*
+    Except in a drafted battle, where it is the people who sat down.
+
+    A league of eight where five turned up to the draft must not rank the other
+    three, and the reason is not tidiness. Somebody who was not at the draft
+    holds nothing, and holding nothing is a flat week: in a week the market
+    falls, the three who were never invited take the top three places.
+  */
+  const drafted = cycle.drafted ? await draftedRoster(cycle.id) : null;
+  const memberIds = drafted ? everybody.filter((id) => drafted.has(id)) : everybody;
 
   const battle = toBattle(cycle, leagueRow as LeagueRow, userId);
   const format = battle.format;
@@ -991,11 +1026,29 @@ export async function startedBattles(now = new Date()): Promise<StartedBattle[]>
 
   const since = new Date(now.getTime() - ANNOUNCE_WINDOW_HOURS * 60 * 60 * 1000);
 
+  /*
+    Drafted contests are deliberately not announced, and it is this function's
+    own premise that rules them out.
+
+    The message this sends exists because everybody in a league is in a battle
+    from the moment it is made, whether they trade or not, so saying nothing
+    would let somebody find out a week later that they came last in something
+    they never knew about. A draft breaks that premise: you are in it only if
+    you turned up, and the people who turned up were in the room. Announcing
+    one would be an interruption telling somebody they are in a contest they
+    are not in.
+
+    It would also arrive too late to be an invitation. The notify pass runs on
+    weekday afternoons, and a draft is a Sunday evening thing, so the earliest
+    this could speak is Monday, by which time the board has been picked over
+    and bought.
+  */
   const { data: rows } = await admin
     .from("weekly_cycles")
     .select("id, league_id, format, length, monday, ends_on, created_by, created_at")
     .not("league_id", "is", null)
     .eq("status", "open")
+    .eq("drafted", false)
     .gte("created_at", since.toISOString())
     .order("created_at", { ascending: false })
     .limit(50);
