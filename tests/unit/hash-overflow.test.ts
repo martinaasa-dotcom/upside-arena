@@ -14,12 +14,16 @@
   always cleared it, which is how a real bug gets filed as a flake.
 
   AND `abs()` HAS NO ANSWER FOR INT_MIN. `streak_bonus_amount` (migration
-  0012) had no addition in it and was still wrong for exactly one hash value
-  in 4.29 billion. That one is not worth counting on its own; what makes it
-  worth a migration is that the function is `immutable` and deterministic by
-  design, so the single (player, milestone) pair that landed on it would have
-  failed on every attempt for ever, with nothing in the error naming a
-  milestone. Migration 0032 replaces it.
+  0012) has no addition in it and is still wrong for exactly one hash value in
+  4.29 billion, which on any real number of players never comes up. It is
+  deliberately still there, and the exception list below is where that is
+  written down: replacing it means a migration whose only effect is a new
+  function body, and `scripts/migration-state.py` cannot see one of those. It
+  judges a migration by whether the objects it creates exist, and a body
+  replacement changes neither a table nor a function's name or arity, so the
+  migration reads as applied in a database that does not have it. That is the
+  wrong answer that tool exists to prevent, so the fix belongs with a decision
+  about the checker rather than smuggled in beside a seed.
 
   The fix in both places is one cast: do the arithmetic in 64 bits, where
   neither is possible. `% 40`, `% 20000` and `% 5` return the same
@@ -36,16 +40,17 @@ import { describe, expect, it } from "vitest";
 const ROOT = "supabase";
 
 /*
-  Applied history that a later migration has already superseded.
+  Applied history, left alone on purpose.
 
-  0012 is what really ran against production, so it is not edited; 0032
-  redefines the function on top of it. This list is an exception list, never a
-  parking space: the check below fails if an entry no longer names a file that
-  still carries an uncast use, so a fixed file cannot quietly stay on it.
+  0012 is what really ran against production, so it is not edited in place,
+  and replacing the function needs a migration the state checker cannot see
+  (see the note above). This is an exception list, never a parking space: the
+  check below fails if an entry no longer names a file that still carries an
+  uncast use, so a fixed file cannot quietly stay on it.
 */
 const ALLOWED: Record<string, string> = {
   "supabase/migrations/0012_streak_bonuses.sql":
-    "applied history, superseded by 0032",
+    "applied history; a body-only migration is invisible to migration-state.py",
 };
 
 function sqlFiles(dir: string): string[] {
@@ -125,13 +130,6 @@ describe("a hash is never added to in 32 bits", () => {
     }
   });
 
-  it("has the migration the one exception is excused by", () => {
-    const superseding = FILES.find((f) => f.includes("0032_"));
-    expect(superseding).toBeTruthy();
-    const sql = code(readFileSync(superseding as string, "utf8"));
-    expect(sql).toContain("create or replace function public.streak_bonus_amount");
-    expect(uncastUses(sql)).toEqual([]);
-  });
 });
 
 /*
