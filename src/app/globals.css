@@ -275,9 +275,24 @@
       The header is sticky at the very top, and a rubber-band overscroll drags
       the whole document down with it, so pulling up at the top opened a gap
       between the bar and the real top of the window and let the field show
-      through above it. There is nothing up there to reach, this runs as an
-      installed app, and a pull-to-refresh on a page whose figures already
-      refresh themselves only ever reloads it by accident.
+      through above it.
+
+      THE SECOND HALF OF THIS NOTE USED TO BE WRONG, AND THE APP WAS BUILT ON
+      IT. It said a pull to refresh here would only ever reload the page by
+      accident, on a page whose figures already refresh themselves. Nothing in
+      this app refreshes itself: every room is a server component, so an open
+      screen holds the numbers it was rendered with until the next navigation,
+      and it runs standalone, so there is no address bar and no reload button
+      to fall back on. `PriceAge` had been honestly reporting how old those
+      numbers were to somebody with no way at all to ask for new ones.
+
+      This property stays exactly as it is, because it is the same switch for
+      the bounce and for the browser's own gesture and the bounce is the bug.
+      What the gesture became instead is `components/PullToRefresh.tsx`, which
+      moves the room's own `<main>` and leaves the chrome alone. It needs this
+      line rather than fighting it: with the bounce gone, a downward drag at
+      the top of the page scrolls nothing, which is what lets every touch
+      listener in that file be passive.
     */
     overscroll-behavior-y: none;
 
@@ -894,6 +909,68 @@
   filter: url(#ambient-dither);
 }
 
+/*
+  Pull to refresh: where the ring sits, and the only two things it animates.
+
+  `--ptr-top` is the bottom edge of the chrome, written out as the arithmetic
+  it is rather than as a rounded number, because the ring has to appear in the
+  gap the pull opens and that gap begins exactly where the header ends. The
+  bar is 3.5rem and it pads itself by the top safe area, so on a notched phone
+  running this as an installed app both terms are real ones.
+
+  IT IS FIXED, AND THAT IS SAFE HERE IN A WAY IT IS NOT ON THE LANDING PAGE.
+  The rule there is the pair rather than either half: nothing may be pinned
+  over the content AND filter its backdrop, because a backdrop-filter over
+  moving content re-filters what is behind it every frame. This has no
+  backdrop-filter and must never grow one. It is a ring on a transparent
+  ground, and a fixed element with nothing behind it to filter is free.
+
+  `will-change` is set from the component for the length of a gesture and
+  taken off again. Written into this file it would hold a compositor layer for
+  the whole session to serve a gesture nobody is making yet.
+*/
+:root {
+  --ptr-top: calc(3.5rem + env(safe-area-inset-top));
+}
+
+.ptr {
+  position: fixed;
+  top: var(--ptr-top);
+  right: 0;
+  left: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(0, 0, 0) scale(0.86);
+}
+
+/*
+  The arc starts at twelve o'clock, which is where a thumb dragging downward
+  expects a circle to begin filling. Its dash offset is the one thing here
+  that is a paint rather than a composite, and it is a 22px box once a frame.
+*/
+.ptr-arc {
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+/* A quarter of the circle, turning, for as long as the answer takes. */
+@keyframes ptr-working {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ptr-ring {
+  transform-origin: 50% 50%;
+}
+
+.ptr-ring[data-working] {
+  animation: ptr-working 720ms linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -949,5 +1026,21 @@
   [data-reveal="out"] {
     opacity: 1;
     transform: none;
+  }
+}
+
+/*
+  The ring does not turn for somebody who has asked for less motion.
+
+  The blanket above already stops it, and the component never sets the
+  attribute in the first place; this is here so that the intent is written
+  down where the animation is. What that reader gets instead is the whole
+  circle, drawn and held still, which is a state rather than a performance.
+  The pull itself is not touched: it is their own finger moving the page, and
+  direct manipulation is not the motion that setting is asking about.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .ptr-ring[data-working] {
+    animation: none;
   }
 }
