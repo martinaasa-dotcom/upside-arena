@@ -85,6 +85,34 @@ cross join public.weekly_cycles c
 where c.league_id is null;
 
 -- ---------------------------------------------------------------------------
+-- Spreading rows over the pool, in 64 bits
+-- ---------------------------------------------------------------------------
+-- Every `hashtext` below is cast to bigint before anything is added to it,
+-- and that cast is the whole of a bug this seed carried from the day it was
+-- written.
+--
+-- `hashtext` returns `integer`, so `abs()` of it lands anywhere in
+-- [0, 2147483647], and each of the three uses then adds a small number to it:
+-- up to 110 for holdings, 50 for trades and 685 for marks. When a portfolio's
+-- id happened to hash within that distance of INT_MAX, the addition overflowed
+-- int32 and the seed died with `integer out of range` before `measure.sql`
+-- ever ran, so the rehearsal measured nothing at all.
+--
+-- `portfolios.id` is `gen_random_uuid()`, so the hashes are new on every run
+-- and 24,000 portfolios made that roughly a 1 in 130 chance per run, on any
+-- branch. It reddened pull requests that had not been near this file, and a
+-- re-run always cleared it, which is exactly how a real bug gets filed as a
+-- flake. `fbbdd425-6106-46dd-b67e-dee7237f1cc1` hashes to -2147483234 and is
+-- the case, if one is ever wanted by hand.
+--
+-- In 64 bits the addition cannot overflow, and `% 40` and `% 20000` return
+-- the same non-negative values they always did, so the seeded data is
+-- unchanged apart from the runs that used to have none.
+--
+-- `abs()` also has no int32 answer for INT_MIN itself, which the same cast
+-- settles.
+
+-- ---------------------------------------------------------------------------
 -- What they own, what they did, and what it was worth each evening
 -- ---------------------------------------------------------------------------
 -- Symbols come from a small pool on purpose. Real players crowd into the same
@@ -111,7 +139,7 @@ select
 from public.portfolios p
 cross join generate_series(1, :holdings_each) as h
 join scale_symbols s
-  on s.n = 1 + ((abs(hashtext(p.id::text)) + h * 11) % 40);
+  on s.n = 1 + ((abs(hashtext(p.id::text)::bigint) + h * 11) % 40);
 
 insert into public.trades (portfolio_id, symbol, side, quantity, price, value, executed_at)
 select
@@ -125,14 +153,14 @@ select
 from public.portfolios p
 cross join generate_series(1, :trades_each) as t
 join scale_symbols s
-  on s.n = 1 + ((abs(hashtext(p.id::text)) + t * 5) % 40);
+  on s.n = 1 + ((abs(hashtext(p.id::text)::bigint) + t * 5) % 40);
 
 insert into public.portfolio_marks (portfolio_id, on_date, value, return_percent)
 select
   p.id,
   c.monday + (d - 1),
-  100000 + ((abs(hashtext(p.id::text)) + d * 137) % 20000) - 10000,
-  round(((((abs(hashtext(p.id::text)) + d * 137) % 20000) - 10000) / 1000.0)::numeric, 4)
+  100000 + ((abs(hashtext(p.id::text)::bigint) + d * 137) % 20000) - 10000,
+  round(((((abs(hashtext(p.id::text)::bigint) + d * 137) % 20000) - 10000) / 1000.0)::numeric, 4)
 from public.portfolios p
 join public.weekly_cycles c on c.id = p.cycle_id
 cross join generate_series(1, 5) as d;
