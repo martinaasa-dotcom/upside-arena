@@ -212,6 +212,33 @@ export default function HowPage() {
               on one book by Wednesday; once it is settled, it is the
               conversation the whole thing was for.
             </p>
+
+            <p>
+              A battle can also be <strong>drafted</strong>, which is the one
+              thing in Arena built for everybody being in the same room, or on
+              the same call, at the same time. You pick in turn off one board,
+              and <strong>a name somebody takes is gone for everybody else</strong>.
+              That is the whole difference and it changes the evening: you are
+              no longer choosing what you like, you are choosing before somebody
+              else does.
+            </p>
+            <p>
+              Seats are dealt at random and the order snakes, so picking last in
+              the first round means picking first in the second. Everybody gets
+              the same number of names and every pick is worth the same money,
+              so the only thing you are deciding is which companies. There is a
+              clock on each turn, and a turn nobody takes is taken for them off
+              the top of the board, because one person wandering off should not
+              stop four others.
+            </p>
+            <p>
+              Then <strong>you hold what you drafted</strong>. A drafted battle
+              takes no trades at all until it settles. Without that the board
+              would run out on Sunday evening and be undone by half past nine on
+              Monday, which is the ordinary week with a ceremony in front of it.
+              Everything is bought at the same opening price, so drafting first
+              is an advantage in choice and in nothing else.
+            </p>
           </Section>
 
           <Section title="6. The weekend is for deciding, not for waiting">

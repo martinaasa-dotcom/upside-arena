@@ -1,4 +1,4 @@
-import { cacheLife, cacheTag, updateTag } from "next/cache";
+import { cacheLife, cacheTag, revalidateTag, updateTag } from "next/cache";
 
 /*
   What a room is allowed to know before the tap.
@@ -68,4 +68,21 @@ export function playerChanged(userId: string) {
 /** The same for a change that belongs to the week rather than to a player. */
 export function cycleChanged() {
   updateTag(CYCLE_TAG);
+}
+
+/**
+ * The same, from a background job rather than from something somebody tapped.
+ *
+ * updateTag is Server Actions only and throws anywhere else, which is right:
+ * it means "this response should already reflect it", and a response is
+ * exactly what a background job does not have. The draft fill runs in an
+ * `after()` on whichever page load happens to be first on the Monday, and the
+ * person whose request triggered it is very often not one of the people whose
+ * cached reads have gone stale.
+ *
+ * So revalidateTag, which drops the entry for the next request instead. A
+ * fraction of a second later, and nobody is waiting on it.
+ */
+export function playerChangedInBackground(userId: string) {
+  revalidateTag(playerTag(userId), "max");
 }

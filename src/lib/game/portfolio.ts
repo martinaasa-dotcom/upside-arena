@@ -19,6 +19,7 @@ import { needsMarkToday, recordDailyMarks } from "@/lib/game/marks";
 import { applyDueSplits } from "@/lib/game/splits";
 import { reportServerError } from "@/lib/errors";
 import { fillLineup, hasLineupToFill } from "@/lib/game/lineup";
+import { draftAwaitingFill, fillDraft } from "@/lib/game/draft";
 import { checkTrade, formatById } from "@/lib/game/formats";
 import { cycleCache, playerCache } from "@/lib/game/cache";
 import { STUB, pretendSlow } from "@/lib/stub";
@@ -398,6 +399,26 @@ export const getPortfolioView = cache(async function getPortfolioView(
   after(async () => {
     try {
       if (await hasLineupToFill(userId, cycle)) await fillLineup(userId, cycle);
+    } catch {
+      // The next visit tries again.
+    }
+  });
+
+  /*
+    And a draft, if their league picked one at the weekend.
+
+    Same shape and the same reasons, with one difference worth knowing: this
+    one fills the whole draft rather than this player's share of it, because
+    the fairness of a draft is that everybody's names are bought with one set
+    of opening prices. So whichever of five people opens the app first on
+    Monday buys for all of them, and it does not matter which, or how many do
+    it at once: fill_draft only considers picks that have not run and marks
+    each one in the same transaction as the trade it caused.
+  */
+  after(async () => {
+    try {
+      const draft = await draftAwaitingFill(userId);
+      if (draft) await fillDraft(draft);
     } catch {
       // The next visit tries again.
     }

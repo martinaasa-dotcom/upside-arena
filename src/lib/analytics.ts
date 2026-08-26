@@ -66,6 +66,16 @@ export type AnalyticsEvent =
   | "battle_started"
   | "battle_viewed"
   | "battle_cancelled"
+  /*
+    Draft night. The three that say whether the evening happens at all: a room
+    opened, a room that actually filled up and started, and picks being taken
+    in it. A draft opened and never started is the interesting failure, and it
+    is invisible without the first two as separate events.
+  */
+  | "draft_opened"
+  | "draft_started"
+  | "draft_viewed"
+  | "draft_pick_made"
   // The weekend
   | "lineup_viewed"
   | "lineup_order_queued"

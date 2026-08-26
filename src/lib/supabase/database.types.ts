@@ -63,8 +63,58 @@ export type WeeklyCycleRow = {
   starting_balance: string;
   scoring_started_at: string | null;
   season_id: string | null;
+  /** True for a battle whose holdings were drafted. It takes no trades. */
+  drafted: boolean;
   created_at: string;
   closed_at: string | null;
+};
+
+/** A league picking a battle's holdings in turn, off a board that runs out. */
+export type DraftRow = {
+  id: string;
+  cycle_id: string;
+  league_id: string;
+  status: "waiting" | "picking" | "picked" | "filled";
+  /** Picks each, rather than picks in total. */
+  rounds: number;
+  pick_seconds: number;
+  /** Which turn is live, zero based. */
+  current_pick: number;
+  /** When the live turn stops being theirs. Null while the lobby is open. */
+  deadline: string | null;
+  created_by: string;
+  created_at: string;
+  started_at: string | null;
+  picked_at: string | null;
+  filled_at: string | null;
+};
+
+/** Who is actually at the draft, which is not the same as who is in the league. */
+export type DraftSeatRow = {
+  id: string;
+  draft_id: string;
+  user_id: string;
+  /** Dealt at random when it starts. Null while the lobby is open. */
+  seat: number | null;
+  joined_at: string;
+};
+
+/** One turn: whose it is, and what they took with it. */
+export type DraftPickRow = {
+  id: string;
+  draft_id: string;
+  user_id: string;
+  pick_number: number;
+  /** Null until the turn is taken. */
+  symbol: string | null;
+  picked_at: string | null;
+  /** True when the clock took it because nobody was there. */
+  by_clock: boolean;
+  filled_at: string | null;
+  outcome: "filled" | "no_price" | "not_enough_cash" | "refused" | null;
+  shares: string | null;
+  fill_price: string | null;
+  detail: string | null;
 };
 
 /** What somebody said at the weekend they wanted to own on Monday. */
@@ -470,6 +520,9 @@ export type Database = {
       weekly_cycles: Table<WeeklyCycleRow>;
       weekly_goals: Table<WeeklyGoalRow>;
       lineup_orders: Table<LineupOrderRow>;
+      drafts: Table<DraftRow>;
+      draft_seats: Table<DraftSeatRow>;
+      draft_picks: Table<DraftPickRow>;
       symbol_splits: Table<SymbolSplitRow>;
       split_checks: Table<SplitCheckRow>;
       error_reports: Table<ErrorReportRow>;
@@ -540,6 +593,12 @@ export type Database = {
             takes one.
           */
           p_today?: string | null;
+          /*
+            How fill_draft gets past the rule that a drafted battle takes
+            no trades. Defaults to false, so every other caller is refused
+            by default and has to say otherwise. See 0031.
+          */
+          p_drafted_ok?: boolean;
         };
         Returns: TradeRow;
       };
@@ -658,6 +717,79 @@ export type Database = {
           p_today?: string | null;
         };
         Returns: LineupOrderRow[];
+      };
+      create_draft: {
+        Args: {
+          p_user_id: string;
+          p_league_id: string;
+          p_format: string;
+          p_direction: "long" | "short";
+          p_length: string;
+          p_starts_on: string;
+          p_ends_on: string;
+          p_starting_balance: number;
+          p_benchmark_symbol: string;
+          p_benchmark_open: number | null;
+          p_rounds: number;
+          p_pick_seconds: number;
+        };
+        Returns: DraftRow;
+      };
+      join_draft: {
+        Args: { p_user_id: string; p_draft_id: string; p_max_seats: number };
+        Returns: DraftSeatRow;
+      };
+      leave_draft: {
+        Args: { p_user_id: string; p_draft_id: string };
+        Returns: boolean;
+      };
+      start_draft: {
+        Args: {
+          p_user_id: string;
+          p_draft_id: string;
+          /* The seated players, shuffled. */
+          p_seat_order: string[];
+          /* The whole draft turn by turn: the snake built from that shuffle. */
+          p_picks: string[];
+          /*
+            How many names are on the board. Passed by the caller because the
+            boards are lists in src/lib/game/formats.ts, and a table claiming
+            to describe them would be a second and quieter version of them.
+          */
+          p_board_size: number;
+          p_min_seats: number;
+          p_max_seats: number;
+          p_now: string;
+        };
+        Returns: DraftRow;
+      };
+      make_pick: {
+        Args: {
+          p_user_id: string;
+          p_draft_id: string;
+          p_symbol: string;
+          p_now: string;
+        };
+        Returns: DraftPickRow;
+      };
+      clock_pick: {
+        Args: { p_draft_id: string; p_symbol: string; p_now: string };
+        /* Null when the turn was not in fact out of time. */
+        Returns: DraftPickRow | null;
+      };
+      cancel_draft: {
+        Args: { p_user_id: string; p_draft_id: string };
+        Returns: boolean;
+      };
+      fill_draft: {
+        Args: {
+          p_draft_id: string;
+          p_prices: Json;
+          /* What one pick is worth. See budgetPerPick. */
+          p_budget: number;
+          p_today?: string | null;
+        };
+        Returns: DraftPickRow[];
       };
       score_cycle: {
         Args: {

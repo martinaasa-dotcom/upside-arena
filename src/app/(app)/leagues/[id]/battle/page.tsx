@@ -14,6 +14,7 @@ import { TradeForm } from "@/components/TradeForm";
 import { TrackView } from "@/components/TrackView";
 import { getSession } from "@/lib/profile";
 import { getBattleView, getLeagueBattle } from "@/lib/game/battles";
+import { getLeagueDraft } from "@/lib/game/draft";
 import { allowedSymbols } from "@/lib/game/formats";
 import { NO_VALUE, formatDate } from "@/lib/format";
 import { submitCancelBattle } from "@/app/(app)/leagues/battle-actions";
@@ -243,6 +244,19 @@ async function Rest({ params }: Params) {
   // No battle, not a member, or no such league. All of them are "nothing here
   // for you", and telling them apart confirms a league exists to a guesser.
   if (!summary) notFound();
+
+  /*
+    A draft that has not been bought yet is a draft room, not a battle room.
+
+    The cycle exists from the moment the lobby opens, so this route would
+    otherwise render a contest with an empty table and a trade form that
+    refuses everything. The room somebody wants is the one with the board in
+    it.
+  */
+  if (summary.drafted && !summary.finished) {
+    const found = await getLeagueDraft(user.id, id);
+    if (found && found.draft.status !== "filled") redirect(`/leagues/${id}/draft`);
+  }
 
   const view = await getBattleView(user.id, summary.cycleId);
   if (!view) notFound();
