@@ -35,6 +35,10 @@ inventory() {
       select 'function:' || p.proname || ':' || p.pronargs
       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public'
+      union all
+      select 'body:' || p.proname || ':' || p.pronargs || ':' || md5(p.prosrc)
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
     ) everything;"
 }
 
