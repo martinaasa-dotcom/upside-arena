@@ -29,7 +29,7 @@ leaderboard with a title on it. Below that the pod panel on `/leagues` is
 simply absent. The plan asks for the feature to wait for volume, not for the
 work to.
 
-On top of all of that, three things that answer the same complaint from
+On top of all of that, four things that answer the same complaint from
 different directions — that the week was the only game there was.
 
 **Battles.** A league can run a second contest beside the house week, with its
@@ -48,6 +48,18 @@ rule books themselves are code, in
 [`src/lib/game/formats.ts`](src/lib/game/formats.ts), and the lengths are in
 [`src/lib/game/lengths.ts`](src/lib/game/lengths.ts). Both are pure, so the
 rule a player reads is the rule the trade is checked against.
+
+**Draft night.** A battle whose universe is a finite list can be drafted
+instead of bought: everybody sits down at once, picks in a snake order off one
+shared board, and a company that has gone is gone for everybody else. That is
+what makes it safe to show every pick live, where a live portfolio never is,
+since a name you can see taken is a name you cannot buy. The board is a unique
+index rather than a screen, so two phones tapping the same company in the same
+second are decided by the database; the running order is written down before
+the first pick; the clock picks rather than skips; and you hold what you
+drafted, enforced in `execute_trade`. `0031_draft_night.sql` and
+[`src/lib/game/draft-order.ts`](src/lib/game/draft-order.ts) are where it
+lives.
 
 **Lineups.** Friday's close to Monday's open is sixty-five hours in which
 nothing can happen, which used to be answered with a sentence saying the market
@@ -118,6 +130,10 @@ shadcn/ui, Geist, and a hand-rolled service worker for the PWA shell.
 | `npm run gallery` | The component gallery on `/gallery`, for a design pass |
 | `npm run test:a11y` | axe over every screen, against WCAG 2.1 AA |
 | `npm run icons` | Regenerates icons from the Arena mark |
+| `npm run test:scale` | The rooms' own queries against 2,000 players and 12 weeks of history |
+| `npm run test:race` | Sixteen real connections racing the three places concurrency bites |
+| `npm run check:prerender` | That the public routes still have a static shell |
+| `npm run migrate` | Applies `supabase/migrations` and reports which are already there |
 
 ## A note on the numbers
 

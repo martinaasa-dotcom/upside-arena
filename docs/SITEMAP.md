@@ -18,8 +18,10 @@ screen nobody will ever see, and there are four of those here on purpose.
 
 ## Signed in
 
-Five of these are the dock, in this order, and the dock is on every room in
-the group.
+Four of these are the dock, in this order, and the dock is on every room in
+the group. Season is deliberately not one of them: every figure in it was
+settled on a Friday and cannot change mid-week, so it is a record rather than
+a room and it lives on Profile with the rest of a player's record.
 
 | Route | What it is | How you get there |
 |---|---|---|
@@ -30,7 +32,7 @@ the group.
 | `/leagues/[id]/battle` | The league's current contest | The league page, and a card on Home |
 | `/leagues/[id]/draft` | Draft night: picking a battle's holdings in turn, off one board | The league page, while a draft is open. A drafted battle's own route redirects here until it has been bought |
 | `/leagues/[id]/record` | What that league has done over time | The league page |
-| `/season` | The quarter's table | Dock |
+| `/season` | The quarter's table | Profile, which lists every quarter you have played |
 | `/profile` | Your record, wardrobe, addresses, notifications, account | Dock |
 | `/plus` | What a subscription is and what it costs | Profile, and the limit messages that mention it |
 | `/onboarding` | Player tag and the age gate | Redirected to after a first sign-in, and by any room until it is done |
@@ -67,4 +69,4 @@ the group.
   the second checks an environment variable that no deployment sets.
 
 Everything else on this page is reachable in two taps from the dock, which is
-the whole of the navigation and is deliberately five things.
+the whole of the navigation and is deliberately four things.
