@@ -77,6 +77,13 @@ inventory() {
       select 'function:' || p.proname || ':' || p.pronargs
       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public'
+      union all
+      -- What a function actually says, for the migrations that change only
+      -- that. Postgres keeps prosrc verbatim, so this matches the text
+      -- between the dollar quotes in the migration file byte for byte.
+      select 'body:' || p.proname || ':' || p.pronargs || ':' || md5(p.prosrc)
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
     ) everything;" |
     python3 -c 'import json,sys; print(json.load(sys.stdin)[0]["have"])'
 }

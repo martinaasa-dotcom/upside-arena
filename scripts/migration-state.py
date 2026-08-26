@@ -30,8 +30,31 @@ and judging 0005 on it reports a migration as missing forever.
 A migration every one of whose objects has since been superseded cannot be
 judged at all, and says so rather than guessing.
 
+AND A MIGRATION CAN BE INVISIBLE TO ALL OF THAT, WHICH IS THE THIRD WRONG
+ANSWER AND THE QUIETEST. Everything above judges a migration by whether the
+things it creates are THERE, and a `create or replace function` that changes
+only the body creates nothing new: same name, same parameter count, same row
+in pg_proc. 0032 is exactly that, a one-cast fix to streak_bonus_amount, and
+on presence alone it reads "applied" against a database that has never seen
+it. That is the same shape as the score_cycle mistake at the top of this
+note, which was caught only because 0026 happened to add a parameter. A body
+replacement has nothing to add.
+
+So when every object a migration owns was already declared, at the same
+parameter count, by an earlier migration, presence cannot answer and the
+BODY is compared instead. `md5(prosrc)` is what the database holds and
+Postgres stores that verbatim, so it is byte-identical to the text between
+the dollar quotes in the migration file: checked against all 91 function
+declarations in this repository, 83 of which are live, and every one agrees.
+The other eight are dropped or replaced at another arity, which is the
+superseded case above and is judged there.
+
+A body that cannot be read out of the file (no dollar quotes) is not guessed
+at either: that migration says it cannot be judged.
+
 Reads the project's inventory on stdin as whitespace-separated
-`table:name` and `function:name:nargs`, and prints one line per migration.
+`table:name`, `function:name:nargs` and `body:name:nargs:md5`, and prints one
+line per migration.
 
 With --names-only it prints just the missing ones, one per line, which is
 what migrate.sh --all applies. That used to be passed through a file in the
@@ -41,6 +64,7 @@ says it is done is the exact class of silent no-op this whole tool exists to
 catch.
 """
 
+import hashlib
 import os
 import re
 import sys
@@ -86,6 +110,25 @@ def parameters(sql: str, start: int) -> int:
     return 0 if body.strip() == "(" else commas + 1
 
 
+DOLLAR = re.compile(r"\$([a-zA-Z_0-9]*)\$")
+
+
+def body_after(sql: str, start: int) -> str | None:
+    """The function body declared at `start`, as the file writes it.
+
+    Postgres keeps `prosrc` exactly as it was given, so the text between the
+    dollar quotes here and `md5(prosrc)` in a project agree byte for byte.
+    Returns None when there are no dollar quotes to read, which is the one
+    case this must not guess at.
+    """
+    quote = DOLLAR.search(sql, start)
+    if not quote:
+        return None
+    opened = quote.end()
+    closed = sql.find(quote.group(0), opened)
+    return None if closed == -1 else sql[opened:closed]
+
+
 def objects_in(path: str) -> list[str]:
     sql = open(path).read()
     seen = []
@@ -99,6 +142,27 @@ def objects_in(path: str) -> list[str]:
         if line not in seen:
             seen.append(line)
     return seen
+
+
+def bodies_in(path: str) -> dict[str, str]:
+    """`function:name:nargs` to the `body:...` line that proves it is applied.
+
+    Only functions, and only the ones this file writes a body for: a table
+    has no body, and a migration judged on a table needs none.
+    """
+    sql = open(path).read()
+    found: dict[str, str] = {}
+    for match in CREATE.finditer(sql):
+        if match.group(1).lower() != "function":
+            continue
+        name = match.group(2).lower()
+        nargs = parameters(sql, match.end())
+        body = body_after(sql, match.end())
+        if body is None:
+            continue
+        digest = hashlib.md5(body.encode()).hexdigest()
+        found[f"function:{name}:{nargs}"] = f"body:{name}:{nargs}:{digest}"
+    return found
 
 
 def drops_in(path: str) -> list[str]:
@@ -127,6 +191,16 @@ def main(directory: str, names_only: bool = False) -> int:
     )
 
     declared = {path: objects_in(path) for path in files}
+    bodies = {path: bodies_in(path) for path in files}
+
+    # What an earlier migration has already put in the schema, in the exact
+    # shape presence can see. A later migration declaring one of these adds
+    # nothing a project can be asked about.
+    already: set[str] = set()
+    unseeable: dict[str, list[str]] = {}
+    for path in files:
+        unseeable[path] = [obj for obj in declared[path] if obj in already]
+        already.update(declared[path])
 
     # The last migration to say anything about an object owns its fate: the
     # shape it should have, or that it should be gone.
@@ -155,7 +229,28 @@ def main(directory: str, names_only: bool = False) -> int:
             if owner[key(obj)] == (path, "create")
         ]
 
-        missing = [obj for obj in mine if obj not in have]
+        # A migration whose every object was already there in the same shape
+        # adds nothing to find, so presence is no answer and the body is the
+        # question instead. Only when EVERY object is invisible: a migration
+        # that also creates a table can still be seen by the table.
+        body_only = bool(mine) and all(obj in unseeable[path] for obj in mine)
+
+        if body_only:
+            proofs = [bodies[path].get(obj) for obj in mine]
+            if any(proof is None for proof in proofs):
+                # No body to read, so no honest answer. Saying "applied" here
+                # is the failure this branch exists to prevent.
+                if not names_only:
+                    print(f"  {name:<62} replaces a body, cannot be judged")
+                continue
+            missing = [proof for proof in proofs if proof not in have]
+            detail = ", ".join(
+                obj.split(":", 1)[1].rsplit(":", 1)[0] for obj in mine
+            )
+        else:
+            missing = [obj for obj in mine if obj not in have]
+            detail = ", ".join(missing)
+
         if missing:
             behind.append(name)
 
@@ -168,8 +263,10 @@ def main(directory: str, names_only: bool = False) -> int:
             print(f"  {name:<62} superseded")
         elif not missing:
             print(f"  {name:<62} applied")
+        elif body_only:
+            print(f"  {name:<62} MISSING  (body of {detail})")
         else:
-            print(f"  {name:<62} MISSING  ({', '.join(missing)})")
+            print(f"  {name:<62} MISSING  ({detail})")
 
     if names_only:
         for name in behind:
