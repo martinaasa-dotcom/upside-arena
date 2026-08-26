@@ -4,6 +4,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { ArenaTheme } from "@/components/ArenaTheme";
 import { BottomDock } from "@/components/BottomDock";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { WelcomeTour } from "@/components/WelcomeTour";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toaster } from "@/components/ui/sonner";
@@ -36,6 +37,16 @@ export default function AppLayout({
   return (
     <div className={PAGE_FRAME}>
       <AppHeader />
+
+      {/*
+        Pull the page down for new numbers.
+
+        It sits out here rather than inside a room because it belongs to the
+        chrome: it is the same gesture in every room, it moves whichever
+        `<main>` the finger is in, and its ring has to be free of that
+        element's transform to stay put while the page travels under it.
+      */}
+      <PullToRefresh />
 
       {/* Bottom padding clears the dock. */}
       <main id="main" className="pt-8 pb-32">
