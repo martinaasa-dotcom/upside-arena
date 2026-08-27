@@ -37,21 +37,7 @@ export const metadata = { title: "Trade" };
   the room would arrive insisting it was a Tuesday. The choice belongs inside
   the boundary, where the render is actually happening.
 */
-type Search = Promise<{ symbol?: string }>;
-
-/** A ticker handed over in a link, kept only if it could be one. */
-function pickedFrom(symbol: string | undefined): string | null {
-  if (!symbol) return null;
-  const clean = symbol.trim().toUpperCase();
-  /*
-    Shaped like a symbol or dropped. It is put straight into a form field that
-    is posted back, and the server checks it again before anything is bought --
-    but a screen should not render whatever a url felt like saying either.
-  */
-  return /^[A-Z0-9.\-]{1,12}$/.test(clean) ? clean : null;
-}
-
-export default function TradePage({ searchParams }: { searchParams: Search }) {
+export default function TradePage() {
   return (
     <div className={`${PAGE} ${STACK}`}>
       <TrackView event="trade_screen_viewed" />
@@ -72,7 +58,7 @@ export default function TradePage({ searchParams }: { searchParams: Search }) {
           </Panel>
         }
       >
-        <Body searchParams={searchParams} />
+        <Body />
       </Suspense>
 
       {/*
@@ -124,7 +110,7 @@ function FormPending() {
   );
 }
 
-async function Body({ searchParams }: { searchParams: Search }) {
+async function Body() {
   const { user } = await getSession();
   if (!user) redirect("/");
 
@@ -187,7 +173,6 @@ async function Body({ searchParams }: { searchParams: Search }) {
         ownedSymbols={view.positions.map((p) => p.symbol)}
         tradingOpen={view.tradingOpen}
         closedReason={closedReason}
-        initialSymbol={pickedFrom((await searchParams).symbol)}
       />
     </Panel>
   );

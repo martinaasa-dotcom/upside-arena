@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { Panel } from "@/components/Panel";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatMoney, formatPercent } from "@/lib/format";
 import type { Mover, MoversView } from "@/lib/market/movers";
@@ -17,17 +15,17 @@ import type { Mover, MoversView } from "@/lib/market/movers";
   suggestion, and this product has a sixteen year old minimum age and says
   plainly everywhere else that it gives no advice. So it says it here too, in
   the words somebody would use.
+
+  The tiles are not links. A name, a percent, and a tap that opened the buy
+  form with that company already chosen is a recommendation, whatever the
+  sentence above it claimed. News stays news. The Trade room is in the dock,
+  and the book has its own door. Neither of those is this panel.
 */
 export function Movers({ movers }: { movers: MoversView }) {
   return (
     <Panel
       title="What moved today"
       description="The largest real moves among companies you would recognise, and anything you own. A big move is not a reason to buy something. It is just what happened."
-      action={
-        <Button asChild variant="ghost" size="sm">
-          <Link href="/trade">Trade</Link>
-        </Button>
-      }
     >
       <div className="flex flex-col gap-4">
         <Column label="Up" rows={movers.up} />
@@ -56,21 +54,10 @@ function Column({ label, rows }: { label: string; rows: Mover[] }) {
           const up = row.changePercent >= 0;
 
           return (
-            /*
-              A link rather than a tile.
-
-              Somebody who has just read a name and decided something about it
-              is one tap from acting on it, and without this that tap landed on
-              an empty search box asking them to type what they had just read.
-              It goes to the trade screen with the company already chosen; it
-              buys nothing, and the number of shares is still theirs to say.
-            */
-            <Link
+            <div
               key={row.symbol}
-              href={`/trade?symbol=${encodeURIComponent(row.symbol)}`}
               className={cn(
-                "glass-well flex min-w-0 flex-col gap-0.5 rounded-lg px-3 py-2.5 transition-colors",
-                "hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                "glass-well flex min-w-0 flex-col gap-0.5 rounded-lg px-3 py-2.5",
                 up ? "border-l-4 border-l-gain" : "border-l-4 border-l-loss"
               )}
             >
@@ -114,7 +101,7 @@ function Column({ label, rows }: { label: string; rows: Mover[] }) {
               <span className="figure truncate text-xs text-muted-foreground">
                 {formatMoney(row.price, "USD", 2)}
               </span>
-            </Link>
+            </div>
           );
         })}
       </div>

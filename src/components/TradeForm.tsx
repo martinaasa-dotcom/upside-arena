@@ -41,7 +41,6 @@ export function TradeForm({
   battleId,
   universe,
   rule,
-  initialSymbol,
 }: {
   cash: number;
   ownedSymbols: string[];
@@ -53,14 +52,6 @@ export function TradeForm({
   universe?: readonly string[] | null;
   /** The format's rule, in the words the player is held to. */
   rule?: string | null;
-  /**
-   * A company already chosen, from a link somewhere else in the app.
-   *
-   * The movers panel names companies, and a name somebody has just read and
-   * decided about is worth carrying: without this, tapping one landed on an
-   * empty search box and asked them to type what they had just tapped.
-   */
-  initialSymbol?: string | null;
 }) {
   const [state, formAction, pending] = useActionState<TradeState, FormData>(
     submitTrade,
@@ -68,9 +59,7 @@ export function TradeForm({
   );
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [query, setQuery] = useState("");
-  const [picked, setPicked] = useState<SymbolMatch | null>(
-    initialSymbol ? { symbol: initialSymbol, name: initialSymbol, exchange: null } : null
-  );
+  const [picked, setPicked] = useState<SymbolMatch | null>(null);
   const [matches, setMatches] = useState<SymbolMatch[]>([]);
   const [searching, setSearching] = useState(false);
   const [quantity, setQuantity] = useState("");
@@ -246,9 +235,9 @@ export function TradeForm({
             <span className="min-w-0">
               <span className="figure text-sm font-semibold">{picked.symbol}</span>
               {/*
-                A company arriving from a link has no name with it, only its
-                ticker, and rendering that twice reads as a bug rather than as
-                a company whose name happens to match.
+                A name from the format grid is the ticker twice, and rendering
+                that twice reads as a bug rather than as a company whose name
+                happens to match.
               */}
               {picked.name && picked.name !== picked.symbol ? (
                 <span className="ml-2 truncate text-sm text-muted-foreground">
