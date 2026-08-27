@@ -177,8 +177,8 @@ export function NotificationSettings({
   return (
     <div className="flex flex-col gap-5">
       {pushAvailable && device ? (
-        <Well className="flex flex-wrap items-center justify-between gap-3 py-3">
-          <div className="min-w-0">
+        <Well className="flex flex-nowrap items-center justify-between gap-3 py-3">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">On this device</p>
             <p className="text-sm text-muted-foreground">
               {device.blocked
@@ -192,6 +192,7 @@ export function NotificationSettings({
           </div>
           {device.blocked ? null : (
             <Button
+              className="shrink-0"
               variant={pushOn ? "outline" : "default"}
               size="sm"
               disabled={busy || (denied && !pushOn)}
@@ -204,7 +205,7 @@ export function NotificationSettings({
       ) : null}
 
       {emailAvailable ? (
-        <label className="flex items-start justify-between gap-4">
+        <label className="flex flex-nowrap items-start justify-between gap-4">
           <span className="flex min-w-0 flex-col">
             <span className="text-sm font-medium">Email instead</span>
             <span className="text-sm text-muted-foreground">
@@ -212,6 +213,7 @@ export function NotificationSettings({
             </span>
           </span>
           <Switch
+            className="shrink-0"
             checked={settings.email}
             disabled={busy}
             onCheckedChange={(value) => save({ email: value })}
@@ -223,12 +225,13 @@ export function NotificationSettings({
       <div className="flex flex-col gap-4">
         <p className="text-sm text-muted-foreground">What we tell you about</p>
         {KINDS.map((kind) => (
-          <label key={kind.key} className="flex items-start justify-between gap-4">
+          <label key={kind.key} className="flex flex-nowrap items-start justify-between gap-4">
             <span className="flex min-w-0 flex-col">
               <span className="text-sm font-medium">{kind.label}</span>
               <span className="text-sm text-muted-foreground">{kind.detail}</span>
             </span>
             <Switch
+              className="shrink-0"
               checked={settings[kind.key]}
               disabled={busy}
               onCheckedChange={(value) => {

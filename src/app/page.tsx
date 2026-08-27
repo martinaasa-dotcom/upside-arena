@@ -64,12 +64,11 @@ export default function LandingPage({
 }) {
   return (
     /*
-      `landing-field` swaps the fixed pair of ambient lobes for one field as
-      tall as the document. On every room in the app the fixed pair is right:
-      the lobes are the room's lamps and a room is about one viewport of
-      content. On a page five screens tall the light would be pinned to the
-      glass, so the corner you arrived on is the same corner five screens
-      later, and what reads is not a lit room but a colour that stopped.
+      `landing-field` splits the field: the first screen reuses the room's
+      two lamps, dithered and boxed to one viewport, and the rest of the
+      page carries three more lobes with no SVG filter. Safari tiles a
+      document-tall filter, so both halves of the hero have to live in a
+      layer that fits in one tile.
     */
     <div className={`${PAGE_FRAME} landing-field overflow-x-clip`}>
       {/*

@@ -298,7 +298,7 @@ function Hero({ signIn }: { signIn: ReactNode }) {
       `relative`, because the cue is laid out against the top of this
       section, which is the top of the document.
     */
-    <section className="relative min-h-[calc(100svh-9rem)] px-6 pb-12 pt-[max(2.5rem,env(safe-area-inset-top))] sm:pb-16">
+    <section className="relative min-h-[calc(100svh-9rem)] px-6 pb-12 pt-[max(2.5rem,env(safe-area-inset-top))] sm:pb-16 landing-hero">
       <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col items-center text-center">
         <ArenaWordmark className="rise rise-1" size={38} />
 
@@ -336,7 +336,7 @@ function Hero({ signIn }: { signIn: ReactNode }) {
       */}
       <div
         data-scroll-cue-still
-        className="rise rise-4 mx-auto mt-14 w-full min-w-0 max-w-5xl sm:mt-16"
+        className="landing-still rise rise-4 mx-auto mt-14 w-full min-w-0 max-w-5xl sm:mt-16"
       >
         <FridayClose />
       </div>

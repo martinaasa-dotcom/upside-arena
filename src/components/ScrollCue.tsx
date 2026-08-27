@@ -108,18 +108,19 @@ const ANSWERED = 24;
 
   THIS IS WHY THE CUE WAS MISSING ON A RELOAD AND ARRIVED ON A FLICK. All of
   this used to be read off `getBoundingClientRect`, which reports where a
-  thing is being *drawn*, and the first thing everything on this page does is
-  arrive: `.rise` holds the sample card 8px below where it lands, with `both`
-  fill, from before the first frame until 0.76s in, and an `Arrive` section
-  sits 12px low for as long as it is out. The decision is made once, at
-  hydration, well inside that window, so the card was measured lower than it
-  really is and the cue stood down as though the fold were cutting it.
-  Nothing then re-measured for the rest of the animation, so the page sat
-  there saying nothing, and the first thing to run the measurement again was
-  the reader scrolling, which is the one moment the answer no longer matters.
-  Measured on Upside Lab's copy of this page, which is the same component
-  with a 12px rise: no cue at all on any window between 950px and 961px tall,
-  and one wheel notch brought it up.
+  thing is being *drawn*. The landing hero used to run `.rise`, which held
+  the sample card 8px below where it lands, with `both` fill, from before
+  the first frame until 0.76s in. That animation is now `none` on
+  `.landing-field` (it skipped painting the below-fold half of the card on
+  older WebKit), but a font swap still moves a few pixels, and an `Arrive`
+  section still sits 12px low while it is out, so the cue still reads
+  layout rather than the screen. A rect taken at hydration during a swap
+  would stand the cue down as though the fold were cutting the card, and
+  the first thing that ran the measurement again was the reader scrolling,
+  which is the one moment the answer no longer matters. Measured on Upside
+  Lab's copy of this page, which is the same component with a 12px rise: no
+  cue at all on any window between 950px and 961px tall, and one wheel
+  notch brought it up.
 
   A layout position has no such state. `offsetTop` is where a box was laid
   out, not where an animation has it at this instant, so the answer at the

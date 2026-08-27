@@ -46,7 +46,7 @@ const LANDING = readFileSync("src/components/SignedOutLanding.tsx", "utf8");
 /** Every surface that has to ramp through the bottom of the range. */
 const DITHERED = [
   ".page-frame::before",
-  ".landing-field::after",
+  ".landing-field::before",
   ".ambient-glow",
 ];
 
@@ -99,6 +99,20 @@ describe("the ambient dither", () => {
     // Safari does not resolve a filter from a data URI, which would leave
     // every iPhone undithered and nothing here would fail.
     expect(CSS).not.toMatch(/filter:\s*url\("data:/);
+  });
+
+  it("does not dither the landing's page-tall layer", () => {
+    const start = CSS.indexOf(".landing-field::after {");
+    expect(start).toBeGreaterThan(-1);
+    const rule = CSS.slice(start, CSS.indexOf("}", start));
+    expect(rule).not.toContain("url(#ambient-dither)");
+  });
+
+  it("does not dither the landing sample-card glow", () => {
+    const start = CSS.indexOf(".landing-field .ambient-glow {");
+    expect(start).toBeGreaterThan(-1);
+    const rule = CSS.slice(start, CSS.indexOf("}", start));
+    expect(rule).toMatch(/filter:\s*none/);
   });
 });
 

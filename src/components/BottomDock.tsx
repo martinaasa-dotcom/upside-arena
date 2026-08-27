@@ -135,7 +135,22 @@ function Dock({ pathname, me }: { pathname: string | null; me: ReactNode }) {
     const row = rowRef.current;
     if (!row) return;
     const on = row.querySelector<HTMLElement>('[data-room][aria-current="page"]');
-    setMark(on ? { left: on.offsetLeft, width: on.offsetWidth } : null);
+    /*
+      Same object, same state. A freshly built object on every measurement
+      makes every measurement a re-render, and a layout effect that
+      measures after every render then never settles: React error #185.
+      Returning the previous value when the numbers have not moved makes
+      measuring idempotent. Lab's dock hit this first; the two bars are
+      one design.
+    */
+    setMark((was) => {
+      if (!was && !on) return was;
+      if (!on) return null;
+      const next = { left: on.offsetLeft, width: on.offsetWidth };
+      return was && was.left === next.left && was.width === next.width
+        ? was
+        : next;
+    });
   }, []);
 
   useLayoutEffect(() => {

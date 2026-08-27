@@ -112,15 +112,13 @@ describe("the cue stands down when the page is already saying it continues", () 
       The bug this closed, and the reason it is a rule rather than a fix.
 
       Every one of these measurements used to be a `getBoundingClientRect`,
-      which reports where a thing is being drawn. The first thing everything
-      on this page does is arrive: `.rise` holds the sample card 8px below
-      where it lands, with `both` fill, from before the first frame until
-      0.76s in, and an `Arrive` section sits 12px low while it is out. The
-      decision is made once, at hydration, inside that window, so the card
-      measured low and the cue stood down as though the fold were cutting
-      it. Nothing re-measured for the rest of the animation, so a reader on
-      a reload got no cue at all, and the first thing to run the measurement
-      again was them scrolling.
+      which reports where a thing is being drawn. The landing hero used to
+      run `.rise`, which held the sample card 8px below where it lands,
+      with `both` fill, from before the first frame until 0.76s in. That
+      animation is now `none` on `.landing-field`, and an `Arrive` section
+      still sits 12px low while it is out. The decision is made once, at
+      hydration, inside that window, so a rect taken then stood the cue
+      down as though the fold were cutting the card.
 
       Measured on Upside Lab's copy, the same component with a 12px rise: no
       cue on any window between 950px and 961px tall, appearing on one wheel

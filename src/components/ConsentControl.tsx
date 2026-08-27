@@ -26,13 +26,14 @@ export function ConsentControl() {
   const granted = consent === "granted";
 
   return (
-    <div className="flex flex-col items-start gap-2">
-      <p className="text-sm text-muted-foreground">
+    <div className="flex flex-nowrap items-center justify-between gap-3">
+      <p className="min-w-0 flex-1 text-sm text-muted-foreground">
         {granted
           ? "You are letting us measure page views and load times."
           : "We are not measuring how you use the app."}
       </p>
       <Button
+        className="shrink-0"
         variant="outline"
         onClick={() => {
           // Record the withdrawal before it takes effect, otherwise the event
