@@ -12,6 +12,13 @@
 export const STATIC_SECURITY_HEADERS: { key: string; value: string }[] = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Content-Type-Options", value: "nosniff" },
+  /*
+    Lab ships this. Chrome will otherwise wait until a link is clicked
+    before resolving accounts.google.com, which is the only place the
+    landing ever sends somebody. Prefetch is a header rather than a
+    <link> so every page gets it, including the prerendered shell.
+  */
+  { key: "X-DNS-Prefetch-Control", value: "on" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },

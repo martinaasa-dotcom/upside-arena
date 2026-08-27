@@ -70,7 +70,7 @@ export default function LandingPage({
       document-tall filter, so both halves of the hero have to live in a
       layer that fits in one tile.
     */
-    <div className={`${PAGE_FRAME} landing-field overflow-x-clip`}>
+    <div className={`${PAGE_FRAME} landing-field`}>
       {/*
         Counted once for the page rather than once per button. The card is
         rendered twice, at the top and at the end, and a card reporting its own

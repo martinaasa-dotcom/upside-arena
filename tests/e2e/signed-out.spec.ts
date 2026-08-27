@@ -136,17 +136,11 @@ test.describe("landing", () => {
     black, and concludes it is over, so they scroll back up and never see
     the rest of it.
 
-    This page inherited both causes from Upside Lab, which is where it and
-    `Arrive` were ported from. `Arrive` armed its observer with a *negative*
-    rootMargin, which shrinks the observer's root rather than growing it, so
-    a section did not begin arriving until it was already 116px to 185px
-    inside the window and only then started a half-second fade. And each
-    section was two Arrives, the cards on a delay, so a heading could sit
-    above a hole.
-
-    These walk the real page rather than reading a class name, because the
-    page renders identically once everything has arrived. That is the whole
-    problem: there is nothing to see in a snapshot.
+    That used to be an IntersectionObserver fade, ported from Lab and then
+    dropped there when the field split: script hid HTML the browser had
+    already painted, and older WebKit skipped a translated layer until it
+    scrolled on-screen. These walk the real page rather than reading a
+    class name, because a settled snapshot cannot tell the difference.
   */
 
   test("never leaves a section arriving where it can be watched", async ({
@@ -154,6 +148,8 @@ test.describe("landing", () => {
   }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "No thanks" }).click();
+
+    expect(await page.locator("[data-reveal]").count()).toBe(0);
 
     const height = await page.evaluate(
       () => document.documentElement.scrollHeight - window.innerHeight
@@ -172,10 +168,15 @@ test.describe("landing", () => {
 
       const showing = await page.evaluate(() => {
         const vh = window.innerHeight;
-        return [...document.querySelectorAll('[data-reveal="out"]')]
+        return [...document.querySelectorAll("main h2, main h3")]
           .filter((el) => {
             const r = el.getBoundingClientRect();
-            return r.bottom > 0 && r.top < vh;
+            const cs = getComputedStyle(el);
+            return (
+              r.bottom > 8 &&
+              r.top < vh - 8 &&
+              (Number(cs.opacity) === 0 || cs.visibility === "hidden")
+            );
           })
           .map((el) => (el.textContent ?? "").trim().slice(0, 40));
       });
@@ -196,12 +197,6 @@ test.describe("landing", () => {
     await expect(
       page.getByRole("dialog", { name: "Optional measurement" })
     ).toBeHidden();
-
-    // Settle every section, so this measures the page rather than the fade.
-    await page.evaluate(() => {
-      for (const el of document.querySelectorAll("[data-reveal]"))
-        el.setAttribute("data-reveal", "in");
-    });
 
     const { worst, viewport } = await page.evaluate(() => {
       const doc = Math.round(document.documentElement.scrollHeight);
@@ -394,14 +389,15 @@ test.describe("landing", () => {
   }) => {
     /*
       The whole point of the cue is the reader who has not scrolled yet, so
-      the one measurement that matters is the first one, and it is taken
-      while the page is still arriving: the hero holds the sample card 8px
-      below where it lands until 0.76s in. Read off a rect, that put the
-      card past the band on any window where it settles closer than the
-      animation travels, the cue stood down, and nothing measured again
-      until the reader scrolled, which is the moment the answer stops being
-      any use. Measured on Upside Lab's copy, which is this component with a
-      12px rise: no cue at all between 950px and 961px tall.
+      the one measurement that matters is the first one. It used to be taken
+      while the hero still held the sample card 8px below where it lands,
+      until 0.76s in. Read off a rect, that put the card past the band on
+      any window where it settles closer than the animation travels, the
+      cue stood down, and nothing measured again until the reader scrolled,
+      which is the moment the answer stops being any use. The animation is
+      gone; a font swap still moves more than the few pixels of clearance
+      this decides on, so the cue still reads layout. Measured on Upside
+      Lab's copy: no cue at all between 950px and 961px tall.
 
       So this builds that window rather than hoping CI runs in one. The
       window is sized off where the card really ends, leaving it a few

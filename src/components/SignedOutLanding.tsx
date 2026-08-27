@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { CalendarClock, CalendarRange, Check, Swords } from "lucide-react";
-import { Arrive } from "@/components/Arrive";
 import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
 import { ScrollCue } from "@/components/ScrollCue";
 import { Badge } from "@/components/ui/badge";
@@ -63,8 +62,10 @@ import { cn } from "@/lib/utils";
 
   A server component. Everything here is the same for everybody, so the page
   is prerendered and arrives as HTML from a CDN, with only the sign-in card
-  waiting on the request. Arrive is the one client piece, and it is a
-  wrapper.
+  waiting on the request. Sections are drawn in that HTML, finished: Lab
+  dropped the scroll-fade when it split the field, because script was hiding
+  markup the browser had already painted, and older WebKit skipped a
+  translated layer until it scrolled on-screen.
 
   Colour, glass and figures are the shared system, not invented here: the
   true-black field with its two ambient lobes is the only background,
@@ -105,7 +106,7 @@ function Section({
     96px on a desktop, 80px on a phone. Still clearly smaller than the
     sections it separates, which is the test the note above sets, and now
     also small enough that no boundary can fill a fifth of the screen with
-    nothing. The other half of that fault is in `Arrive`.
+    nothing.
   */
   return (
     <section className={cn("px-6 py-10 sm:py-12", className)}>
@@ -300,32 +301,32 @@ function Hero({ signIn }: { signIn: ReactNode }) {
     */
     <section className="relative min-h-[calc(100svh-9rem)] px-6 pb-12 pt-[max(2.5rem,env(safe-area-inset-top))] sm:pb-16 landing-hero">
       <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col items-center text-center">
-        <ArenaWordmark className="rise rise-1" size={38} />
+        <ArenaWordmark size={38} />
 
         {/*
           Two type steps, not two headlines, and both lines short enough to
           hold one line each at 64px in this column. The copy is what buys
           the size; see the note in product.ts.
         */}
-        <h1 className="rise rise-2 mt-10 text-balance text-[2.25rem] leading-[1.05] tracking-[-0.04em] sm:mt-12 sm:text-[4rem] sm:leading-[1.02] sm:tracking-[-0.04em]">
+        <h1 className="mt-10 text-balance text-[2.25rem] leading-[1.05] tracking-[-0.04em] sm:mt-12 sm:text-[4rem] sm:leading-[1.02] sm:tracking-[-0.04em]">
           {HERO_PROBLEM}
           <span className="mt-1 block text-muted-foreground">{HERO_TWIST}</span>
         </h1>
 
-        <p className="rise rise-3 mt-7 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:mt-8 sm:text-xl">
+        <p className="mt-7 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:mt-8 sm:text-xl">
           {HERO_LEDE}
         </p>
 
         {/* The one thing on the page that is not the same for everybody. */}
-        <div className="rise rise-3 mt-10 flex w-full justify-center">
+        <div className="mt-10 flex w-full justify-center">
           {signIn}
         </div>
 
-        <p className="rise rise-3 mt-4 text-sm text-muted-foreground">
+        <p className="mt-4 text-sm text-muted-foreground">
           {HERO_PRICE}
         </p>
 
-        <Consent className="rise rise-4 mt-5" />
+        <Consent className="mt-5" />
       </div>
 
       {/*
@@ -336,7 +337,7 @@ function Hero({ signIn }: { signIn: ReactNode }) {
       */}
       <div
         data-scroll-cue-still
-        className="landing-still rise rise-4 mx-auto mt-14 w-full min-w-0 max-w-5xl sm:mt-16"
+        className="landing-still mx-auto mt-14 w-full min-w-0 max-w-5xl sm:mt-16"
       >
         <FridayClose />
       </div>
@@ -402,13 +403,11 @@ function FridayClose() {
 function WhatItDoes() {
   return (
     <Section>
-      <Arrive>
-        <SectionHead title="The same money on Monday. A scoreboard on Friday. An argument all week." />
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
-          <WeekStill />
-          <BattleStill />
-        </div>
-      </Arrive>
+      <SectionHead title="The same money on Monday. A scoreboard on Friday. An argument all week." />
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <WeekStill />
+        <BattleStill />
+      </div>
     </Section>
   );
 }
@@ -531,35 +530,33 @@ function BattleStill() {
 function HowYouStart() {
   return (
     <Section>
-      <Arrive>
-        <SectionHead
-          title="It starts with the people you already argue with."
-          detail={`No broker, no deposit, no card, and nothing to connect. Sign in and you have ${formatMoney(
-            STARTING_BALANCE
-          )} of pretend money and a league with a code in it.`}
-        />
-        <ol className="mt-8 grid gap-10 sm:grid-cols-3 sm:gap-8">
-          {WAYS_IN.map((way, index) => (
-            <li key={way.title} className="flex flex-col items-center gap-3 text-center">
-              <span
-                className="figure text-sm text-primary"
-                /*
-                  The list already numbers itself for a screen reader, so the
-                  numeral drawn here is decoration and says so. Without this
-                  every step is read out with its number twice.
-                */
-                aria-hidden="true"
-              >
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <h3 className="text-lg">{way.title}</h3>
-              <p className="text-base leading-relaxed text-muted-foreground">
-                {way.detail}
-              </p>
-            </li>
-          ))}
-        </ol>
-      </Arrive>
+      <SectionHead
+        title="It starts with the people you already argue with."
+        detail={`No broker, no deposit, no card, and nothing to connect. Sign in and you have ${formatMoney(
+          STARTING_BALANCE
+        )} of pretend money and a league with a code in it.`}
+      />
+      <ol className="mt-8 grid gap-10 sm:grid-cols-3 sm:gap-8">
+        {WAYS_IN.map((way, index) => (
+          <li key={way.title} className="flex flex-col items-center gap-3 text-center">
+            <span
+              className="figure text-sm text-primary"
+              /*
+                The list already numbers itself for a screen reader, so the
+                numeral drawn here is decoration and says so. Without this
+                every step is read out with its number twice.
+              */
+              aria-hidden="true"
+            >
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <h3 className="text-lg">{way.title}</h3>
+            <p className="text-base leading-relaxed text-muted-foreground">
+              {way.detail}
+            </p>
+          </li>
+        ))}
+      </ol>
     </Section>
   );
 }
@@ -573,30 +570,30 @@ const MORE_ICONS = {
 function MoreRooms() {
   return (
     <Section>
-      <Arrive>
-        <SectionHead title="The week is only the start of it." />
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          {MORE_ROOMS.map((room) => {
-            const Icon = MORE_ICONS[room.icon];
-            return (
-              <div
-                key={room.title}
-                className={cn(BOX, "flex flex-col items-start gap-3")}
-              >
-                {/*
-                  A plain glyph in the accent, not a glyph inside a tinted
-                  rounded square. The square is the tell; the icon is fine.
-                */}
-                <Icon className="size-5 text-primary" aria-hidden="true" />
-                <h3 className="text-lg">{room.title}</h3>
-                <p className="text-base leading-relaxed text-muted-foreground">
-                  {room.detail}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      </Arrive>
+      <SectionHead title="The week is only the start of it." />
+      <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        {MORE_ROOMS.map((room) => {
+          const Icon = MORE_ICONS[room.icon];
+          return (
+            <div
+              key={room.title}
+              className={cn(BOX, "flex flex-col items-start gap-3")}
+            >
+              {/*
+                A plain glyph in the accent, not a glyph inside a tinted
+                rounded square. The square is the tell; the icon is fine.
+                size={20} is the attribute so the box is reserved before CSS,
+                matching size-5.
+              */}
+              <Icon size={20} className="size-5 text-primary" aria-hidden="true" />
+              <h3 className="text-lg">{room.title}</h3>
+              <p className="text-base leading-relaxed text-muted-foreground">
+                {room.detail}
+              </p>
+            </div>
+          );
+        })}
+      </div>
     </Section>
   );
 }
@@ -609,43 +606,42 @@ function MoreRooms() {
 function PriceAndStakes() {
   return (
     <Section>
-      <Arrive>
-        {/*
-          `items-start`, so each pane is its own height. One is a statement
-          and a note, the other is a list of four, and stretched to match the
-          shorter one grows exactly the panel-coloured void page-shell.ts
-          warns about under SPLIT.
-        */}
-        <div className="grid items-start gap-4 md:grid-cols-2">
-          <div className={cn(BOX, "flex flex-col gap-4")}>
-            <h3 className="text-lg">{PRICE_TITLE}</h3>
-            <p className="text-balance text-2xl leading-snug tracking-[-0.02em]">
-              {PRICE_HEADLINE}
-            </p>
-            <p className="text-base leading-relaxed text-muted-foreground">
-              {PRICE_NOTE}
-            </p>
-          </div>
-
-          <div className={cn(BOX, "flex flex-col gap-4")}>
-            <h3 className="text-lg">{TRUST_TITLE}</h3>
-            <ul className="flex flex-col gap-3">
-              {TRUST.map((line) => (
-                <li
-                  key={line}
-                  className="flex items-start gap-3 text-base leading-relaxed text-muted-foreground"
-                >
-                  <Check
-                    className="mt-1 size-4 shrink-0 text-primary"
-                    aria-hidden="true"
-                  />
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+      {/*
+        `items-start`, so each pane is its own height. One is a statement
+        and a note, the other is a list of four, and stretched to match the
+        shorter one grows exactly the panel-coloured void page-shell.ts
+        warns about under SPLIT.
+      */}
+      <div className="grid items-start gap-4 md:grid-cols-2">
+        <div className={cn(BOX, "flex flex-col gap-4")}>
+          <h3 className="text-lg">{PRICE_TITLE}</h3>
+          <p className="text-balance text-2xl leading-snug tracking-[-0.02em]">
+            {PRICE_HEADLINE}
+          </p>
+          <p className="text-base leading-relaxed text-muted-foreground">
+            {PRICE_NOTE}
+          </p>
         </div>
-      </Arrive>
+
+        <div className={cn(BOX, "flex flex-col gap-4")}>
+          <h3 className="text-lg">{TRUST_TITLE}</h3>
+          <ul className="flex flex-col gap-3">
+            {TRUST.map((line) => (
+              <li
+                key={line}
+                className="flex items-start gap-3 text-base leading-relaxed text-muted-foreground"
+              >
+                <Check
+                  size={16}
+                  className="mt-1 size-4 shrink-0 text-primary"
+                  aria-hidden="true"
+                />
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
     </Section>
   );
 }
@@ -662,31 +658,29 @@ function Closing({ signInAgain }: { signInAgain: ReactNode }) {
       sits close to what it concludes.
     */
     <Section className="pt-4 pb-20 sm:pt-6 sm:pb-28">
-      <Arrive>
-        <div className="flex flex-col items-center gap-8 text-center">
-          <h2 className="max-w-2xl text-balance text-[1.75rem] leading-[1.1] tracking-[-0.03em] sm:text-[2.75rem] sm:leading-[1.08] sm:tracking-[-0.035em]">
-            {CLOSING_ASK}
-            <span className="block text-muted-foreground">
-              {CLOSING_ASK_TWIST}
-            </span>
-          </h2>
+      <div className="flex flex-col items-center gap-8 text-center">
+        <h2 className="max-w-2xl text-balance text-[1.75rem] leading-[1.1] tracking-[-0.03em] sm:text-[2.75rem] sm:leading-[1.08] sm:tracking-[-0.035em]">
+          {CLOSING_ASK}
+          <span className="block text-muted-foreground">
+            {CLOSING_ASK_TWIST}
+          </span>
+        </h2>
 
-          {/*
-            The real button, not a link back up to one.
+        {/*
+          The real button, not a link back up to one.
 
-            While Arena still offered a magic link this had to be an anchor:
-            the sign-in was a card with an email field in it, and a second copy
-            would have been a second form, a second control labelled "Email"
-            and one visitor counted twice. Google-only makes signing in a
-            single button, so the ask at the bottom can be the ask rather than
-            a way back to it, which is what Upside Lab's does and what anybody
-            who has read to the end of a page expects to find there.
-          */}
-          <div className="flex justify-center">{signInAgain}</div>
+          While Arena still offered a magic link this had to be an anchor:
+          the sign-in was a card with an email field in it, and a second copy
+          would have been a second form, a second control labelled "Email"
+          and one visitor counted twice. Google-only makes signing in a
+          single button, so the ask at the bottom can be the ask rather than
+          a way back to it, which is what Upside Lab's does and what anybody
+          who has read to the end of a page expects to find there.
+        */}
+        <div className="flex justify-center">{signInAgain}</div>
 
-          <Consent />
-        </div>
-      </Arrive>
+        <Consent />
+      </div>
     </Section>
   );
 }

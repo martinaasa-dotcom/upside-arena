@@ -24,6 +24,17 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   /*
+    iOS Safari otherwise autolinks strings that look like phone numbers,
+    addresses or emails, wrapping them in an <a> after first paint. That is
+    a layout shift on a page whose figures already look like numbers, and
+    it is a delayed paint on older WebKit. Lab has the same three flags.
+  */
+  formatDetection: {
+    telephone: false,
+    email: false,
+    address: false,
+  },
+  /*
     Cache-busted on every icon change, because a favicon is one of the few
     things a browser will hold on to past a deploy and a stale one outlives
     the rebrand that replaced it.

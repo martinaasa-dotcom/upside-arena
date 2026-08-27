@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./scroll-host.css";
 
 /*
   Upside Arena shares Upside Lab's shipped visual system.
@@ -312,6 +313,18 @@
     */
 
     /*
+      Room for the page bar, so it never sits on a field.
+
+      Overlay bars (macOS, iOS) ignore this and paint on the content, which
+      is why form scrollers are `.scroll-host` rather than this. Classic
+      bars eat the box instead. `stable` keeps the reservation whether the
+      page currently overflows or not, so a short screen and a long one
+      share an edge. This is not overflow: it does not make the root a
+      scroll container, and the note above still holds.
+    */
+    scrollbar-gutter: stable;
+
+    /*
       Anything scrolled to by the browser stops below the bar rather than
       under it: the skip link's target, a hash, and the scroll Next performs
       on a client navigation, which skips fixed and sticky elements when it
@@ -333,8 +346,25 @@
       it belongs to the header, which paints through it, so that the glass
       reaches the real top of the window rather than stopping at the status
       bar and leaving a strip the page scrolls through.
+
+      Left and right are here, the same way Lab does it: a setting row pins
+      its control to the far edge of the panel, and in landscape that edge
+      is the home indicator. Without this the thumb lands on an OS swipe.
     */
     padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /*
+    Keep the focused field on screen when the keyboard has shrunk the
+    viewport. Onboarding is the loud case: two fields on a phone, keys up,
+    the page bar already reserved above. Hosts and overlays inherit this.
+    Width stays with the host: a global max-width: 100% would crush a
+    table cell.
+  */
+  :is(input, textarea, select) {
+    scroll-margin-block: 1.5rem;
   }
 
   h1,
@@ -864,62 +894,33 @@
     `backdrop-filter` on a card that hangs off the fold is the same fill-in
     the old scroll cue caused: WebKit re-samples the backdrop as new pixels
     arrive, and the lower half of the sample card appears late. The veil and
-    the rim stay; only the blur goes, and only on the signed-out page, and
-    only on a phone.
+    the rim stay; only the blur goes. Lab dropped it on a phone (767px).
+    Arena also drops it on any coarse pointer, so an iPad in landscape, which
+    is past 767 and still Safari, does not keep the layers a phone was
+    spared. Desktop with a mouse is unchanged.
   */
-  @media (max-width: 767px) {
+  @media (max-width: 767px), (hover: none) and (pointer: coarse) {
     .landing-field .glass,
     .landing-field .glass-well {
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
     }
-  }
 
-  /*
-    The hero used to run `.rise` with `both` fill, which is opacity 0 and
-    8px down from the first frame until 0.76s in. Safari does not rasterize
-    the below-fold half of a transformed layer until it scrolls on-screen,
-    which is the sample card popping in. An invite is one screen and would
-    keep the animation; the landing does not.
-  */
-  .landing-field .rise {
-    animation: none;
-  }
+    /*
+      The measurement notice is a sibling of the landing, not inside it,
+      and it is `position: fixed` with a backdrop-filter. That pair is the
+      scroll-cue fault: WebKit re-filters the sample card under the notice
+      every frame. Same drop, same reason. The veil stays (it is already
+      86% opaque), so the copy is still readable.
 
-  /*
-    Sections of the signed-out page arriving as they are scrolled to.
-
-    A transition rather than an animation, because the state is driven by an
-    IntersectionObserver in `Arrive` and an attribute swap on an element that
-    is already in the document. `.rise` above stays an animation: it is the
-    hero's one shot on mount.
-
-    The attribute is only ever written by script, so an element that has not
-    been marked carries no `data-reveal` at all and is simply visible. That is
-    the safe direction to fail in: nothing can leave a section of the page
-    permanently blank because an observer never fired.
-  */
-  [data-reveal] {
-    transition:
-      opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
-      transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  /*
-    12px and just over half a second. An arrival, not a performance: far
-    enough to be felt as movement and near enough that nothing is still
-    travelling by the time the eye lands on it. The same easing curve as
-    `.rise`, so the hero's one shot and the sections below it are visibly
-    the same gesture.
-  */
-  [data-reveal="out"] {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-
-  [data-reveal="in"] {
-    opacity: 1;
-    transform: none;
+      A subsequent-sibling selector rather than `:has()`, because `:has()`
+      is iOS 15.4 and this rule is for the phones that already struggle
+      with the blur.
+    */
+    .landing-field ~ .glass-notice {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
   }
 
   /* Money, percents, tickers, counts. */
@@ -989,6 +990,16 @@
     box above, and wrong on anything taller than the window.
   */
   transform: none;
+}
+
+/*
+  Unlayered on purpose, next to the sample card. `.rise` lives in
+  `@layer components`; an unlayered `animation: none` is what actually
+  stops the hero holding opacity 0 through its stagger, which is both
+  the Chrome LCP miss and the Safari skip of the below-fold half.
+*/
+.landing-field .rise {
+  animation: none;
 }
 
 /*
@@ -1095,19 +1106,6 @@
     */
     animation-fill-mode: none !important;
     scroll-behavior: auto !important;
-  }
-}
-
-/*
-  The blanket rule above makes the reveal instant, which is not the same as
-  making it absent: a section still starts at zero opacity and waits for an
-  observer to say it has been reached. Somebody who has asked for less motion
-  should just see the page. So `out` is drawn where it is.
-*/
-@media (prefers-reduced-motion: reduce) {
-  [data-reveal="out"] {
-    opacity: 1;
-    transform: none;
   }
 }
 

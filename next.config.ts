@@ -93,7 +93,8 @@ const nextConfig: NextConfig = {
           worst case is somebody seeing yesterday's icon for a few hours, and
           the best case is that a returning player fetches none of it.
         */
-        source: "/:file(favicon.png|og.png|arena-mark.svg)",
+        source:
+          "/:file(favicon.png|favicon.svg|favicon.ico|og.png|arena-mark.svg|apple-touch-icon.png)",
         headers: [
           {
             key: "Cache-Control",

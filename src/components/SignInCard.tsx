@@ -71,7 +71,14 @@ export function SignInCard({
 */
 function GoogleGlyph() {
   return (
-    <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true" focusable="false">
+    <svg
+      viewBox="0 0 24 24"
+      width={20}
+      height={20}
+      className="size-5"
+      aria-hidden="true"
+      focusable="false"
+    >
       <path
         fill="#EA4335"
         d="M12 10.2v3.9h5.5a4.7 4.7 0 0 1-2 3.1l3.2 2.5c1.9-1.7 3-4.3 3-7.3 0-.7-.1-1.4-.2-2z"

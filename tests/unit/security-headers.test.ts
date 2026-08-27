@@ -68,5 +68,6 @@ describe("buildContentSecurityPolicy", () => {
     expect(keys).toContain("X-Content-Type-Options");
     expect(keys).toContain("X-Frame-Options");
     expect(keys).toContain("Strict-Transport-Security");
+    expect(keys).toContain("X-DNS-Prefetch-Control");
   });
 });

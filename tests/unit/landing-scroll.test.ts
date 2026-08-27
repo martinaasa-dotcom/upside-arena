@@ -1,102 +1,69 @@
 /**
  * The landing page must never look like it is still loading.
  *
- * The feedback this guards: somebody scrolls the signed-out page, the next
- * section is not drawn yet, and the reasonable thing to conclude is that
- * the page has ended, so they scroll back up and never see the rest of it.
- * Two causes, both numbers typed into a component rather than anything a
- * render would show, which is why this reads the source.
+ * The feedback this guards: somebody scrolls down the signed-out page, the
+ * next section is not drawn yet, and the reasonable thing to conclude is
+ * that the page has ended, so they scroll back up and never see the rest of
+ * it. That used to be an IntersectionObserver fade. It is gone. Everything
+ * the HTML carries is painted. These checks are against the source, because
+ * the settled page looks the same either way, which is the whole problem.
  *
- * One, `Arrive` armed its observer with `rootMargin: "0px 0px -12% 0px"`, a
- * negative margin, which shrinks the observer's root instead of growing it.
- * Measured against the real page at 390x844 and 1440x900, every block on it
- * flipped to "in" while sitting 116px to 185px inside the window, and only
- * then started a half-second fade. Two, a section's heading and its row of
- * cards were two separate `Arrive` blocks with the cards on a delay, so the
- * commonest thing a reader saw at a boundary was a title with a hole under
- * it.
- *
- * Both arrived here with the page itself, which was ported from Upside
- * Lab. Lab's copy is fixed the same way and holds itself to the same rules
- * in `src/lib/landing-scroll.test.ts`. The two apps are one design, so the
- * two guards say the same thing on purpose.
+ * Lab dropped the fade when it split the field. Arena had kept `Arrive`
+ * with a long lead, which still wrote a translated layer on anything below
+ * that lead and still hydrated five observers. Older WebKit skips a
+ * translated layer until it scrolls on-screen, which is the sample card
+ * popping in. The two apps are one design, so the two guards say the same
+ * thing on purpose.
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const ARRIVE = readFileSync("src/components/Arrive.tsx", "utf8");
 const LANDING = readFileSync("src/components/SignedOutLanding.tsx", "utf8");
 const CSS = readFileSync("src/app/globals.css", "utf8");
 
-/** Every `<Arrive …>…</Arrive>` block on the landing, body text included. */
-function arriveBlocks(source: string): string[] {
-  const out: string[] = [];
-  const open = /<Arrive(\s[^>]*)?>/g;
-  let match: RegExpExecArray | null;
-  while ((match = open.exec(source))) {
-    const end = source.indexOf("</Arrive>", match.index);
-    if (end === -1) continue;
-    out.push(source.slice(match.index, end));
-  }
-  return out;
+/** Every `<SectionHead …/>` plus the markup until the next function. */
+function sectionAfterHead(source: string, title: string): string {
+  const head = source.indexOf(`title="${title}"`);
+  expect(head, `SectionHead "${title}" is missing`).toBeGreaterThan(-1);
+  const from = source.lastIndexOf("<SectionHead", head);
+  const next = source.slice(from + 1).search(/\n(?:export )?function /);
+  return source.slice(from, next === -1 ? undefined : from + 1 + next);
 }
 
-describe("the landing page arrives ahead of the fold", () => {
-  it("grows the observer's root rather than shrinking it", () => {
-    const lead = ARRIVE.match(/const ARRIVE_LEAD = ([\d.]+);/);
-    expect(lead, "ARRIVE_LEAD is gone").not.toBeNull();
-
-    // A whole screen at least. Below 1 a section can arrive while somebody
-    // is looking at the space it will occupy, which is the bug.
-    expect(Number(lead![1])).toBeGreaterThanOrEqual(1);
-
-    expect(ARRIVE).toMatch(
-      /rootMargin: `0px 0px \$\{Math\.round\(ARRIVE_LEAD \* 100\)\}% 0px`/
-    );
-    expect(ARRIVE, "a negative rootMargin is the old bug").not.toMatch(
-      /rootMargin:[^,\n]*-\d/
-    );
+describe("the landing page is drawn, not revealed", () => {
+  it("never writes a hide attribute, and never observes the fold", () => {
+    expect(LANDING).not.toContain("data-reveal");
+    expect(LANDING).not.toContain("IntersectionObserver");
+    expect(LANDING).not.toContain("ARRIVE_LEAD");
+    expect(LANDING).not.toContain("<Arrive");
+    expect(CSS).not.toContain("[data-reveal]");
   });
 
-  it("draws what is already within the lead instead of fading it", () => {
-    // The screenful under the hero is finished before the first scroll
-    // rather than starting to arrive because of one. It is also what stops
-    // a section flashing empty on mount, and what makes a reload halfway
-    // down the page draw its surroundings rather than animate them.
-    expect(ARRIVE).toContain("window.innerHeight * (1 + ARRIVE_LEAD)");
-  });
+  it("keeps a heading and the cards it heads in one section", () => {
+    const headed = [
+      [
+        "The same money on Monday. A scoreboard on Friday. An argument all week.",
+        /<(div|WeekStill|BattleStill)/,
+      ],
+      [
+        "It starts with the people you already argue with.",
+        /<(ol|div)/,
+      ],
+      ["The week is only the start of it.", /<(div)/],
+    ] as const;
 
-  it("staggers nothing, so no part of a section can lag another", () => {
-    expect(ARRIVE).not.toContain("delayMs");
-    expect(ARRIVE).not.toContain("transitionDelay");
-    expect(LANDING).not.toContain("delayMs");
-  });
-
-  it("keeps a heading and the cards it heads in one block", () => {
-    const blocks = arriveBlocks(LANDING);
-    expect(blocks.length).toBeGreaterThan(0);
-
-    for (const block of blocks) {
-      if (!block.includes("<SectionHead")) continue;
+    for (const [title, cards] of headed) {
+      const block = sectionAfterHead(LANDING, title);
       expect(
         block,
         "a SectionHead that arrives without the row it is the heading of"
-      ).toMatch(/<(div|ol) className="mt-\d+ grid/);
+      ).toMatch(cards);
     }
   });
 
-  it("keeps a ceiling on the fade, so it can never become a wait", () => {
-    /*
-      Deliberately not tightened. 0.55s was chosen with a reason written
-      beside it and the same easing curve as `.rise`, and with the lead
-      above it nobody watches it happen anyway. What this stops is somebody
-      later deciding an arrival should take a second and a half, which is
-      long enough that a reader who outruns the page catches a section
-      half-drawn and reads it as still loading.
-    */
-    const rule = CSS.match(/\[data-reveal\] \{\s*transition:\s*opacity ([\d.]+)s/);
-    expect(rule, "the [data-reveal] transition is gone").not.toBeNull();
-    expect(Number(rule![1])).toBeLessThanOrEqual(0.6);
+  it("staggers nothing, so no part of a section can lag another", () => {
+    expect(LANDING).not.toContain("delayMs");
+    expect(LANDING).not.toContain("transitionDelay");
   });
 });
 

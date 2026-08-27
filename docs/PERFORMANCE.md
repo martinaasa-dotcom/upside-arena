@@ -29,42 +29,48 @@ fixed row heights, the reserved space and the fonts being loaded through
 `next/font` buy, and it is the number most worth defending, because a page
 that moves under a thumb is the failure a person actually feels.
 
-## The landing page reports no LCP, and that is worth understanding
+## The landing page reports LCP again, and why it used not to
 
-The hero animates in from `opacity: 0` (`.rise` in `globals.css`). Chrome does
-not accept a transparent element as a candidate for Largest Contentful Paint,
-and it does not go back and file one when the animation finishes, so the
-signed-out page produces **no LCP entry at all**. Field tools will show
-nothing for it rather than something good.
+The table above is from 24 August 2026, **before** `.rise` was turned off on
+the signed-out page. At that point the hero animated in from `opacity: 0`.
+Chrome does not accept a transparent element as a candidate for Largest
+Contentful Paint, and it does not go back and file one when the animation
+finishes, so field tools showed nothing for `/` rather than something good.
 
-That is a deliberate design decision, argued in `AGENTS.md`: the page is meant
-to arrive rather than appear. What is worth being clear about is the cost, and
-the cost is that the one number Google reads for this page does not exist.
-Whoever wants it back knows where the lever is: it is the opacity term in
-`@keyframes rise`, and a rise that only moves would keep most of the effect
-and be measurable.
+That animation is now `none` on `.landing-field`. It was also the Safari
+skip that left the below-fold half of the sample card unpainted until
+scroll, so turning it off is a WebKit fix first and an LCP fix second. The
+hero paints on the first frame. There is still **no bitmap on this page**:
+the lockup is inline SVG, the stills are CSS, and Lab's landing is the same
+shape, so there is nothing to preload, nothing to lazy-load, and no WebP
+that older WebKit can fail to decode. LCP is the 64px headline waiting on
+its webfont, which is why the reduced-motion column on that date (hero
+visible immediately) still read slower than `/how`.
 
-The reduced-motion column is what somebody who has asked for less motion
-sees, and it is a real reading of how fast the page is: **the hero is on the
-screen in about three quarters of a second**, against a fifth of a second for
-the pages whose largest element is ordinary text. The difference is the hero's
-64px display type waiting on its webfont; the smaller headings paint in the
-fallback and are not repainted enough to move the mark.
+Re-run `scripts/vitals.mjs` after touching this page and replace the `/`
+row. Do not leave "not reported" in the table once a run has a number.
+
+The reduced-motion column on that date is what somebody who has asked for
+less motion sees, and it is a real reading of how fast the page is: **the
+hero is on the screen in about three quarters of a second**, against a
+fifth of a second for the pages whose largest element is ordinary text.
 
 ## The one number that is not good enough
 
-`/` spends **around 330 milliseconds in a single long task**, every time,
-where every other page spends at most 60. That is hydration: the landing is a
-server component but it carries the sign-in button, the consent question, the
-arrival observer, the service worker registration and the ambient dither, and
-they all wake up at once.
+`/` spent **around 330 milliseconds in a single long task** on that date,
+where every other page spent at most 60. That is hydration: the landing is a
+server component but it carries the sign-in button, the consent question,
+the service worker registration and the ambient dither, and they all wake up
+at once. It used to carry five arrival observers as well; those are gone,
+ported from Lab, because they hid already-painted HTML and older WebKit
+skipped the translated layer.
 
-Nobody is waiting on it in the sense that matters (there is one control on the
-page and it is not usable any earlier or later than the paint), but a third of
-a second of blocked main thread on a laptop is closer to a second and a half
-on the phone somebody actually opens this on, and the whole of that window is
-a tap that does nothing. It is the first thing to look at if the landing page
-is ever worked on again.
+Nobody is waiting on it in the sense that matters (there is one control on
+the page and it is not usable any earlier or later than the paint), but a
+third of a second of blocked main thread on a laptop is closer to a second
+and a half on the phone somebody actually opens this on, and the whole of
+that window is a tap that does nothing. It is the first thing to look at if
+the landing page is ever worked on again.
 
 ## What was found by measuring
 
