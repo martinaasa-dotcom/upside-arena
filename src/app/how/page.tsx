@@ -56,8 +56,9 @@ export default function HowPage() {
           <Section title="1. It is a game, and the money is not real">
             <p>
               You are given {formatMoney(STARTING_BALANCE)} of pretend money.
-              You buy shares in real companies at real prices, and at the end of
-              the week you find out how you did against everybody else.
+              You buy shares in real companies, and a handful of coins, at
+              real prices, and at the end of the week you find out how you did
+              against everybody else.
             </p>
             <p>
               Nothing here is redeemable, transferable or worth anything. You
@@ -108,7 +109,7 @@ export default function HowPage() {
             </p>
             <p>
               Home also shows <strong>what moved today</strong>: the largest
-              real moves among companies you would recognise, and anything you
+              real moves among names you would recognise, and anything you
               hold. It is there because a screen that only shows two slowly
               moving numbers gives you no reason to open it on a Tuesday. It is
               not a shortlist and it is not advice: a big move is what happened,
@@ -199,8 +200,13 @@ export default function HowPage() {
               fall, and a position gains what the price loses. It has no
               borrowing and no leverage, and a name can never cost you more than
               you put into it, which is the one way it is kinder than the real
-              thing. <strong>All hours</strong> is coins, and its market never
-              shuts, so it is the only contest here that runs on a Saturday.
+              thing.
+            </p>
+            <p>
+              The ordinary week can hold Bitcoin and a few other coins, on the
+              same hours as shares. <strong>All hours</strong> is coins only,
+              and its market never shuts, so it is the only contest here that
+              runs on a Saturday.
             </p>
 
             <p>

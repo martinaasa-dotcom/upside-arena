@@ -193,7 +193,7 @@ export async function queueOrder(
   // The lineup is the house week, and the house week is the open market.
   const house = formatById(DEFAULT_FORMAT);
   const quote = await getQuote(clean);
-  if (quote && belowPriceFloor(house, quote.price)) {
+  if (quote && belowPriceFloor(house, quote.price, clean)) {
     return { ok: false, error: priceFloorRefusal(clean, quote.price) };
   }
 
@@ -382,7 +382,7 @@ export async function fillLineup(
 
   for (const [symbol, open] of opens) {
     if (open == null || open <= 0) continue;
-    if (belowPriceFloor(format, open)) tooCheap.push(symbol);
+    if (belowPriceFloor(format, open, symbol)) tooCheap.push(symbol);
     else prices[symbol] = open;
   }
 

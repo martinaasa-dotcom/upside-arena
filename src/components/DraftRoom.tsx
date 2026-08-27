@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
 import { formatMoney } from "@/lib/format";
+import { displaySymbol } from "@/lib/coins";
 import type { DraftShell, DraftState } from "@/lib/game/draft";
 import {
   MIN_SEATS,
@@ -435,7 +436,7 @@ function AllPicked({ shell, state }: { shell: DraftShell; state: DraftState }) {
               {turn.round}
             </span>
             <span className="min-w-0 flex-1 truncate font-mono text-sm">
-              {turn.symbol}
+              {turn.symbol ? displaySymbol(turn.symbol) : ""}
               {turn.byClock ? (
                 <span className="ml-2 text-xs text-muted-foreground">
                   taken by the clock
@@ -531,7 +532,7 @@ export function DraftBoard({
                     takenBy && "line-through"
                   )}
                 >
-                  {name.symbol}
+                  {displaySymbol(name.symbol)}
                 </span>
                 {name.price != null && !takenBy ? (
                   <span className="font-mono text-xs tabular-nums text-muted-foreground">
@@ -596,7 +597,7 @@ export function DraftRunningOrder({
               </span>
               {turn.symbol ? (
                 <Badge variant="outline" className="shrink-0 font-mono">
-                  {turn.symbol}
+                  {displaySymbol(turn.symbol)}
                 </Badge>
               ) : live ? (
                 <Clock className="size-4 shrink-0 text-primary" aria-hidden="true" />

@@ -18,8 +18,9 @@ import {
   Two of these matter more than the rest. The short valuation is arithmetic
   that has to agree with the SQL in 0017_battles.sql or a position is worth one
   thing on screen and another when the battle is settled -- and the settled one
-  is final. And the universe check is what stops a coin being bought in the
-  house week now that the quote layer will happily price one.
+  is final. And the universe check is what stops Yahoo's coin list being bought
+  in the house week: the household catalog is allowed, a coin that is not on it
+  is not, even though the quote layer will price one.
 */
 
 const open = formatById("open");
@@ -126,23 +127,33 @@ describe("what a format lets you buy", () => {
     positions: [],
   };
 
-  it("lets the house game have shares and funds", () => {
+  it("lets the house game have shares, funds and catalog coins", () => {
     expect(checkTrade(open, { ...base, symbol: "AAPL", quoteType: "EQUITY" }).ok).toBe(true);
     expect(checkTrade(open, { ...base, symbol: "SPY", quoteType: "ETF" }).ok).toBe(true);
+    expect(
+      checkTrade(open, { ...base, symbol: "BTC-USD", quoteType: "CRYPTOCURRENCY" }).ok
+    ).toBe(true);
   });
 
   /*
-    The quote layer prices coins now, because the all-hours format asks it to.
-    Pricing something is not permission to own it: a market that never shuts
-    would make the house week turn on who was awake on Saturday.
+    Yahoo will price any coin. The catalog is what may be owned. A market
+    that never shuts is still the all-hours contest, not Saturday trading
+    in the house week: catalog coins trade on market hours, like shares.
   */
-  it("keeps coins out of the house game", () => {
+  it("keeps Yahoo's coin list out of the house game", () => {
     const result = checkTrade(open, {
       ...base,
-      symbol: "BTC-USD",
+      symbol: "SHIB-USD",
       quoteType: "CRYPTOCURRENCY",
     });
     expect(result.ok).toBe(false);
+  });
+
+  it("keeps coins out of a funds-only week", () => {
+    const funds = formatById("index");
+    expect(
+      checkTrade(funds, { ...base, symbol: "BTC-USD", quoteType: "CRYPTOCURRENCY" }).ok
+    ).toBe(false);
   });
 
   it("keeps shares out of the coin game", () => {
@@ -277,6 +288,9 @@ describe("what is too cheap to be a result", () => {
     expect(
       checkTrade(crypto, { ...base, symbol: "XRP-USD", price: 0.4, quoteType: "CRYPTOCURRENCY" })
         .ok
+    ).toBe(true);
+    expect(
+      checkTrade(open, { ...base, symbol: "XRP-USD", price: 0.4, quoteType: "CRYPTOCURRENCY" }).ok
     ).toBe(true);
   });
 

@@ -263,6 +263,35 @@ describe("what the search box offers", () => {
 
     expect(matches.map((m) => m.symbol)).toEqual(["VFIAX", "VOO"]);
   });
+
+  it("finds Bitcoin from the household catalog, without Yahoo returning it", async () => {
+    found([]);
+
+    const matches = await searchSymbols("bitcoin");
+
+    expect(matches.map((m) => m.symbol)).toEqual(["BTC-USD"]);
+    expect(matches[0]?.name).toBe("Bitcoin");
+  });
+
+  it("puts the coin ahead of a fund that shares the letters", async () => {
+    found([{ symbol: "BTC", quoteType: "EQUITY", exchange: "NYQ" }]);
+
+    const matches = await searchSymbols("btc");
+
+    expect(matches.map((m) => m.symbol)).toEqual(["BTC-USD", "BTC"]);
+  });
+
+  it("does not put coins in a funds-only search", async () => {
+    found([]);
+
+    expect(await searchSymbols("bitcoin", ["ETF", "MUTUALFUND"])).toEqual([]);
+  });
+
+  it("does not offer a coin Yahoo knows that is not on the household list", async () => {
+    found([{ symbol: "SHIB-USD", quoteType: "CRYPTOCURRENCY", exchange: "CCC" }]);
+
+    expect(await searchSymbols("shib", ["CRYPTOCURRENCY"])).toEqual([]);
+  });
 });
 
 /*

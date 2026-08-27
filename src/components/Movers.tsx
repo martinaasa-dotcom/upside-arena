@@ -1,6 +1,7 @@
 import { Panel } from "@/components/Panel";
 import { cn } from "@/lib/utils";
 import { formatMoney, formatPercent } from "@/lib/format";
+import { displaySymbol } from "@/lib/coins";
 import type { Mover, MoversView } from "@/lib/market/movers";
 
 /*
@@ -25,7 +26,7 @@ export function Movers({ movers }: { movers: MoversView }) {
   return (
     <Panel
       title="What moved today"
-      description="The largest real moves among companies you would recognise, and anything you own. A big move is not a reason to buy something. It is just what happened."
+      description="The largest real moves among names you would recognise, and anything you own. A big move is not a reason to buy something. It is just what happened."
     >
       <div className="flex flex-col gap-4">
         <Column label="Up" rows={movers.up} />
@@ -63,7 +64,7 @@ function Column({ label, rows }: { label: string; rows: Mover[] }) {
             >
               <span className="flex min-w-0 items-baseline justify-between gap-2">
                 <span className="figure truncate text-sm font-semibold">
-                  {row.symbol}
+                  {displaySymbol(row.symbol)}
                 </span>
                 {row.owned ? (
                   <span className="shrink-0 text-xs text-primary">Yours</span>

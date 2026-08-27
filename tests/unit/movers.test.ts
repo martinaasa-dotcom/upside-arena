@@ -72,6 +72,12 @@ describe("the watchlist", () => {
       expect(symbol).toMatch(/^[A-Z0-9.\-]{1,12}$/);
     }
   });
+
+  it("carries the same three household coins Lab puts on chips", () => {
+    expect(MOVERS_WATCHLIST).toContain("BTC-USD");
+    expect(MOVERS_WATCHLIST).toContain("ETH-USD");
+    expect(MOVERS_WATCHLIST).toContain("SOL-USD");
+  });
 });
 
 describe("what moved", () => {

@@ -13,6 +13,22 @@ import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
 import { lookupSymbols, submitTrade, type TradeState } from "@/app/(app)/trade/actions";
 import type { SymbolMatch } from "@/lib/market/quotes";
+import { HouseholdCoinChips } from "@/components/CoinChips";
+import {
+  coinFromSymbol,
+  displaySymbol,
+  holdingUnit,
+  isCoinPair,
+} from "@/lib/coins";
+
+function asMatch(symbol: string): SymbolMatch {
+  const coin = coinFromSymbol(symbol);
+  return {
+    symbol,
+    name: coin?.name ?? symbol,
+    exchange: coin ? "CCC" : null,
+  };
+}
 
 const SIDES = [
   { value: "buy" as const, label: "Buy" },
@@ -41,6 +57,7 @@ export function TradeForm({
   battleId,
   universe,
   rule,
+  allowCoins = true,
 }: {
   cash: number;
   ownedSymbols: string[];
@@ -52,12 +69,19 @@ export function TradeForm({
   universe?: readonly string[] | null;
   /** The format's rule, in the words the player is held to. */
   rule?: string | null;
+  /**
+   * Household coin chips and catalog search. True for the ordinary market,
+   * false for funds-only. A named list does not search, so this is ignored.
+   */
+  allowCoins?: boolean;
 }) {
   const [state, formAction, pending] = useActionState<TradeState, FormData>(
     submitTrade,
     {}
   );
-  const [side, setSide] = useState<"buy" | "sell">("buy");
+  const [side, setSide] = useState<"buy" | "sell">(
+    (buyingOpenProp ?? tradingOpen) ? "buy" : "sell"
+  );
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<SymbolMatch | null>(null);
   const [matches, setMatches] = useState<SymbolMatch[]>([]);
@@ -124,6 +148,7 @@ export function TradeForm({
     };
   }, [query, picked, universe, battleId]);
 
+  const buyingOpen = buyingOpenProp ?? tradingOpen;
   const shares = Number(quantity);
   const validShares = Number.isInteger(shares) && shares > 0;
   // Derived rather than cleared in an effect, so a stale list cannot flash
@@ -168,6 +193,10 @@ export function TradeForm({
       {!tradingOpen ? (
         <Well className="py-3">
           <p className="text-sm text-warning">{closedReason}</p>
+        </Well>
+      ) : !buyingOpen && side === "buy" ? (
+        <Well className="py-3">
+          <p className="text-sm text-warning">{buyReason}</p>
         </Well>
       ) : null}
 
@@ -218,14 +247,14 @@ export function TradeForm({
                   type="button"
                   role="radio"
                   aria-checked={false}
-                  onClick={() => setPicked({ symbol, name: symbol, exchange: null })}
+                  onClick={() => setPicked(asMatch(symbol))}
                   className={cn(
                     "figure h-11 rounded-lg border border-border text-sm font-semibold transition-colors",
                     "hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                     ownedSymbols.includes(symbol) && "border-primary/50 text-primary"
                   )}
                 >
-                  {symbol.replace(/-USD$/, "")}
+                  {displaySymbol(symbol)}
                 </button>
               ))}
             </div>
@@ -233,7 +262,9 @@ export function TradeForm({
         ) : picked ? (
           <Well className="flex items-center justify-between gap-3 py-3">
             <span className="min-w-0">
-              <span className="figure text-sm font-semibold">{picked.symbol}</span>
+              <span className="figure text-sm font-semibold">
+                {displaySymbol(picked.symbol)}
+              </span>
               {/*
                 A name from the format grid is the ticker twice, and rendering
                 that twice reads as a bug rather than as a company whose name
@@ -245,17 +276,19 @@ export function TradeForm({
                 </span>
               ) : null}
             </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setPicked(null);
-                setQuery("");
-              }}
-            >
-              Change
-            </Button>
+            <div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setPicked(null);
+                  setQuery("");
+                }}
+              >
+                Change
+              </Button>
+            </div>
           </Well>
         ) : (
           <>
@@ -269,7 +302,11 @@ export function TradeForm({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={
-                  side === "sell" ? "Search what you own" : "Search a company or ticker"
+                  side === "sell"
+                    ? "Search what you own"
+                    : allowCoins
+                      ? "Apple, NVDA, or Bitcoin"
+                      : "Search a company or ticker"
                 }
                 autoComplete="off"
                 className="pl-9"
@@ -285,9 +322,21 @@ export function TradeForm({
 
             <p id={`${searchId}-hint`} className="text-sm text-muted-foreground">
               {side === "sell" && ownedSymbols.length > 0
-                ? `You own ${ownedSymbols.join(", ")}.`
-                : "Try a name like Apple, or a ticker like AAPL."}
+                ? `You own ${ownedSymbols.map(displaySymbol).join(", ")}.`
+                : allowCoins
+                  ? "Try Apple, AAPL, or Bitcoin."
+                  : "Try a name like Apple, or a ticker like AAPL."}
             </p>
+
+            {allowCoins && side === "buy" ? (
+              <HouseholdCoinChips
+                onPick={(symbol) => {
+                  setPicked(asMatch(symbol));
+                  setQuery("");
+                  setMatches([]);
+                }}
+              />
+            ) : null}
 
             {showMatches ? (
               <ul className="mt-1 flex flex-col gap-px overflow-hidden rounded-lg bg-border">
@@ -307,7 +356,7 @@ export function TradeForm({
                         )}
                       >
                         <span className="figure w-16 shrink-0 text-sm font-semibold">
-                          {match.symbol}
+                          {displaySymbol(match.symbol)}
                         </span>
                         <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
                           {match.name}
@@ -326,7 +375,9 @@ export function TradeForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor={quantityId}>How many shares?</Label>
+        <Label htmlFor={quantityId}>
+          {picked && isCoinPair(picked.symbol) ? "How many?" : "How many shares?"}
+        </Label>
         <Input
           id={quantityId}
           name="quantity"
@@ -340,7 +391,9 @@ export function TradeForm({
           aria-describedby={`${quantityId}-hint`}
         />
         <p id={`${quantityId}-hint`} className="text-sm text-muted-foreground">
-          Whole shares only. You have {formatMoney(cash)} to spend.
+          {picked && isCoinPair(picked.symbol)
+            ? `Whole ${holdingUnit(picked.symbol, 2)} only. You have ${formatMoney(cash)} to spend.`
+            : `Whole shares only. You have ${formatMoney(cash)} to spend.`}
         </p>
       </div>
 
@@ -359,8 +412,8 @@ export function TradeForm({
           {pending
             ? "Placing"
             : side === "buy"
-              ? `Buy ${picked?.symbol ?? "shares"}`
-              : `Sell ${picked?.symbol ?? "shares"}`}
+              ? `Buy ${picked ? displaySymbol(picked.symbol) : "shares"}`
+              : `Sell ${picked ? displaySymbol(picked.symbol) : "shares"}`}
         </Button>
       </div>
 

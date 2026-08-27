@@ -18,6 +18,13 @@ import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
 import { NO_VALUE, formatDate, formatMoney } from "@/lib/format";
 import { lookupSymbols } from "@/app/(app)/trade/actions";
+import { HouseholdCoinChips } from "@/components/CoinChips";
+import {
+  coinFromSymbol,
+  displaySymbol,
+  holdingUnit,
+  isCoinPair,
+} from "@/lib/coins";
 import {
   submitClearLineupOrder,
   submitLineupOrder,
@@ -25,6 +32,15 @@ import {
 } from "@/app/(app)/trade/lineup-actions";
 import type { LineupView } from "@/lib/game/lineup";
 import type { SymbolMatch } from "@/lib/market/quotes";
+
+function asMatch(symbol: string): SymbolMatch {
+  const coin = coinFromSymbol(symbol);
+  return {
+    symbol,
+    name: coin?.name ?? symbol,
+    exchange: coin ? "CCC" : null,
+  };
+}
 
 /*
   What the weekend is for.
@@ -134,10 +150,10 @@ export function Lineup({ view }: { view: LineupView }) {
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
                   <span className="flex items-baseline gap-3 sm:contents">
                     <span className="figure shrink-0 text-sm font-semibold sm:w-16">
-                      {order.symbol}
+                      {displaySymbol(order.symbol)}
                     </span>
                     <span className="figure shrink-0 text-sm text-muted-foreground sm:w-24">
-                      {order.quantity} {order.quantity === 1 ? "share" : "shares"}
+                      {order.quantity} {holdingUnit(order.symbol, order.quantity)}
                     </span>
                   </span>
                   <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
@@ -160,7 +176,7 @@ export function Lineup({ view }: { view: LineupView }) {
                     size="sm"
                     className="shrink-0"
                     disabled={removing}
-                    aria-label={`Take ${order.symbol} out of the lineup`}
+                    aria-label={`Take ${displaySymbol(order.symbol)} out of the lineup`}
                     onClick={() =>
                       startRemoving(async () => {
                         /*
@@ -185,7 +201,7 @@ export function Lineup({ view }: { view: LineupView }) {
                           }
 
                           track("lineup_order_cleared");
-                          toast.success(`${order.symbol} taken out.`);
+                          toast.success(`${displaySymbol(order.symbol)} taken out.`);
                         } catch {
                           toast.error("We could not reach the server. Try again.");
                         }
@@ -231,23 +247,25 @@ export function Lineup({ view }: { view: LineupView }) {
                 <Well className="flex items-center justify-between gap-3 py-3">
                   <span className="min-w-0">
                     <span className="figure text-sm font-semibold">
-                      {picked.symbol}
+                      {displaySymbol(picked.symbol)}
                     </span>
                     <span className="ml-2 truncate text-sm text-muted-foreground">
                       {picked.name}
                     </span>
                   </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setPicked(null);
-                      setQuery("");
-                    }}
-                  >
-                    Change
-                  </Button>
+                  <div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setPicked(null);
+                        setQuery("");
+                      }}
+                    >
+                      Change
+                    </Button>
+                  </div>
                 </Well>
               ) : (
                 <>
@@ -260,7 +278,7 @@ export function Lineup({ view }: { view: LineupView }) {
                       id={searchId}
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
-                      placeholder="Search a company or ticker"
+                      placeholder="Apple, NVDA, or Bitcoin"
                       autoComplete="off"
                       className="pl-9"
                     />
@@ -271,6 +289,14 @@ export function Lineup({ view }: { view: LineupView }) {
                       />
                     ) : null}
                   </div>
+
+                  <HouseholdCoinChips
+                    onPick={(symbol) => {
+                      setPicked(asMatch(symbol));
+                      setQuery("");
+                      setMatches([]);
+                    }}
+                  />
 
                   {showMatches ? (
                     <ul className="mt-1 flex flex-col gap-px overflow-hidden rounded-lg bg-border">
@@ -288,7 +314,7 @@ export function Lineup({ view }: { view: LineupView }) {
                             )}
                           >
                             <span className="figure w-16 shrink-0 text-sm font-semibold">
-                              {match.symbol}
+                              {displaySymbol(match.symbol)}
                             </span>
                             <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
                               {match.name}
@@ -303,7 +329,9 @@ export function Lineup({ view }: { view: LineupView }) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor={quantityId}>How many shares?</Label>
+              <Label htmlFor={quantityId}>
+                {picked && isCoinPair(picked.symbol) ? "How many?" : "How many shares?"}
+              </Label>
               <Input
                 id={quantityId}
                 name="quantity"
@@ -317,8 +345,10 @@ export function Lineup({ view }: { view: LineupView }) {
                 aria-describedby={`${quantityId}-hint`}
               />
               <p id={`${quantityId}-hint`} className="text-sm text-muted-foreground">
-                Whole shares only. You will have{" "}
-                {formatMoney(view.startingBalance)} on Monday morning.
+                {picked && isCoinPair(picked.symbol)
+                  ? `Whole ${holdingUnit(picked.symbol, 2)} only.`
+                  : "Whole shares only."}{" "}
+                You will have {formatMoney(view.startingBalance)} on Monday morning.
               </p>
             </div>
 
@@ -383,7 +413,7 @@ export function LineupReport({
         {missed.map((order) => (
           <Well key={order.symbol} className="flex items-start gap-3 py-3">
             <span className="figure w-16 shrink-0 text-sm font-semibold">
-              {order.symbol}
+              {displaySymbol(order.symbol)}
             </span>
             <span className="min-w-0 flex-1 text-sm text-muted-foreground">
               {order.detail ?? "This one did not run."}

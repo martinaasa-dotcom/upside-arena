@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { formatMoney, formatPercent } from "@/lib/format";
+import { displaySymbol, holdingUnit } from "@/lib/coins";
 import type { Position } from "@/lib/game/portfolio";
 
 /*
@@ -22,7 +23,7 @@ export function Holdings({ positions }: { positions: Position[] }) {
             )}
           >
             <span className="figure w-16 shrink-0 text-sm font-semibold">
-              {position.symbol}
+              {displaySymbol(position.symbol)}
             </span>
 
             {/*
@@ -35,7 +36,7 @@ export function Holdings({ positions }: { positions: Position[] }) {
               the thing that can afford to.
             */}
             <span className="figure hidden shrink-0 whitespace-nowrap text-sm text-muted-foreground sm:block">
-              {position.quantity} {position.quantity === 1 ? "share" : "shares"}
+              {position.quantity} {holdingUnit(position.symbol, position.quantity)}
             </span>
 
             <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">

@@ -2,6 +2,7 @@ import "server-only";
 
 import { cacheLife } from "next/cache";
 import { QUOTE_TTL_SECONDS } from "@/lib/game";
+import { coinSuggestions, matchCoinQuery, searchWantsCoins } from "@/lib/coins";
 import { sessionMark } from "@/lib/market/session";
 import { getYahoo } from "@/lib/market/yahoo";
 
@@ -92,10 +93,11 @@ type YahooQuote = {
   they are leveraged, and letting one in would quietly change what a week
   measures.
 
-  Coins are in, and only because a format asks for them. This is the widest
-  the door goes; which of these a given contest actually allows is a rule of
-  the format, in src/lib/game/formats.ts, and the house week still allows
-  shares and funds only. Pricing something is not permission to buy it.
+  Coins are in. The house week can hold the household catalog in coins.ts,
+  on market hours. Yahoo's coin list is still not searchable: search injects
+  that catalog locally. Which of these a given contest actually allows is a
+  rule of the format, in src/lib/game/formats.ts. A coin that is not on the
+  catalog is priced and still refused.
 */
 const PRICEABLE_TYPES = new Set([
   "EQUITY",
@@ -554,23 +556,46 @@ async function fetchSearch(
   }
 }
 
-export async function searchSymbols(
+/**
+ * Catalog coins first, then whatever Yahoo returned.
+ *
+ * Yahoo search still never returns CRYPTOCURRENCY: CCC is not on the
+ * American-venue allowlist, and that is load-bearing. The catalog is how
+ * Bitcoin gets into the box. Cached and live answers are merged the same
+ * way, so an outage still finds Bitcoin and a six-hour cache does not
+ * hide a coin that was added to the list.
+ */
+function mergeCoinHits(
   query: string,
-  types: readonly string[] = ["EQUITY", "ETF", "MUTUALFUND", "INDEX"]
+  remote: SymbolMatch[],
+  allowed: ReadonlySet<string>
+): SymbolMatch[] {
+  if (!searchWantsCoins(allowed)) return remote;
+
+  const seen = new Set<string>();
+  const out: SymbolMatch[] = [];
+  const push = (symbol: string, name: string, exchange: string | null) => {
+    if (seen.has(symbol)) return;
+    seen.add(symbol);
+    out.push({ symbol, name, exchange });
+  };
+
+  const exact = matchCoinQuery(query);
+  if (exact) push(exact.symbol, exact.name, "CCC");
+  for (const row of coinSuggestions(query)) {
+    push(row.symbol, row.name, "CCC");
+  }
+  for (const row of remote) {
+    push(row.symbol, row.name, row.exchange);
+  }
+  return out.slice(0, 8);
+}
+
+async function searchRemote(
+  trimmed: string,
+  allowed: ReadonlySet<string>,
+  key: string
 ): Promise<SymbolMatch[]> {
-  const trimmed = query.trim().slice(0, MAX_QUERY_LENGTH);
-  if (trimmed.length < 1) return [];
-
-  const wanted = [...types].map((type) => type.toUpperCase()).sort();
-  const allowed = new Set(wanted);
-
-  /*
-    The types belong in the key. A week that accepts only coins and a week
-    that accepts only funds ask the same word of the same provider and must
-    not be handed each other's answer.
-  */
-  const key = `${trimmed.toLowerCase()}|${wanted.join(",")}`;
-
   const held = searches.get(key);
   if (held && Date.now() - held.fetchedAt < SEARCH_TTL_SECONDS * 1000) {
     return held.matches;
@@ -595,6 +620,27 @@ export async function searchSymbols(
 
   searchesInFlight.set(key, request);
   return request;
+}
+
+export async function searchSymbols(
+  query: string,
+  types: readonly string[] = ["EQUITY", "ETF", "MUTUALFUND", "INDEX"]
+): Promise<SymbolMatch[]> {
+  const trimmed = query.trim().slice(0, MAX_QUERY_LENGTH);
+  if (trimmed.length < 1) return [];
+
+  const wanted = [...types].map((type) => type.toUpperCase()).sort();
+  const allowed = new Set(wanted);
+
+  /*
+    The types belong in the key. A week that accepts only coins and a week
+    that accepts only funds ask the same word of the same provider and must
+    not be handed each other's answer.
+  */
+  const key = `${trimmed.toLowerCase()}|${wanted.join(",")}`;
+
+  const remote = await searchRemote(trimmed, allowed, key);
+  return mergeCoinHits(trimmed, remote, allowed);
 }
 
 /** Clears the cache. Tests only. */

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isCoinPair } from "@/lib/coins";
 import { canWriteGame } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -111,7 +112,11 @@ async function heldSymbols(): Promise<string[]> {
   const { data } = await admin.rpc("symbols_in_open_weeks");
 
   return [
-    ...new Set(((data ?? []) as { symbol: string }[]).map((row) => row.symbol)),
+    ...new Set(
+      ((data ?? []) as { symbol: string }[])
+        .map((row) => row.symbol)
+        .filter((symbol) => !isCoinPair(symbol))
+    ),
   ];
 }
 

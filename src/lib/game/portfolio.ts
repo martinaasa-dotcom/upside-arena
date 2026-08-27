@@ -552,13 +552,10 @@ export async function placeTrade(
   }
 
   /*
-    What the house week allows, which is shares and funds and nothing else.
-
-    The quote layer will happily price a coin, because a format asks it to.
-    That is not permission to own one here: a market that never shuts would
-    make the house week turn on who was awake at three in the morning on
-    Saturday, which is precisely the game this one is not. Coins have their
-    own format, and it says so on the card.
+    Catalog coins, on market hours. Yahoo's coin list is still not for sale:
+    only names on the household catalog in coins.ts. A market that never
+    shuts is still the all-hours contest. Saturday trading in the house
+    week is the game this one is not.
   */
   const allowed = checkTrade(formatById(cycle.format), {
     symbol,

@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { formatMoney, formatPercent, initials } from "@/lib/format";
+import { displaySymbol } from "@/lib/coins";
 import type { RevealedBook } from "@/lib/game/books";
 
 /*
@@ -74,7 +75,9 @@ export function Reveal({ books }: { books: RevealedBook[] }) {
                       key={position.symbol}
                       className="flex items-baseline gap-1.5 rounded-md bg-foreground/[0.06] px-2 py-1"
                     >
-                      <span className="figure text-xs font-medium">{position.symbol}</span>
+                      <span className="figure text-xs font-medium">
+                        {displaySymbol(position.symbol)}
+                      </span>
                       <span className="figure text-xs text-muted-foreground">
                         {formatMoney(position.costBasis)}
                       </span>

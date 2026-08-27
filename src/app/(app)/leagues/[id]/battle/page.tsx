@@ -15,7 +15,7 @@ import { TrackView } from "@/components/TrackView";
 import { getSession } from "@/lib/profile";
 import { getBattleView, getLeagueBattle } from "@/lib/game/battles";
 import { getLeagueDraft } from "@/lib/game/draft";
-import { allowedSymbols } from "@/lib/game/formats";
+import { allowedSymbols, formatAllowsCatalogCoins } from "@/lib/game/formats";
 import { NO_VALUE, formatDate } from "@/lib/format";
 import { submitCancelBattle } from "@/app/(app)/leagues/battle-actions";
 import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
@@ -469,6 +469,7 @@ async function Rest({ params }: Params) {
             battleId={battle.cycleId}
             universe={allowedSymbols(format)}
             rule={format.rule}
+            allowCoins={formatAllowsCatalogCoins(format)}
           />
         </Panel>
       )}

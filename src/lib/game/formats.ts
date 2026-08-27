@@ -1,3 +1,4 @@
+import { isCoinSymbol } from "@/lib/coins";
 import { formatMoney } from "@/lib/format";
 
 /*
@@ -150,8 +151,36 @@ const CRYPTO = [
   "AVAX-USD", "DOT-USD", "LINK-USD", "LTC-USD", "MATIC-USD", "ATOM-USD",
 ] as const;
 
-/** Instrument types the ordinary game accepts: shares and funds, nothing else. */
+const LUNCH = [
+  "MCD", "SBUX", "YUM", "CMG", "DPZ", "WEN", "CAVA", "SHAK",
+  "QSR", "BROS", "WING", "JACK", "TXRH", "DRI", "EAT", "PZZA",
+] as const;
+
+const GARAGE = [
+  "TSLA", "F", "GM", "RIVN", "LCID", "TM", "HMC", "STLA",
+  "RACE", "NIO", "LI", "XPEV",
+] as const;
+
+const DAD = [
+  "KO", "PEP", "PG", "JNJ", "WMT", "MCD", "MMM", "CAT",
+  "HON", "IBM", "VZ", "T", "XOM", "CVX", "PFE", "MRK",
+] as const;
+
+const VICE = [
+  "PM", "MO", "BTI", "TAP", "SAM", "BUD", "DEO", "DKNG",
+  "WYNN", "MGM", "LVS", "CZR", "PENN", "FLUT", "CHDN", "ABEV",
+] as const;
+
+/**
+ * Instrument types the ordinary game accepts: shares and funds.
+ *
+ * Catalog coins are allowed on top of this, by name rather than by opening
+ * Yahoo's coin list. See `isCoinSymbol` and `formatAllowsCatalogCoins`.
+ */
 export const SHARE_TYPES = ["EQUITY", "ETF", "MUTUALFUND", "INDEX"] as const;
+
+/** How the ordinary market describes itself, now that coins sit next to funds. */
+const OPEN_MARKET_LABEL = "any company, fund or coin";
 
 /**
  * The least a share may cost for this game to buy it.
@@ -189,8 +218,12 @@ export function hasPriceFloor(format: Pick<Format, "universe">): boolean {
  */
 export function belowPriceFloor(
   format: Pick<Format, "universe">,
-  price: number
+  price: number,
+  symbol?: string
 ): boolean {
+  // A coin at forty cents is an ordinary coin, on the catalog the same way
+  // it is on a hand-picked list. The floor is for shells, not for XRP.
+  if (symbol && isCoinSymbol(symbol)) return false;
   if (!hasPriceFloor(format)) return false;
   return Number.isFinite(price) && price < MIN_SHARE_PRICE;
 }
@@ -205,10 +238,10 @@ export const FORMATS = [
     id: "open" as const,
     name: "Open market",
     tagline: "The house game. Anything you can buy, you can buy.",
-    rule: "Any company or fund, as much of it as you like.",
+    rule: "Any company, fund or coin, as much of it as you like.",
     icon: "\u{1F30D}",
     direction: "long" as const,
-    universe: { kind: "types", types: SHARE_TYPES, label: "any company or fund" },
+    universe: { kind: "types", types: SHARE_TYPES, label: OPEN_MARKET_LABEL },
     maxPositions: null,
     maxWeightPercent: null,
     tradingHours: "market" as const,
@@ -235,7 +268,7 @@ export const FORMATS = [
     rule: "Every position is a short. It gains what the price loses, and a name can never cost you more than you put into it.",
     icon: "\u{1F643}",
     direction: "short" as const,
-    universe: { kind: "types", types: SHARE_TYPES, label: "any company or fund" },
+    universe: { kind: "types", types: SHARE_TYPES, label: OPEN_MARKET_LABEL },
     maxPositions: null,
     maxWeightPercent: 34,
     tradingHours: "market" as const,
@@ -262,7 +295,7 @@ export const FORMATS = [
     rule: "One company at a time. You may sell it and choose again, but you can never hold two.",
     icon: "\u{1F3AF}",
     direction: "long" as const,
-    universe: { kind: "types", types: SHARE_TYPES, label: "any company or fund" },
+    universe: { kind: "types", types: SHARE_TYPES, label: OPEN_MARKET_LABEL },
     maxPositions: 1,
     maxWeightPercent: null,
     tradingHours: "market" as const,
@@ -288,7 +321,7 @@ export const FORMATS = [
     rule: "No more than a quarter of your starting money in any one name.",
     icon: "\u{1F9FA}",
     direction: "long" as const,
-    universe: { kind: "types", types: SHARE_TYPES, label: "any company or fund" },
+    universe: { kind: "types", types: SHARE_TYPES, label: OPEN_MARKET_LABEL },
     maxPositions: null,
     maxWeightPercent: 25,
     tradingHours: "market" as const,
@@ -360,6 +393,71 @@ export const FORMATS = [
     tradingHours: "market" as const,
     benchmark: "SPY",
   },
+  {
+    id: "lunch" as const,
+    name: "What's for lunch",
+    tagline: "Whoever is making the sandwiches.",
+    rule: "Only the sixteen restaurant and coffee companies on the list.",
+    icon: "\u{1F354}",
+    direction: "long" as const,
+    universe: { kind: "list", symbols: LUNCH, label: "restaurant and coffee companies" },
+    maxPositions: null,
+    maxWeightPercent: null,
+    tradingHours: "market" as const,
+    benchmark: "XLY",
+  },
+  {
+    id: "garage" as const,
+    name: "The garage",
+    tagline: "Cars, and nothing that is not a car.",
+    rule: "Only the twelve car companies on the list.",
+    icon: "\u{1F697}",
+    direction: "long" as const,
+    universe: { kind: "list", symbols: GARAGE, label: "car companies" },
+    maxPositions: null,
+    maxWeightPercent: null,
+    tradingHours: "market" as const,
+    benchmark: "SPY",
+  },
+  {
+    id: "dad" as const,
+    name: "Dad's book",
+    tagline: "The companies a certain kind of person has owned since 1987.",
+    rule: "Only the sixteen household names on the list.",
+    icon: "\u{1F454}",
+    direction: "long" as const,
+    universe: { kind: "list", symbols: DAD, label: "household names" },
+    maxPositions: null,
+    maxWeightPercent: null,
+    tradingHours: "market" as const,
+    benchmark: "SPY",
+  },
+  {
+    id: "vice" as const,
+    name: "Smoke and drink",
+    tagline: "Tobacco, booze and the betting shops.",
+    rule: "Only the sixteen tobacco, drink and gambling companies on the list.",
+    icon: "\u{1F378}",
+    direction: "long" as const,
+    universe: { kind: "list", symbols: VICE, label: "tobacco, drink and gambling companies" },
+    maxPositions: null,
+    maxWeightPercent: 34,
+    tradingHours: "market" as const,
+    benchmark: "SPY",
+  },
+  {
+    id: "two_names" as const,
+    name: "Two names",
+    tagline: "Two companies. That is the whole book.",
+    rule: "Two companies at a time. Sell one to buy a third.",
+    icon: "\u{1F91D}",
+    direction: "long" as const,
+    universe: { kind: "types", types: SHARE_TYPES, label: OPEN_MARKET_LABEL },
+    maxPositions: 2,
+    maxWeightPercent: null,
+    tradingHours: "market" as const,
+    benchmark: "SPY",
+  },
 ] as const;
 
 export type FormatId = (typeof FORMATS)[number]["id"];
@@ -390,10 +488,22 @@ export function allowedSymbols(format: Format): readonly string[] | null {
   return format.universe.kind === "list" ? format.universe.symbols : null;
 }
 
+/** Catalog coins sit next to shares in the ordinary market, not in funds-only. */
+export function formatAllowsCatalogCoins(format: Pick<Format, "universe">): boolean {
+  return format.universe.kind === "types" && format.universe.types.includes("EQUITY");
+}
+
 export function allowsSymbol(format: Format, symbol: string, quoteType?: string | null) {
   if (format.universe.kind === "list") {
     return format.universe.symbols.includes(symbol.toUpperCase());
   }
+
+  /*
+    The household catalog, not Yahoo's coin list. A name that is on it is
+    allowed wherever the ordinary market is; a coin that is not on it is
+    refused even though the quote layer would price it.
+  */
+  if (isCoinSymbol(symbol)) return formatAllowsCatalogCoins(format);
 
   // With no type known the name is allowed here and refused by the quote layer
   // if it turns out to be something this game does not price.
@@ -486,7 +596,7 @@ export function checkTrade(
     sub-penny name in a format that would not have allowed it anyway is told
     the rule they actually broke.
   */
-  if (belowPriceFloor(format, input.price)) {
+  if (belowPriceFloor(format, input.price, symbol)) {
     return { ok: false, error: priceFloorRefusal(symbol, input.price) };
   }
 

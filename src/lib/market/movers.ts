@@ -43,6 +43,10 @@ const WATCHLIST = [
   "JPM", "GS", "V", "MA", "XOM", "CVX", "LLY", "PFE",
   "BA", "CAT", "UBER", "ABNB", "SHOP", "PLTR", "COIN", "HOOD",
   "F", "GM", "DAL", "SPOT",
+  // Household coins, the same three Lab puts on chips. Ranked by move
+  // like everything else, not mixed into the popular-stock chips as a
+  // separate row: this list is already "names a person would recognise".
+  "BTC-USD", "ETH-USD", "SOL-USD",
 ] as const;
 
 export type Mover = {
