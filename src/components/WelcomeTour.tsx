@@ -111,31 +111,39 @@ export function TourScreen({
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       {/*
         Lockup first, then the bar and the count. The rooms keep the mark in
-        a glass bar at the top of the window; this screen is a dialog over
-        that bar, so the lockup has to live here or it is gone. `pe-9` keeps
-        the row clear of the dialog's close button, which the primitive draws
-        in this corner at `top-4 right-4`. Reserved unconditionally rather
-        than passed in, so /gallery measures the same header a person is
-        actually looking at.
+        BrandBar at the top of the window; this screen is a dialog over that
+        bar, so the lockup has to live here or it is gone.
+
+        From `sm` the lockup and the step label share a row, the way the
+        rooms put the mark beside the room name. On a phone they stack:
+        lockup, progress, then the count, so the bar still sits under the
+        mark rather than under a line of type. `pe-9` keeps the row clear of
+        the dialog's close button at `top-4 right-4`. Reserved
+        unconditionally rather than passed in, so /gallery measures the same
+        header a person is actually looking at.
+
+        `uid` is per step so /gallery's eight copies do not share paint
+        servers. The live tour only mounts one.
       */}
-      <div className="flex shrink-0 flex-col gap-3 pe-9">
-        <ArenaWordmark />
-        <div className="flex flex-col gap-2">
-          <div className="flex gap-1.5" aria-hidden="true">
-            {Array.from({ length: total }, (_, i) => (
-              <span
-                key={i}
-                className={cn(
-                  "h-1 min-w-0 flex-1 rounded-full transition-colors",
-                  i <= index ? "bg-primary" : "bg-muted"
-                )}
-              />
-            ))}
-          </div>
-          <p className="text-sm tabular-nums text-muted-foreground">
-            Step {index + 1} of {total} · {step.key}
-          </p>
+      <div className="grid shrink-0 grid-cols-1 items-center gap-x-3 gap-y-2 pe-9 sm:grid-cols-[auto_minmax(0,1fr)]">
+        <ArenaWordmark uid={`tour-${index}`} className="order-1 shrink-0" />
+        <div
+          className="order-2 flex gap-1.5 sm:order-3 sm:col-span-2"
+          aria-hidden="true"
+        >
+          {Array.from({ length: total }, (_, i) => (
+            <span
+              key={i}
+              className={cn(
+                "h-1 min-w-0 flex-1 rounded-full transition-colors",
+                i <= index ? "bg-primary" : "bg-muted"
+              )}
+            />
+          ))}
         </div>
+        <p className="order-3 text-sm tabular-nums text-muted-foreground sm:order-2 sm:col-start-2 sm:row-start-1 sm:min-w-0 sm:truncate">
+          Step {index + 1} of {total} · {step.key}
+        </p>
       </div>
 
       {/*

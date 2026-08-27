@@ -57,3 +57,11 @@ export const ROW = "flex h-10 items-center gap-3";
 */
 
 export const HEADER_H = "h-14";
+
+/*
+  The sticky glass bar every signed-in screen uses. Safe-area padding is on
+  the bar, not the page: Arena runs standalone with a translucent status bar,
+  and without this the glass stops short of the real top of the window.
+*/
+export const HEADER_BAR =
+  "glass-bar sticky top-0 z-40 border-b border-border pt-[env(safe-area-inset-top)]";

@@ -6,25 +6,28 @@ import { getSession, isOnboarded } from "@/lib/profile";
 import { STARTING_BALANCE } from "@/lib/game";
 import { formatMoney } from "@/lib/format";
 import { OnboardingForm } from "@/components/OnboardingForm";
-import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
+import { BrandBar } from "@/components/BrandBar";
 import { Panel, Well } from "@/components/Panel";
 import { Skeleton } from "@/components/Skeleton";
-import { HEADER_H, PAGE, PAGE_FRAME, STACK } from "@/lib/page-shell";
+import { PAGE, PAGE_FRAME, STACK } from "@/lib/page-shell";
 
 export const metadata = { title: "Set up your profile" };
 
 const SETUP_POINTS = [
   {
     icon: Wallet,
-    text: `You get ${formatMoney(STARTING_BALANCE)} of pretend money. It is not real, nothing here becomes real, and you cannot lose money you had.`,
+    term: "Pretend money",
+    text: `You get ${formatMoney(STARTING_BALANCE)}. It is not real, nothing here becomes real, and you cannot lose money you had.`,
   },
   {
     icon: CalendarDays,
-    text: "Buy shares in real companies at real prices. On Friday the week is scored on how you did against the market, and on Monday everybody starts level again.",
+    term: "One week at a time",
+    text: "Buy shares in real companies at real prices. On Friday the week is scored against the market, and on Monday everybody starts level again.",
   },
   {
     icon: Users,
-    text: "We will make you a league of your own. Send the code to one person and you have a race.",
+    term: "A league of your own",
+    text: "We will make you one. Send the code to one person and you have a race.",
   },
 ] as const;
 
@@ -40,20 +43,16 @@ const SETUP_POINTS = [
   that has just been handed a session and has nothing else warm. Sending the
   words while the rest is read is worth more here than almost anywhere.
 
-  The lockup lives in the same glass bar the rooms use, not in the column.
+  The lockup lives in BrandBar, the same bar the rooms use, not in the column.
   This page used to vertically centre a stack that is taller than a phone,
-  which put the mark above the scrollport: the logo was in the markup and
-  nowhere a person could see it. Sticky, at the top, is where every other
-  signed-in screen keeps it.
+  which put the mark above the scrollport. The bar has no home link: finishing
+  this step is the only way into the rooms, and a tap on the mark that sent
+  them to Home would bounce them straight back here.
 */
 export default function OnboardingPage() {
   return (
     <div className={PAGE_FRAME}>
-      <header className="glass-bar sticky top-0 z-40 border-b border-border pt-[env(safe-area-inset-top)]">
-        <div className={`${PAGE} flex ${HEADER_H} items-center`}>
-          <ArenaWordmark />
-        </div>
-      </header>
+      <BrandBar room="Set up" />
 
       <main id="main" className={`${PAGE} py-8`}>
         <div className={`mx-auto w-full max-w-md ${STACK}`}>
@@ -78,14 +77,17 @@ export default function OnboardingPage() {
           */}
           <Panel>
             <ul className="flex flex-col gap-2">
-              {SETUP_POINTS.map(({ icon: Icon, text }) => (
-                <li key={text}>
+              {SETUP_POINTS.map(({ icon: Icon, term, text }) => (
+                <li key={term}>
                   <Well className="flex items-start gap-3">
                     <Icon
                       className="mt-0.5 size-4 shrink-0 text-primary"
                       aria-hidden="true"
                     />
-                    <p className="text-sm text-muted-foreground">{text}</p>
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="text-sm font-medium">{term}</span>
+                      <span className="text-sm text-muted-foreground">{text}</span>
+                    </span>
                   </Well>
                 </li>
               ))}
@@ -127,11 +129,22 @@ function FormPending() {
     <Panel aria-busy="true">
       <span className="sr-only">Loading</span>
       <div className="flex flex-col gap-5">
+        <FieldPending />
+        <FieldPending />
         <Skeleton className="h-11 w-full rounded-lg" />
-        <Skeleton className="h-11 w-full rounded-lg" />
-        <Skeleton className="h-8 w-32 rounded-lg" />
+        <Skeleton className="h-4 w-3/4 rounded-lg" />
       </div>
     </Panel>
+  );
+}
+
+function FieldPending() {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Skeleton className="h-4 w-24 rounded-lg" />
+      <Skeleton className="h-11 w-full rounded-lg" />
+      <Skeleton className="h-4 w-2/3 rounded-lg" />
+    </div>
   );
 }
 

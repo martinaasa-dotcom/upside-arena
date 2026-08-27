@@ -5,8 +5,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Coins } from "lucide-react";
-import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
-import { PAGE } from "@/lib/page-shell";
+import { BrandBar } from "@/components/BrandBar";
 import { cn } from "@/lib/utils";
 
 const ROOM_TITLES: Record<string, string> = {
@@ -21,7 +20,8 @@ const ROOM_TITLES: Record<string, string> = {
 
 /*
   Same chrome as Lab, left to right: mark and wordmark, hairline, current room
-  title, then Arena Plus. Glass over the field, 3.5rem tall.
+  title, then Arena Plus. Glass over the field, 3.5rem tall. The bar itself
+  lives in BrandBar so onboarding cannot drift from it.
 
   Arena Plus lives here rather than in the dock because the shop is the only
   room somebody arrives at wanting to spend money in, so it is the one room
@@ -35,42 +35,29 @@ const ROOM_TITLES: Record<string, string> = {
   that had to go is the one four inches from the thumb. `aria-label="Your
   profile"` moved with it. Nothing here is personal now, so nothing here waits
   on a session to be read.
-
-  The bar pads itself by the top safe area rather than sitting at a flat
-  top: 0. Arena runs as an installed app with a translucent status bar and
-  viewport-fit=cover, so on a notched phone the real top of the window is
-  above the status bar. Without this the glass stops short of it and the page
-  scrolls through the strip above the header.
 */
 export function AppHeader() {
   return (
-    <header className="glass-bar sticky top-0 z-40 border-b border-border pt-[env(safe-area-inset-top)]">
-      <div className={`${PAGE} flex h-14 items-center gap-3`}>
-        <Link href="/home" className="rounded-md focus-visible:outline-none">
-          <ArenaWordmark />
-          <span className="sr-only">Upside Arena home</span>
-        </Link>
+    <BrandBar href="/home">
+      <span className="hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
 
-        <span className="hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
+      {/*
+        The room's name and whether the shop is the room you are in are both
+        read off the URL, and one shell is prerendered for every room, so
+        they wait. On a tap between rooms the router already holds the new
+        path and this resolves in the same frame; only a cold arrival sees
+        the fallback, and the fallback is the same bar at the same height.
+      */}
+      <Suspense fallback={<RoomName room={null} />}>
+        <CurrentRoomName />
+      </Suspense>
 
-        {/*
-          The room's name and whether the shop is the room you are in are both
-          read off the URL, and one shell is prerendered for every room, so
-          they wait. On a tap between rooms the router already holds the new
-          path and this resolves in the same frame; only a cold arrival sees
-          the fallback, and the fallback is the same bar at the same height.
-        */}
-        <Suspense fallback={<RoomName room={null} />}>
-          <CurrentRoomName />
+      <div className="ml-auto flex items-center gap-2">
+        <Suspense fallback={<PlusLink onPlus={false} />}>
+          <CurrentPlusLink />
         </Suspense>
-
-        <div className="ml-auto flex items-center gap-2">
-          <Suspense fallback={<PlusLink onPlus={false} />}>
-            <CurrentPlusLink />
-          </Suspense>
-        </div>
       </div>
-    </header>
+    </BrandBar>
   );
 }
 

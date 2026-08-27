@@ -91,23 +91,30 @@ describe("the lockup on the way in", () => {
       path.join(ROOT, "src/components/WelcomeTour.tsx"),
       "utf8"
     );
-    expect(source).toMatch(/<ArenaWordmark \/>/);
+    expect(source).toMatch(/ArenaWordmark uid=\{`tour-\$\{index\}`\}/);
     expect(source.indexOf("<ArenaWordmark")).toBeLessThan(
       source.indexOf("overflow-y-auto")
     );
   });
 
-  it("keeps the setup page lockup in the glass bar, not in the scrolling column", () => {
-    const source = readFileSync(
+  it("keeps the setup page lockup in the same bar the rooms use", () => {
+    const page = readFileSync(
       path.join(ROOT, "src/app/onboarding/page.tsx"),
       "utf8"
     );
-    const header = source.slice(
-      source.indexOf("<header"),
-      source.indexOf("</header>")
+    const bar = readFileSync(
+      path.join(ROOT, "src/components/BrandBar.tsx"),
+      "utf8"
     );
-    expect(header).toMatch(/glass-bar/);
-    expect(header).toMatch(/<ArenaWordmark \/>/);
-    expect(source).not.toMatch(/justify-center/);
+    const header = readFileSync(
+      path.join(ROOT, "src/components/AppHeader.tsx"),
+      "utf8"
+    );
+    expect(page).toMatch(/<BrandBar room="Set up" \/>/);
+    expect(page).not.toMatch(/justify-center/);
+    expect(bar).toContain("HEADER_BAR");
+    expect(bar).toContain('uid="header"');
+    expect(header).toContain("<BrandBar");
+    expect(header).toContain('href="/home"');
   });
 });

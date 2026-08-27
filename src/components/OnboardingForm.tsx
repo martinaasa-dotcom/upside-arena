@@ -70,11 +70,9 @@ export function OnboardingForm({
         ) : null}
 
         <div className="flex flex-col gap-2">
-          <div>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving" : "Start playing"}
-            </Button>
-          </div>
+          <Button type="submit" disabled={pending} className="w-full">
+            {pending ? "Saving" : "Start playing"}
+          </Button>
           {/*
             Stated, not ticked. Finishing this step is the affirmative act, and
             it is what writes the confirmation to the account.
