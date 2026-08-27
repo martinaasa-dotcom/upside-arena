@@ -674,9 +674,9 @@ export default function GalleryPage() {
       </Case>
 
       {/*
-        Eight cells two across a phone, each with a ticker, a percentage and a
-        price. The widest thing on it is a three figure move, which is the one
-        that decides whether the cell holds.
+        Two ranked lists, each a well of rows: ticker, name, percent. The
+        widest thing on it is a three figure move next to a long company
+        name, which is the pair that decides whether the row holds.
       */}
       <Case name="movers">
         <Movers movers={fixture.movers} />

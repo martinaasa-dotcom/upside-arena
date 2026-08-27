@@ -14,7 +14,7 @@ import { cycleCache } from "@/lib/game/cache";
   This is news, and it is real news rather than manufactured urgency: today's
   actual moves, in companies whose names a person recognises, plus whatever
   they happen to own. Nothing is ranked by how exciting it is, nothing is
-  chosen to make somebody trade, and the tiles are not a door into a trade.
+  chosen to make somebody trade, and the panel is not a door into a trade.
   A name plus a percent plus a tap that opened the buy form is a suggestion,
   and the copy on the panel already refuses that. The plan rules out fake
   urgency as firmly as it rules out fake numbers, and a list of the day's

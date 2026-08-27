@@ -661,7 +661,7 @@ export const headToHead: HeadToHead[] = [
 
 /*
   What moved, with the two rows that break it: a company name long enough to
-  need truncating, and a move wide enough to fill its own cell.
+  need truncating, and a move wide enough to sit next to it on a 320px phone.
 */
 export const movers: MoversView = {
   up: [

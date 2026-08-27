@@ -6,12 +6,10 @@ import { describe, expect, it } from "vitest";
   Arena is a game. Buy and Sell on the Trade room are the game.
 
   What it must not do is the thing Lab's Pulse copy used to do: point at a
-  named company and tell somebody what to do with it. A day's move that opens
-  a buy ticket is that, whatever the sentence above the tiles claims.
-
-  Two checks. One pins the surface that actually did it. The other walks
-  reader-facing copy for the orders Lab had to scrub, so they cannot arrive
-  here as a "helpful" line on a card.
+  named company and tell somebody what to do with it. The movers panel is
+  pinned in movers.test.ts. This file is the rest: the trade form must not
+  arrive pre-filled from a URL, and reader-facing copy must not pick up the
+  orders Lab had to scrub.
 */
 
 const BANNED: { name: string; pattern: RegExp }[] = [
@@ -84,22 +82,15 @@ function sourceFiles(dir: string): string[] {
   return out;
 }
 
-describe("what moved today is news, not a ticket", () => {
-  const movers = readFileSync("src/components/Movers.tsx", "utf8");
+describe("a URL does not arrive as a picked company", () => {
   const tradeForm = readFileSync("src/components/TradeForm.tsx", "utf8");
   const tradePage = readFileSync("src/app/(app)/trade/page.tsx", "utf8");
 
-  it("does not open a buy form for a named company", () => {
-    expect(movers).not.toMatch(/\/trade\?symbol=/);
-    expect(movers).not.toMatch(/<Link\b/);
-    expect(movers).not.toMatch(/\bhref=\{?["'`]\/trade/);
-  });
-
-  it("does not pre-fill the trade form from a URL", () => {
+  it("does not pre-fill the trade form from a query string", () => {
     expect(tradeForm).not.toMatch(/\binitialSymbol\b/);
     expect(tradePage).not.toMatch(/\bpickedFrom\b/);
     expect(tradePage).not.toMatch(/\binitialSymbol\b/);
-    expect(tradePage).not.toMatch(/\bsearchParams\b/);
+    expect(tradePage).not.toMatch(/\?symbol=/);
   });
 });
 

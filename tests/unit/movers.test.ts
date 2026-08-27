@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /*
@@ -175,5 +176,28 @@ describe("what moved", () => {
 
     expect(movers.up.length).toBeLessThanOrEqual(4);
     expect(movers.down.length).toBeLessThanOrEqual(4);
+  });
+});
+
+describe("the panel is news, not a picker", () => {
+  const src = readFileSync("src/components/Movers.tsx", "utf8");
+
+  it("does not open a trade, or look like something you press", () => {
+    expect(src).not.toMatch(/\/trade/);
+    expect(src).not.toMatch(/<Link\b/);
+    expect(src).not.toMatch(/<a\b/);
+    expect(src).not.toMatch(/<button\b/i);
+    expect(src).not.toMatch(/\bonClick\b/);
+    expect(src).not.toMatch(/\bhref=/);
+  });
+
+  it("draws the move, not the quote a ticket would need", () => {
+    expect(src).not.toMatch(/formatMoney/);
+    expect(src).not.toMatch(/row\.price/);
+  });
+
+  it("reports each side as a ranked list", () => {
+    expect(src).toMatch(/<ol\b/);
+    expect(src).toMatch(/<li\b/);
   });
 });
