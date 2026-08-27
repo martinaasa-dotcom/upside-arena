@@ -6,6 +6,8 @@
   written for it renders an empty line, and a figure typed into the copy by
   hand drifts the day the constant behind it moves. Both look fine on screen.
 */
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ROOM_BLURB, STEPS } from "@/lib/tour-steps";
 import { ROOMS } from "@/lib/rooms";
@@ -13,6 +15,8 @@ import { MAX_LINEUP_ORDERS, STARTING_BALANCE } from "@/lib/game";
 import { MIN_WEEKS_TO_RANK } from "@/lib/game/season-rules";
 import { DAILY_CAP } from "@/lib/notify/timing";
 import { formatMoney } from "@/lib/format";
+
+const ROOT = path.join(__dirname, "..", "..");
 
 const prose = STEPS.map((s) => [s.title, s.lede, s.note ?? ""].join(" ")).join(" ");
 const rows = STEPS.flatMap((s) => s.rows ?? []);
@@ -72,5 +76,38 @@ describe("the shape of a screen", () => {
       expect(step.title.length, step.key).toBeGreaterThan(0);
       expect(step.lede.length, step.key).toBeGreaterThan(0);
     }
+  });
+
+  it("puts a mark on every row, so a screen is not a mix of labelled wells and bare ones", () => {
+    for (const row of rows) {
+      expect(row.icon, row.term).toBeTruthy();
+    }
+  });
+});
+
+describe("the lockup on the way in", () => {
+  it("sits in the walkthrough header, not only behind the overlay", () => {
+    const source = readFileSync(
+      path.join(ROOT, "src/components/WelcomeTour.tsx"),
+      "utf8"
+    );
+    expect(source).toMatch(/<ArenaWordmark \/>/);
+    expect(source.indexOf("<ArenaWordmark")).toBeLessThan(
+      source.indexOf("overflow-y-auto")
+    );
+  });
+
+  it("keeps the setup page lockup in the glass bar, not in the scrolling column", () => {
+    const source = readFileSync(
+      path.join(ROOT, "src/app/onboarding/page.tsx"),
+      "utf8"
+    );
+    const header = source.slice(
+      source.indexOf("<header"),
+      source.indexOf("</header>")
+    );
+    expect(header).toMatch(/glass-bar/);
+    expect(header).toMatch(/<ArenaWordmark \/>/);
+    expect(source).not.toMatch(/justify-center/);
   });
 });

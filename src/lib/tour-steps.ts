@@ -15,12 +15,21 @@
   it to that.
 */
 import {
+  BadgeCheck,
+  Banknote,
+  BellOff,
   BellRing,
+  CalendarDays,
   CalendarRange,
+  Clock,
   Home,
   Swords,
+  Timer,
+  TrendingDown,
+  TrendingUp,
   Trophy,
   User,
+  Wallet,
 } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import { STARTING_BALANCE, MAX_LINEUP_ORDERS } from "@/lib/game";
@@ -29,7 +38,7 @@ import { DAILY_CAP, QUIET_HOURS } from "@/lib/notify/timing";
 import { ROOMS } from "@/lib/rooms";
 
 export type TourRow = {
-  icon?: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string }>;
   term: string;
   text: string;
 };
@@ -64,10 +73,12 @@ export const STEPS: Step[] = [
     )} of pretend money and buy shares in real companies at real prices. At the end of the week you find out how you did, against the market and against your friends.`,
     rows: [
       {
+        icon: Wallet,
         term: "None of it is real money",
         text: "You cannot deposit, you cannot withdraw, and you cannot lose money you had. No stake, no payout.",
       },
       {
+        icon: BadgeCheck,
         term: "It is free, and it stays free",
         text: "Nothing you can buy changes a result. Anything paid sits under Plus, in the top corner, and it is more leagues and things to wear next to your name.",
       },
@@ -79,10 +90,12 @@ export const STEPS: Step[] = [
     lede: "Every Monday at 09:30 New York time everybody starts again with the same money. You buy and sell on weekdays between 09:30 and 16:00. At Friday's close the week is scored, and on Monday everybody is level again.",
     rows: [
       {
+        icon: CalendarDays,
         term: "Nothing carries over",
         text: "Somebody who has played for a year starts Monday exactly level with somebody who signed up last night.",
       },
       {
+        icon: Banknote,
         term: "Cash earns nothing",
         text: "Whole shares only, no borrowing, no leverage. Sitting in cash is a decision, not a safe place to hide.",
       },
@@ -94,10 +107,12 @@ export const STEPS: Step[] = [
     lede: "Home shows what you made this week and how that compares to the market as a whole. The second one is the honest one.",
     rows: [
       {
+        icon: TrendingUp,
         term: "Up is not the same as good",
         text: "Everybody is up in a week the market ran. Up 2% while the market was up 3% is a bad week that looks like a good one.",
       },
       {
+        icon: TrendingDown,
         term: "A falling week is still worth playing",
         text: "Losing 1% while the market lost 4% is one of the better things you can do here, and the app says so.",
       },
@@ -142,10 +157,12 @@ export const STEPS: Step[] = [
     lede: `The market shuts at 16:00 on Friday and opens at 09:30 on Monday, so there is nothing to miss in between. What you can do is line up next week: pick up to ${MAX_LINEUP_ORDERS} companies and they are bought for you at Monday's opening price.`,
     rows: [
       {
+        icon: Clock,
         term: "No advantage in being early",
         text: "Everybody who leaves a lineup fills at the same opening price. It locks at the open, so nothing is ever placed with hindsight.",
       },
       {
+        icon: Timer,
         term: "A minute a day, ten on a Sunday",
         text: "That is honestly the whole thing. Forget about it for a week and you have lost that week and nothing else.",
       },
@@ -184,6 +201,7 @@ export const STEPS: Step[] = [
         text: `Never more than ${DAILY_CAP} in a day, and never between ${QUIET_HOURS} where you are.`,
       },
       {
+        icon: BellOff,
         term: "Never about a bad week",
         text: "No “come back”, no “your friends are playing without you”, no invented countdown. Messaging a loss as something one more trade could fix is not going to be built here.",
       },

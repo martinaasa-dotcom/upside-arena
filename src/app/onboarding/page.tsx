@@ -7,10 +7,26 @@ import { STARTING_BALANCE } from "@/lib/game";
 import { formatMoney } from "@/lib/format";
 import { OnboardingForm } from "@/components/OnboardingForm";
 import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
+import { Panel, Well } from "@/components/Panel";
 import { Skeleton } from "@/components/Skeleton";
-import { PAGE, PAGE_FRAME } from "@/lib/page-shell";
+import { HEADER_H, PAGE, PAGE_FRAME, STACK } from "@/lib/page-shell";
 
 export const metadata = { title: "Set up your profile" };
+
+const SETUP_POINTS = [
+  {
+    icon: Wallet,
+    text: `You get ${formatMoney(STARTING_BALANCE)} of pretend money. It is not real, nothing here becomes real, and you cannot lose money you had.`,
+  },
+  {
+    icon: CalendarDays,
+    text: "Buy shares in real companies at real prices. On Friday the week is scored on how you did against the market, and on Monday everybody starts level again.",
+  },
+  {
+    icon: Users,
+    text: "We will make you a league of your own. Send the code to one person and you have a race.",
+  },
+] as const;
 
 /*
   The one setup step, prerendered down to the form.
@@ -23,18 +39,31 @@ export const metadata = { title: "Set up your profile" };
   This is the screen immediately after a sign-in link is clicked, on a device
   that has just been handed a session and has nothing else warm. Sending the
   words while the rest is read is worth more here than almost anywhere.
+
+  The lockup lives in the same glass bar the rooms use, not in the column.
+  This page used to vertically centre a stack that is taller than a phone,
+  which put the mark above the scrollport: the logo was in the markup and
+  nowhere a person could see it. Sticky, at the top, is where every other
+  signed-in screen keeps it.
 */
 export default function OnboardingPage() {
   return (
     <div className={PAGE_FRAME}>
-      <main id="main" className={`${PAGE} flex min-h-dvh flex-col justify-center py-16`}>
-        <div className="mx-auto w-full max-w-md">
-          <ArenaWordmark className="mb-8" />
-          <h1 className="mb-2">What should we call you?</h1>
-          <p className="mb-6 text-sm text-muted-foreground">
-            This is the only setup step. Your friends will see this name on the
-            league board.
-          </p>
+      <header className="glass-bar sticky top-0 z-40 border-b border-border pt-[env(safe-area-inset-top)]">
+        <div className={`${PAGE} flex ${HEADER_H} items-center`}>
+          <ArenaWordmark />
+        </div>
+      </header>
+
+      <main id="main" className={`${PAGE} py-8`}>
+        <div className={`mx-auto w-full max-w-md ${STACK}`}>
+          <div>
+            <h1>What should we call you?</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              This is the only setup step. Your friends will see this name on
+              the league board.
+            </p>
+          </div>
 
           {/*
             Three lines about what they have just signed up for, above the
@@ -47,30 +76,21 @@ export default function OnboardingPage() {
             because every step between signing up and the first live number is
             somewhere to lose somebody.
           */}
-          <div className="mb-6 flex flex-col gap-2">
-            {[
-              {
-                icon: Wallet,
-                text: `You get ${formatMoney(STARTING_BALANCE)} of pretend money. It is not real, nothing here becomes real, and you cannot lose money you had.`,
-              },
-              {
-                icon: CalendarDays,
-                text: "Buy shares in real companies at real prices. On Friday the week is scored on how you did against the market, and on Monday everybody starts level again.",
-              },
-              {
-                icon: Users,
-                text: "We will make you a league of your own. Send the code to one person and you have a race.",
-              },
-            ].map(({ icon: Icon, text }) => (
-              <div key={text} className="glass-well flex items-start gap-3 rounded-lg p-4">
-                <Icon
-                  className="mt-0.5 size-4 shrink-0 text-primary"
-                  aria-hidden="true"
-                />
-                <p className="text-sm text-muted-foreground">{text}</p>
-              </div>
-            ))}
-          </div>
+          <Panel>
+            <ul className="flex flex-col gap-2">
+              {SETUP_POINTS.map(({ icon: Icon, text }) => (
+                <li key={text}>
+                  <Well className="flex items-start gap-3">
+                    <Icon
+                      className="mt-0.5 size-4 shrink-0 text-primary"
+                      aria-hidden="true"
+                    />
+                    <p className="text-sm text-muted-foreground">{text}</p>
+                  </Well>
+                </li>
+              ))}
+            </ul>
+          </Panel>
 
           {/*
             The form's own height, so the page does not jump when the fields
@@ -87,7 +107,7 @@ export default function OnboardingPage() {
             who does not know that reads the next screen as a thing that got in
             the way. Told first, it is the rest of the sign-up.
           */}
-          <p className="mt-6 text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Next we show you around: the week, the scoring, and where
             everything is. It takes a minute and you can skip it. The long
             version lives at{" "}
@@ -104,12 +124,14 @@ export default function OnboardingPage() {
 
 function FormPending() {
   return (
-    <div className="flex flex-col gap-4" aria-busy="true">
+    <Panel aria-busy="true">
       <span className="sr-only">Loading</span>
-      <Skeleton className="h-11 w-full rounded-lg" />
-      <Skeleton className="h-11 w-full rounded-lg" />
-      <Skeleton className="h-11 w-32 rounded-lg" />
-    </div>
+      <div className="flex flex-col gap-5">
+        <Skeleton className="h-11 w-full rounded-lg" />
+        <Skeleton className="h-11 w-full rounded-lg" />
+        <Skeleton className="h-8 w-32 rounded-lg" />
+      </div>
+    </Panel>
   );
 }
 

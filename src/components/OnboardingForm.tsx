@@ -63,25 +63,26 @@ export function OnboardingForm({
           </p>
         </div>
 
-
-
         {state.error ? (
           <p role="alert" className="text-sm text-loss">
             {state.error}
           </p>
         ) : null}
 
-        <Button type="submit" disabled={pending} size="lg">
-          {pending ? "Saving" : "Start playing"}
-        </Button>
-
-        {/*
-          Stated, not ticked. Finishing this step is the affirmative act, and
-          it is what writes the confirmation to the account.
-        */}
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          By starting you confirm you are {MINIMUM_AGE} or older.
-        </p>
+        <div className="flex flex-col gap-2">
+          <div>
+            <Button type="submit" disabled={pending}>
+              {pending ? "Saving" : "Start playing"}
+            </Button>
+          </div>
+          {/*
+            Stated, not ticked. Finishing this step is the affirmative act, and
+            it is what writes the confirmation to the account.
+          */}
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            By starting you confirm you are {MINIMUM_AGE} or older.
+          </p>
+        </div>
       </form>
     </Panel>
   );

@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
 import { finishTour } from "@/app/(app)/actions";
 import { cn } from "@/lib/utils";
 import { STEPS, type Step } from "@/lib/tour-steps";
@@ -109,36 +110,46 @@ export function TourScreen({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       {/*
-        `pe-9` keeps the bar and the count clear of the dialog's close button,
-        which the primitive draws in this corner at `top-4 right-4`. Reserved
-        unconditionally rather than passed in, so /gallery measures the same
-        header a person is actually looking at.
+        Lockup first, then the bar and the count. The rooms keep the mark in
+        a glass bar at the top of the window; this screen is a dialog over
+        that bar, so the lockup has to live here or it is gone. `pe-9` keeps
+        the row clear of the dialog's close button, which the primitive draws
+        in this corner at `top-4 right-4`. Reserved unconditionally rather
+        than passed in, so /gallery measures the same header a person is
+        actually looking at.
       */}
-      <div className="flex shrink-0 flex-col gap-2 pe-9">
-        <div className="flex gap-1.5" aria-hidden="true">
-          {Array.from({ length: total }, (_, i) => (
-            <span
-              key={i}
-              className={cn(
-                "h-1 min-w-0 flex-1 rounded-full transition-colors",
-                i <= index ? "bg-primary" : "bg-muted"
-              )}
-            />
-          ))}
+      <div className="flex shrink-0 flex-col gap-3 pe-9">
+        <ArenaWordmark />
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-1.5" aria-hidden="true">
+            {Array.from({ length: total }, (_, i) => (
+              <span
+                key={i}
+                className={cn(
+                  "h-1 min-w-0 flex-1 rounded-full transition-colors",
+                  i <= index ? "bg-primary" : "bg-muted"
+                )}
+              />
+            ))}
+          </div>
+          <p className="text-sm tabular-nums text-muted-foreground">
+            Step {index + 1} of {total} · {step.key}
+          </p>
         </div>
-        <p className="text-sm tabular-nums text-muted-foreground">
-          Step {index + 1} of {total} · {step.key}
-        </p>
       </div>
 
       {/*
         The one scroller. Everything that can grow with the copy is inside it,
-        and the progress above and the footer below are pinned either side --
+        and the progress above and the footer below are pinned either side,
         so the way forward is on screen at every width, and the eighth screen
         on a 320px phone scrolls its own text rather than pushing the button
-        off the bottom of the world.
+        off the bottom of the world. `scroll-host` keeps that bar in a track.
+        The negative end margin parks the track in the dialog pad so the rows
+        line up with the progress, not inset from it. End only: there is no
+        bar on the start edge, and pulling that side into the pad would
+        catch leftover pan gestures in empty glass.
       */}
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+      <div className="scroll-host -me-4 pe-4 sm:-me-6 sm:pe-6 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
         <div className="flex flex-col gap-2">
           <Title id={headingId} className="text-lg font-semibold tracking-tight">
             {step.title}
@@ -165,12 +176,10 @@ export function TourScreen({
               const Icon = row.icon;
               return (
                 <li key={row.term} className={cn(ROW_GLASS, "flex items-start gap-3")}>
-                  {Icon ? (
-                    <Icon
-                      className="mt-0.5 size-4 shrink-0 text-primary"
-                      aria-hidden="true"
-                    />
-                  ) : null}
+                  <Icon
+                    className="mt-0.5 size-4 shrink-0 text-primary"
+                    aria-hidden="true"
+                  />
                   <span className="flex min-w-0 flex-col gap-0.5">
                     <span className="text-sm font-medium">{row.term}</span>
                     <span className="text-sm text-muted-foreground">{row.text}</span>
