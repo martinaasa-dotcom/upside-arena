@@ -44,6 +44,7 @@ export function ConfirmAction({
   confirmLabel,
   cancelLabel = "Never mind",
   variant = "outline",
+  size = "sm",
 }: {
   action: (formData: FormData) => void | Promise<void>;
   /** Hidden inputs the action needs, such as which league this is. */
@@ -56,6 +57,8 @@ export function ConfirmAction({
   confirmLabel: string;
   cancelLabel?: string;
   variant?: "outline" | "destructive" | "ghost";
+  /** Compact by default: this always sits in a setting row or a panel header. */
+  size?: "default" | "sm";
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -63,7 +66,7 @@ export function ConfirmAction({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button type="button" variant={variant} size={variant === "ghost" ? "sm" : "default"}>
+        <Button type="button" variant={variant} size={size}>
           {label}
         </Button>
       </AlertDialogTrigger>

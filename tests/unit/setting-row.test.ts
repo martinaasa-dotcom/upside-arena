@@ -15,6 +15,8 @@ const ACCOUNT = readFileSync("src/components/AccountControls.tsx", "utf8");
 const CONSENT = readFileSync("src/components/ConsentControl.tsx", "utf8");
 const PANEL = readFileSync("src/components/Panel.tsx", "utf8");
 const CSS = readFileSync("src/app/globals.css", "utf8");
+const DRAFT = readFileSync("src/components/DraftCard.tsx", "utf8");
+const FIRST = readFileSync("src/components/FirstRun.tsx", "utf8");
 
 const CONSUMERS = [
   "src/components/AccountControls.tsx",
@@ -29,12 +31,14 @@ const CONSUMERS = [
   "src/components/WeeklyGoal.tsx",
   "src/components/DraftCard.tsx",
   "src/components/BattleCard.tsx",
+  "src/components/Wardrobe.tsx",
+  "src/components/NotificationInvite.tsx",
 ];
 
 describe("setting rows do not wrap", () => {
   it("pins the control to the right on one row", () => {
     expect(ROW).toMatch(
-      /SETTING_ROW\s*=\s*"flex flex-row flex-nowrap items-center justify-between gap-3"/
+      /SETTING_ROW\s*=\s*"flex w-full min-w-0 flex-row flex-nowrap items-center justify-between gap-3"/
     );
     expect(ROW).toMatch(/SETTING_COPY\s*=\s*"min-w-0 flex-1"/);
     expect(ROW).toMatch(
@@ -48,11 +52,23 @@ describe("setting rows do not wrap", () => {
     expect(ROW).toMatch(/if \(description == null\) return bar/);
   });
 
+  it("does not draw an empty label column just to shove a button right", () => {
+    expect(ROW).toContain("children?:");
+    expect(ROW).toContain('!copy && "justify-end"');
+    for (const file of CONSUMERS) {
+      expect(readFileSync(file, "utf8"), file).not.toMatch(
+        /<div className=\{SETTING_COPY\} \/>/
+      );
+    }
+  });
+
   it("is what Account, consent and the panel header actually use", () => {
     expect(ACCOUNT).toContain("SettingBar");
     expect(ACCOUNT).not.toMatch(/flex-col items-start/);
     expect(CONSENT).toContain("SettingBar");
     expect(PANEL).toContain("SettingBar");
+    expect(PANEL).toContain("Children.toArray");
+    expect(PANEL).toContain("flex flex-col gap-4");
   });
 
   it("is the row primitive on every text-plus-button list", () => {
@@ -60,6 +76,14 @@ describe("setting rows do not wrap", () => {
       const src = readFileSync(file, "utf8");
       expect(src, file).toMatch(/SettingBar|SETTING_ROW/);
     }
+  });
+
+  it("keeps a draft's status badge out of the action slot", () => {
+    expect(DRAFT).not.toMatch(/action=\{[\s\S]*<>[\s\S]*Badge/);
+  });
+
+  it("does not nest the copy column inside SettingBar", () => {
+    expect(FIRST).not.toContain("SETTING_COPY");
   });
 });
 

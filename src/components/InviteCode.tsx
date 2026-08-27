@@ -28,6 +28,7 @@ export function InviteCode({ code, leagueName }: { code: string; leagueName: str
         <Button
           variant="outline"
           size="sm"
+          aria-label={copied ? "Copied the invite" : "Copy the invite"}
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(share);
@@ -43,7 +44,7 @@ export function InviteCode({ code, leagueName }: { code: string; leagueName: str
           }}
         >
           {copied ? <Check /> : <Copy />}
-          {copied ? "Copied" : "Copy invite"}
+          {copied ? "Copied" : "Copy"}
         </Button>
       </div>
     </Well>

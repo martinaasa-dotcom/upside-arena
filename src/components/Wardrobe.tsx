@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { FlairSwatch } from "@/components/Flair";
 import { cn } from "@/lib/utils";
 import { submitEquip } from "@/app/(app)/profile/cosmetic-actions";
-import { SETTING_ACTIONS, SETTING_COPY, SETTING_ROW } from "@/components/ui/setting-row";
+import { SETTING_ACTIONS, SETTING_COPY, SETTING_ROW, SettingBar } from "@/components/ui/setting-row";
 import type { LockedReward, OwnedReward, Wardrobe as W } from "@/lib/game/streaks";
 import type { CosmeticSlot } from "@/lib/supabase/database.types";
 
@@ -93,8 +93,10 @@ function Slot({
                     {item.description}
                   </span>
                 </span>
-                <span className="shrink-0 text-xs text-primary">
-                  {item.equipped ? "Wearing" : "Wear"}
+                <span className={SETTING_ACTIONS}>
+                  <span className="text-xs text-primary">
+                    {item.equipped ? "Wearing" : "Wear"}
+                  </span>
                 </span>
               </button>
             </form>
@@ -106,14 +108,13 @@ function Slot({
         <form action={submitEquip}>
           <input type="hidden" name="slot" value={slot} />
           <input type="hidden" name="rewardId" value="" />
-          <div className={SETTING_ROW}>
-            <div className={SETTING_COPY} />
-            <div className={SETTING_ACTIONS}>
+          <SettingBar
+            action={
               <Button type="submit" variant="ghost" size="sm">
                 Wear none
               </Button>
-            </div>
-          </div>
+            }
+          />
         </form>
       ) : null}
 

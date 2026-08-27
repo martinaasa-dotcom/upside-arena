@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { Children, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /*
@@ -10,9 +10,13 @@ import { cn } from "@/lib/utils";
   Account page grew a column of left-aligned blocks.
 
   Truncate titles on the child (`truncate`), not on this column.
+
+  `w-full min-w-0` is what lets the row shrink inside a panel. Flex items
+  default to `min-width: auto`, so without that a long label holds the row
+  wider than the pane and the control is the thing that wraps or overflows.
 */
 export const SETTING_ROW =
-  "flex flex-row flex-nowrap items-center justify-between gap-3";
+  "flex w-full min-w-0 flex-row flex-nowrap items-center justify-between gap-3";
 export const SETTING_COPY = "min-w-0 flex-1";
 /*
   Shrink-0 so a long label ellipsises instead of shoving the control onto
@@ -24,6 +28,10 @@ export const SETTING_ACTIONS =
 /** Title row, then the sentence. Never put that sentence in the title column. */
 export const SETTING_STACK = "flex flex-col gap-1.5";
 
+function hasCopy(node: ReactNode) {
+  return Children.toArray(node).length > 0;
+}
+
 /** Title | control. A `description` sits under the row, never beside the control. */
 export function SettingBar({
   children,
@@ -32,21 +40,23 @@ export function SettingBar({
   align = "center",
   className,
 }: {
-  children: ReactNode;
+  children?: ReactNode;
   action?: ReactNode;
   description?: ReactNode;
   align?: "center" | "start";
   className?: string;
 }) {
+  const copy = hasCopy(children);
   const bar = (
     <div
       className={cn(
         SETTING_ROW,
         align === "start" && "items-start",
+        !copy && "justify-end",
         description == null && className
       )}
     >
-      <div className={SETTING_COPY}>{children}</div>
+      {copy ? <div className={SETTING_COPY}>{children}</div> : null}
       {action != null ? <div className={SETTING_ACTIONS}>{action}</div> : null}
     </div>
   );

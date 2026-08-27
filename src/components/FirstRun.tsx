@@ -4,7 +4,7 @@ import { Panel, Well } from "@/components/Panel";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
-import { SETTING_COPY, SettingBar } from "@/components/ui/setting-row";
+import { SettingBar } from "@/components/ui/setting-row";
 
 /*
   The first week, as four things to do rather than three things to read.
@@ -128,7 +128,7 @@ export function FirstRun({
                 }
                 description={step.done ? undefined : step.detail}
               >
-                <span className={`flex items-center gap-3 ${SETTING_COPY}`}>
+                <span className="flex min-w-0 items-center gap-3">
                   {step.done ? (
                     <Check className="size-4 shrink-0 text-gain" aria-hidden="true" />
                   ) : (

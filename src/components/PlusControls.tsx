@@ -143,6 +143,17 @@ export function PlusControls({
     );
   }
 
+  const statusTitle =
+    status === "past_due"
+      ? "Payment failed"
+      : status === "cancelled"
+        ? until
+          ? `Until ${until}`
+          : "Cancelled"
+        : until
+          ? `Renews ${until}`
+          : "Active";
+
   const statusCopy =
     status === "past_due" ? (
       <>
@@ -152,9 +163,9 @@ export function PlusControls({
         </span>
       </>
     ) : status === "cancelled" ? (
-      `Cancelled. You keep everything until ${until ?? "it runs out"}, because you have paid for it.`
+      "You keep everything, because you have paid for it."
     ) : (
-      `Renews ${until ? `on ${until}` : "each period"}. Stop it whenever you like.`
+      "Stop it whenever you like."
     );
 
   return (
@@ -176,7 +187,7 @@ export function PlusControls({
         )
       }
     >
-      <span className="block truncate text-sm font-medium">Membership</span>
+      <span className="block truncate text-sm font-medium">{statusTitle}</span>
     </SettingBar>
   );
 }

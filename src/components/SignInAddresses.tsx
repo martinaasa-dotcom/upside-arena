@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { ConfirmAction } from "@/components/ConfirmAction";
 import { Badge } from "@/components/ui/badge";
-import { SETTING_ACTIONS, SETTING_COPY, SETTING_ROW } from "@/components/ui/setting-row";
+import { SETTING_ACTIONS, SETTING_COPY, SETTING_ROW, SettingBar } from "@/components/ui/setting-row";
 import { removeAddress } from "@/app/(app)/profile/address-actions";
 import { connectGoogle } from "@/app/auth/actions";
 import type { LinkedAddress } from "@/lib/auth/linked-emails";
@@ -106,15 +106,24 @@ export function SignInAddresses({
 
       {googleEnabled ? (
         <form action={connectGoogle}>
-          <Button
-            type="submit"
-            variant="outline"
-            className="gap-2.5"
-            onClick={() => track("address_google_started")}
+          <SettingBar
+            action={
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                className="gap-2.5"
+                onClick={() => track("address_google_started")}
+              >
+                <GoogleGlyph />
+                Connect
+              </Button>
+            }
           >
-            <GoogleGlyph />
-            Connect a Google account
-          </Button>
+            <span className="block truncate text-sm font-medium">
+              Another Google account
+            </span>
+          </SettingBar>
         </form>
       ) : null}
 

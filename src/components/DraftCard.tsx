@@ -41,20 +41,24 @@ export function DraftCard({
       <div className="flex flex-col gap-3">
         <SettingBar
           action={
-            <>
-              <Badge variant={picking ? "default" : "outline"}>
-                {waiting ? "Open" : picking ? "Picking" : "All picked"}
-              </Badge>
-              <Button asChild size="sm">
-                <Link href={href}>
-                  {draft.status === "picked"
+            <Button asChild size="sm">
+              <Link
+                href={href}
+                aria-label={
+                  draft.status === "picked"
                     ? "See the board"
                     : youAreSeated
                       ? "Open the room"
-                      : "Join it"}
-                </Link>
-              </Button>
-            </>
+                      : "Join it"
+                }
+              >
+                {draft.status === "picked"
+                  ? "See it"
+                  : youAreSeated
+                    ? "Open"
+                    : "Join it"}
+              </Link>
+            </Button>
           }
           description={`${format.name}, ${draft.rounds} names each, ${pickClockLabel(draft.pick_seconds).toLowerCase()}.`}
         >
@@ -68,6 +72,9 @@ export function DraftCard({
           </div>
         </SettingBar>
         <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+          <Badge variant={picking ? "default" : "outline"}>
+            {waiting ? "Open" : picking ? "Picking" : "All picked"}
+          </Badge>
           <span className="inline-flex items-center gap-1.5">
             <Users className="size-3.5" aria-hidden="true" />
             {seats} {seats === 1 ? "person" : "people"} in

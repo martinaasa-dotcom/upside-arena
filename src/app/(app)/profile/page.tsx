@@ -300,26 +300,17 @@ async function Player({
             : "The whole game is free. There is a subscription and a shop for titles, and neither changes a score."
         }
         action={
-          <span className="figure flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Coins className="size-3.5 text-primary" aria-hidden="true" />
-            {standing.coins}
+          <span className="flex items-center gap-2">
+            <span className="figure flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Coins className="size-3.5 text-primary" aria-hidden="true" />
+              {standing.coins}
+            </span>
+            <Button asChild variant={standing.hasPlus ? "outline" : "default"} size="sm">
+              <Link href="/plus">{standing.hasPlus ? "Manage" : "See it"}</Link>
+            </Button>
           </span>
         }
-      >
-        <SettingBar
-          action={
-            <Button asChild variant={standing.hasPlus ? "outline" : "default"} size="sm">
-              <Link href="/plus">
-                {standing.hasPlus ? "Manage" : "See it"}
-              </Link>
-            </Button>
-          }
-        >
-          <span className="block truncate text-sm font-medium">
-            {standing.hasPlus ? "Manage your membership" : "See what there is"}
-          </span>
-        </SettingBar>
-      </Panel>
+      />
 
       <Panel
         title="Weeks you have shared"
@@ -345,23 +336,17 @@ async function Player({
       <Panel
         title="How Arena works"
         description="What the money is, how a week is scored, what a battle is, and what none of this is. Two minutes."
+        action={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/how">Read</Link>
+          </Button>
+        }
       >
-        <div className="flex flex-col gap-3">
-          <SettingBar
-            action={
-              <Button asChild variant="outline" size="sm">
-                <Link href="/how">Read</Link>
-              </Button>
-            }
-          >
-            <span className="block truncate text-sm font-medium">The rules</span>
-          </SettingBar>
-          <SettingBar action={<ReplayTour />}>
-            <span className="block truncate text-sm font-medium">
-              Show me around again
-            </span>
-          </SettingBar>
-        </div>
+        <SettingBar action={<ReplayTour />}>
+          <span className="block truncate text-sm font-medium">
+            Show me around again
+          </span>
+        </SettingBar>
       </Panel>
 
       <Panel

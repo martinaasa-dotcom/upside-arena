@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Well } from "@/components/Panel";
 import { track } from "@/lib/analytics";
+import { cn } from "@/lib/utils";
+import { SETTING_COPY, SETTING_ROW } from "@/components/ui/setting-row";
 import {
   browserTimezone,
   currentEndpoint,
@@ -131,9 +133,9 @@ export function NotificationInvite({
   if (!visible) return null;
 
   return (
-    <Well className="flex flex-wrap items-start gap-3">
+    <Well className={cn(SETTING_ROW, "items-start py-3")}>
       <BellRing className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-      <div className="min-w-0 flex-1">
+      <div className={SETTING_COPY}>
         <p className="text-sm">{reason}</p>
         <p className="mt-1 text-sm text-muted-foreground">
           At most three a day, nothing at night, and nothing at all about a bad

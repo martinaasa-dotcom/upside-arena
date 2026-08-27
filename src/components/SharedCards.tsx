@@ -72,10 +72,14 @@ export function SharedCards({ cards }: { cards: SharedCardSummary[] }) {
           </div>
 
           <div className={SETTING_ACTIONS}>
-            <Button size="sm" variant="outline" asChild>
-              <a href={card.url} target="_blank" rel="noreferrer">
+            <Button size="icon" variant="outline" asChild>
+              <a
+                href={card.url}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`See week of ${weekLabel(card.monday)}`}
+              >
                 <ExternalLink className="size-4" aria-hidden="true" />
-                See it
               </a>
             </Button>
 
@@ -83,10 +87,11 @@ export function SharedCards({ cards }: { cards: SharedCardSummary[] }) {
               size="sm"
               variant="ghost"
               disabled={busy}
+              aria-label="Take it down"
               onClick={() => takeDown(card.id)}
             >
               <X className="size-4" aria-hidden="true" />
-              Take it down
+              Take down
             </Button>
           </div>
         </Well>
