@@ -115,15 +115,14 @@ describe("the cue stands down when the page is already saying it continues", () 
       which reports where a thing is being drawn. The landing hero used to
       run `.rise`, which held the sample card 8px below where it lands,
       with `both` fill, from before the first frame until 0.76s in. That
-      animation is now `none` on `.landing-field`, and an `Arrive` section
-      still sits 12px low while it is out. The decision is made once, at
-      hydration, inside that window, so a rect taken then stood the cue
-      down as though the fold were cutting the card.
+      animation is now `none` on `.landing-field`. The decision is made
+      once, at hydration, inside that window, so a rect taken then stood
+      the cue down as though the fold were cutting the card.
 
-      Measured on Upside Lab's copy, the same component with a 12px rise: no
-      cue on any window between 950px and 961px tall, appearing on one wheel
-      notch. With the layout read instead it is drawn 425ms after the
-      document is ready and no scroll is needed.
+      Measured on Upside Lab's copy: no cue on any window between 950px and
+      961px tall, appearing on one wheel notch. With the layout read
+      instead it is drawn 425ms after the document is ready and no scroll
+      is needed.
     */
     expect(CODE, "a rect is where the page is drawn, not where it is").not.toContain(
       "getBoundingClientRect"

@@ -138,6 +138,12 @@ describe("the landing has no bitmap to decode", () => {
     expect(LANDING).toContain("env(safe-area-inset-bottom)");
     expect(LAYOUT).toMatch(/viewportFit:\s*"cover"/);
   });
+
+  it("names Google for Safari to prefetch, not only Chrome", () => {
+    expect(LAYOUT).toMatch(
+      /rel="dns-prefetch"[^>]*href="https:\/\/accounts\.google\.com"/
+    );
+  });
 });
 
 describe("returning visitors do not re-fetch the brand files", () => {

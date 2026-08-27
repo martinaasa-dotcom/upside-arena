@@ -85,6 +85,15 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${GeistSans.variable} ${geistMono.variable}`}>
+      <head>
+        {/*
+          Chrome honours X-DNS-Prefetch-Control on every response. Safari
+          does not: it only prefetches hosts named in a dns-prefetch link.
+          accounts.google.com is the only place the landing sends somebody,
+          and resolving it after the tap is a wait on a phone.
+        */}
+        <link rel="dns-prefetch" href="https://accounts.google.com" />
+      </head>
       <body className="antialiased">
         <AmbientDither />
         <a

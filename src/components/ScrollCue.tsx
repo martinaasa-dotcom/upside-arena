@@ -112,15 +112,14 @@ const ANSWERED = 24;
   the sample card 8px below where it lands, with `both` fill, from before
   the first frame until 0.76s in. That animation is now `none` on
   `.landing-field` (it skipped painting the below-fold half of the card on
-  older WebKit), but a font swap still moves a few pixels, and an `Arrive`
-  section still sits 12px low while it is out, so the cue still reads
-  layout rather than the screen. A rect taken at hydration during a swap
-  would stand the cue down as though the fold were cutting the card, and
-  the first thing that ran the measurement again was the reader scrolling,
-  which is the one moment the answer no longer matters. Measured on Upside
-  Lab's copy of this page, which is the same component with a 12px rise: no
-  cue at all on any window between 950px and 961px tall, and one wheel
-  notch brought it up.
+  older WebKit), but a font swap still moves a few pixels, so the cue still
+  reads layout rather than the screen. A rect taken at hydration during a
+  swap would stand the cue down as though the fold were cutting the card,
+  and the first thing that ran the measurement again was the reader
+  scrolling, which is the one moment the answer no longer matters. Measured
+  on Upside Lab's copy of this page, which is the same component: no cue at
+  all on any window between 950px and 961px tall, and one wheel notch
+  brought it up.
 
   A layout position has no such state. `offsetTop` is where a box was laid
   out, not where an animation has it at this instant, so the answer at the
@@ -129,9 +128,8 @@ const ANSWERED = 24;
   document is what turns it into one coordinate space, which every
   measurement here then shares with the scroll offset.
 
-  So: nothing in this file may go back to reading a rect. Two things on the
-  first screen animate their transform, the hero on mount and the section
-  under it as it arrives, and both of them are things this measures.
+  So: nothing in this file may go back to reading a rect. The hero used to
+  animate its transform on mount, and that is a thing this measures.
 */
 function pageTop(node: HTMLElement) {
   let top = 0;
