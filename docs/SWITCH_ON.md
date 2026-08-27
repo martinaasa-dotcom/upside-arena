@@ -310,7 +310,7 @@ Redeploy.
 ### 5h. Confirm it worked
 
 1. Open `/plus`. The *Not on sale yet* panel should be gone.
-2. Press **Take Arena Plus**. Stripe's page should open with the right price.
+2. Press the monthly price. Stripe's page should open with the right price.
 3. Pay with `4242 4242 4242 4242` if in test mode.
 4. You should land back on `/plus` showing **Member**.
 5. **Stripe, Developers, Webhooks**, click the endpoint. Every event should show

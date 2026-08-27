@@ -409,7 +409,7 @@ export async function createLeague(
         error:
           limits.leaguesOwned > MAX_LEAGUES_OWNED
             ? `You can run ${limits.leaguesOwned} leagues at once. Leave one to start another.`
-            : `You can run ${limits.leaguesOwned} leagues at once. Leave one to start another, or take Arena Plus for more.`,
+            : `You can run ${limits.leaguesOwned} leagues at once. Leave one to start another, or see Arena Plus if you want more.`,
       };
     }
     if (error.message.includes("needs a name")) {
@@ -449,7 +449,7 @@ export async function joinLeague(
         error:
           limits.leaguesJoined > MAX_LEAGUES_JOINED
             ? `You are in ${limits.leaguesJoined} leagues already. Leave one to join another.`
-            : `You are in ${limits.leaguesJoined} leagues already. Leave one to join another, or take Arena Plus for more.`,
+            : `You are in ${limits.leaguesJoined} leagues already. Leave one to join another, or see Arena Plus if you want more.`,
       };
     }
     return { ok: false, error: "We could not join that league. Try again." };
