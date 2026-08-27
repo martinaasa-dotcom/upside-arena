@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   FORMATS,
   MIN_SHARE_PRICE,
+  PARTY_FORMAT_IDS,
   allowedSymbols,
   belowPriceFloor,
   checkTrade,
   formatById,
   hasPriceFloor,
   isFormatId,
+  isPartyFormat,
   positionValue,
 } from "@/lib/game/formats";
 
@@ -43,6 +45,14 @@ describe("the catalogue", () => {
   it("uses each id once, because a cycle records one and looks it back up", () => {
     const ids = FORMATS.map((format) => format.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("names the party formats from ids that still exist", () => {
+    for (const id of PARTY_FORMAT_IDS) {
+      expect(isFormatId(id)).toBe(true);
+      expect(isPartyFormat(id)).toBe(true);
+    }
+    expect(isPartyFormat("open")).toBe(false);
   });
 
   it("names no company twice inside one list", () => {

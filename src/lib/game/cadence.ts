@@ -1,4 +1,4 @@
-import { formatDate } from "@/lib/format";
+import { formatDay } from "@/lib/format";
 import {
   addDays,
   hasOpenedToday,
@@ -107,14 +107,15 @@ export function cadenceById(id: string | null | undefined): Cadence {
 /**
  * Which cadences are worth offering for a length.
  *
- * Monthly on a one-day battle is a window that probably never opens. The
- * database will still record whatever it is given; the form just does not
- * offer the combinations that make no sense.
+ * Monthly on a one-day battle is a window that probably never opens. Opening
+ * day on a one-day battle is the open book under another name. The form hides
+ * those, and startBattle refuses them, so a crafted request cannot store a
+ * combination the room then has to apologise for.
  */
 export function cadencesFor(length: LengthId): CadenceId[] {
   switch (length) {
     case "day":
-      return ["always", "bell", "once"];
+      return ["always", "bell"];
     case "week":
     case "fortnight":
       return ["always", "mondays", "bell", "once"];
@@ -123,6 +124,10 @@ export function cadencesFor(length: LengthId): CadenceId[] {
     default:
       return [...CADENCE_IDS];
   }
+}
+
+export function cadenceFits(length: LengthId, cadence: CadenceId): boolean {
+  return cadencesFor(length).includes(cadence);
 }
 
 /** What to pick when the length changes and the current cadence no longer fits. */
@@ -246,7 +251,26 @@ export function nextBuyDay(input: ContestClock, now = new Date()): string | null
   return null;
 }
 
-function buyingShutReason(cadence: Cadence, next: string | null): string {
+/**
+ * A calendar day, said the way a person would: today, tomorrow, or the date.
+ *
+ * The dated form is what a year-long monthly contest needs. The relative
+ * form is what a Monday window needs on Sunday evening, and what the bell
+ * needs at 10:01.
+ */
+function sayDay(iso: string, today: string): string {
+  if (iso === today) return "today";
+  if (iso === addDays(today, 1)) return "tomorrow";
+  return formatDay(iso);
+}
+
+function buyingOpensPhrase(iso: string, today: string): string {
+  const when = sayDay(iso, today);
+  if (when === "today" || when === "tomorrow") return `Buying opens ${when}.`;
+  return `Buying opens on ${when}.`;
+}
+
+function buyingShutReason(cadence: Cadence, next: string | null, today: string): string {
   if (cadence.id === "once" && next == null) {
     return "Buying was only allowed on the first session of this battle. You can still sell.";
   }
@@ -254,9 +278,48 @@ function buyingShutReason(cadence: Cadence, next: string | null): string {
     return "There is no buying day left in this battle. You can still sell.";
   }
   if (cadence.id === "bell") {
-    return `Buying is only allowed in the first half hour after the open. Next window ${formatDate(next)}. You can still sell.`;
+    return `Buying is only allowed in the first half hour after the open. Next window is ${sayDay(next, today)}. You can still sell.`;
   }
-  return `Buying opens on ${formatDate(next)}. You can still sell.`;
+  return `${buyingOpensPhrase(next, today)} You can still sell.`;
+}
+
+function startsReason(startsOn: string, today: string): string {
+  const when = sayDay(startsOn, today);
+  if (when === "today" || when === "tomorrow") {
+    return `This battle starts ${when}. Nothing you do before then counts.`;
+  }
+  return `This battle starts on ${when}. Nothing you do before then counts.`;
+}
+
+/**
+ * The next buying morning, for a card rather than for the trade form.
+ *
+ * Dated, and silent when the cadence is the open book, because repeating
+ * "buy whenever the market is open" on every BattleCard is a rule nobody
+ * came here to be told. Empty before the contest starts: the badge already
+ * names that day.
+ */
+export function buyWindowCopy(input: ContestClock, now = new Date()): string | null {
+  if (input.cadence === "always") return null;
+  if (input.finished || input.drafted) return null;
+
+  const today = nyDate(now);
+  if (today < input.startsOn) return null;
+
+  const trading = contestTrading(input, now);
+  if (trading.buying) {
+    return input.cadence === "bell" ? "Buying is open until 10:00." : "Buying is open today.";
+  }
+  if (trading.nextBuyDay) {
+    if (input.cadence === "bell") {
+      return `Buying is only allowed until 10:00. Next window is ${sayDay(trading.nextBuyDay, today)}.`;
+    }
+    return buyingOpensPhrase(trading.nextBuyDay, today);
+  }
+  if (input.cadence === "once") {
+    return "Buying was only allowed on the first session.";
+  }
+  return "There is no buying day left.";
 }
 
 /**
@@ -281,8 +344,10 @@ export function contestTrading(input: ContestClock, now = new Date()): ContestTr
     };
   }
 
-  if (nyDate(now) < input.startsOn) {
-    const reason = "This battle starts on Monday. Nothing you do before then counts.";
+  const today = nyDate(now);
+
+  if (today < input.startsOn) {
+    const reason = startsReason(input.startsOn, today);
     return { ...empty, reason, buyReason: reason };
   }
 
@@ -292,7 +357,7 @@ export function contestTrading(input: ContestClock, now = new Date()): ContestTr
     return { ...empty, reason, buyReason: reason };
   }
 
-  if (nyDate(now) > input.endsOn) {
+  if (today > input.endsOn) {
     const reason = "This battle has finished. The result lands once it is scored.";
     return { ...empty, reason, buyReason: reason };
   }
@@ -301,8 +366,13 @@ export function contestTrading(input: ContestClock, now = new Date()): ContestTr
   const next = nextBuyDay(input, now);
 
   if (!marketOpen) {
-    const reason =
+    const hours =
       "The market is closed. Trading runs from 09:30 to 16:00 New York time, weekdays.";
+    const window =
+      cadence.id === "always" || !next
+        ? ""
+        : ` Next buying morning is ${sayDay(next, today)}.`;
+    const reason = hours + window;
     return {
       selling: false,
       buying: false,
@@ -318,7 +388,7 @@ export function contestTrading(input: ContestClock, now = new Date()): ContestTr
     selling: true,
     buying,
     reason: "",
-    buyReason: buying ? "" : buyingShutReason(cadence, next),
+    buyReason: buying ? "" : buyingShutReason(cadence, next, today),
     nextBuyDay: next,
   };
 }

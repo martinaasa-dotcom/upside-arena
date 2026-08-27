@@ -3,7 +3,7 @@ import { ArenaWordmark } from "@/components/brand/ArenaWordmark";
 import { TrackView } from "@/components/TrackView";
 import { PAGE, PAGE_FRAME } from "@/lib/page-shell";
 import { MAX_LINEUP_ORDERS, STARTING_BALANCE } from "@/lib/game";
-import { FORMATS, MIN_SHARE_PRICE } from "@/lib/game/formats";
+import { FORMATS, MIN_SHARE_PRICE, isPartyFormat } from "@/lib/game/formats";
 import { LENGTHS } from "@/lib/game/lengths";
 import { CADENCES } from "@/lib/game/cadence";
 import { TEMPLATES } from "@/lib/game/templates";
@@ -163,7 +163,32 @@ export default function HowPage() {
             </p>
 
             <div className="grid gap-2 sm:grid-cols-2">
-              {FORMATS.map((format) => (
+              {FORMATS.filter((format) => !isPartyFormat(format.id)).map((format) => (
+                <div
+                  key={format.id}
+                  className="glass-well flex items-start gap-3 rounded-lg p-4"
+                >
+                  <span className="text-lg leading-none" aria-hidden="true">
+                    {format.icon}
+                  </span>
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span className="text-sm font-medium text-foreground">
+                      {format.name}
+                    </span>
+                    <span className="text-sm">{format.rule}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <p>
+              And a few that exist because a league asked for them. Same shape
+              as the rest: a list, or a cap, checkable the moment you try to
+              break it.
+            </p>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {FORMATS.filter((format) => isPartyFormat(format.id)).map((format) => (
                 <div
                   key={format.id}
                   className="glass-well flex items-start gap-3 rounded-lg p-4"
@@ -220,7 +245,7 @@ export default function HowPage() {
               {TEMPLATES.map((template) => (
                 <li key={template.id}>
                   <span className="text-foreground">{template.name}</span>:{" "}
-                  {template.rule}
+                  {template.tagline}
                 </li>
               ))}
             </ul>

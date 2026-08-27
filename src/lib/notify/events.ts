@@ -16,7 +16,7 @@ import {
   type PodOutcome,
 } from "@/lib/game/pods";
 import { isTradingDay, isTradingOpen, nyDate } from "@/lib/market/session";
-import { formatDate, formatGap, ordinal } from "@/lib/format";
+import { formatDay, formatGap, ordinal } from "@/lib/format";
 import { emailConfigured, pushConfigured, sendEmail, sendPush } from "@/lib/notify/send";
 import { DAILY_CAP, isAwakeHour, isStreakReminderHour } from "@/lib/notify/timing";
 
@@ -676,7 +676,7 @@ export function battleStartedMessage(battle: StartedBattle): {
     title: `${battle.leagueName} started ${battle.format.name}`,
     // The date said the way a person says it. This is a push notification, not
     // a log line, and "ending 2026-08-28" is the app talking to itself.
-    body: `${battle.length.name}, ending ${formatDate(battle.endsOn)}. You are in it, so it counts either way. ${battle.format.rule}`,
+    body: `${battle.length.name}, ending ${formatDay(battle.endsOn)}. You are in it, so it counts either way.${battle.cadence.id === "always" ? "" : ` ${battle.cadence.rule}`} ${battle.format.rule}`,
     href: `/leagues/${battle.leagueId}/battle`,
   };
 }

@@ -6,8 +6,10 @@ import {
   isCadenceId,
   nextBuyDay,
   cadencesFor,
+  cadenceFits,
   suggestedCadence,
   cadenceById,
+  buyWindowCopy,
 } from "@/lib/game/cadence";
 import { isOpeningBell, isTradingOpen } from "@/lib/market/session";
 
@@ -46,6 +48,7 @@ describe("the catalogue", () => {
 
   it("does not offer a monthly window on a one-day battle", () => {
     expect(cadencesFor("day")).not.toContain("monthly");
+    expect(cadencesFor("day")).not.toContain("once");
     expect(cadencesFor("year")).toContain("monthly");
     expect(suggestedCadence("year")).toBe("monthly");
     expect(suggestedCadence("week")).toBe("always");
@@ -108,6 +111,7 @@ describe("whether a buy is taken right now", () => {
     expect(trading.selling).toBe(false);
     expect(trading.buying).toBe(false);
     expect(nextBuyDay({ ...yearOfChips, cadence: "monthly" }, now)).toBe("2026-10-01");
+    expect(trading.reason).toContain("Next buying morning is 1 Oct");
   });
 
   it("takes a buy only in the first half hour when the cadence is the bell", () => {
@@ -142,5 +146,65 @@ describe("whether a buy is taken right now", () => {
     expect(trading.selling).toBe(true);
     expect(trading.buyReason).toContain("first session");
     expect(trading.nextBuyDay).toBeNull();
+  });
+
+  it("names the actual start day rather than calling every wait a Monday", () => {
+    // A Thursday start, the ordinary case for a one-day battle made midweek.
+    const now = at("2026-08-19T14:00:00Z");
+    const trading = contestTrading(
+      { ...yearOfChips, startsOn: "2026-08-27" },
+      now
+    );
+    expect(trading.reason).toContain("27 Aug");
+    expect(trading.reason).not.toContain("Monday");
+  });
+
+  it("says tomorrow when the next window is the next calendar day", () => {
+    // Sunday evening in New York. Next Monday is tomorrow.
+    const now = at("2026-08-16T22:00:00Z");
+    const trading = contestTrading(
+      {
+        ...yearOfChips,
+        cadence: "mondays",
+        startsOn: "2026-08-10",
+        endsOn: "2026-09-04",
+      },
+      now
+    );
+    expect(trading.buying).toBe(false);
+    expect(trading.reason).toContain("Next buying morning is tomorrow");
+  });
+
+  it("says tomorrow for the bell after 10:00", () => {
+    const contest = { ...yearOfChips, cadence: "bell" as const, endsOn: "2026-08-28" };
+    const trading = contestTrading(contest, at("2026-08-19T14:00:00Z"));
+    expect(trading.buying).toBe(false);
+    expect(trading.selling).toBe(true);
+    expect(trading.buyReason).toContain("Next window is tomorrow");
+  });
+});
+
+describe("the line on the card", () => {
+  it("is silent for the open book", () => {
+    expect(
+      buyWindowCopy({ ...yearOfChips, cadence: "always" }, at("2026-08-19T14:00:00Z"))
+    ).toBeNull();
+  });
+
+  it("dates the next morning on a monthly year", () => {
+    expect(buyWindowCopy({ ...yearOfChips, cadence: "monthly" }, at("2026-08-19T14:00:00Z"))).toMatch(
+      /^Buying opens on 1 Sep/
+    );
+  });
+
+  it("says buying is open while the window is happening", () => {
+    expect(buyWindowCopy({ ...yearOfChips, cadence: "monthly" }, at("2026-09-01T14:00:00Z"))).toBe(
+      "Buying is open today."
+    );
+  });
+
+  it("refuses a monthly window on a one-day battle", () => {
+    expect(cadenceFits("day", "monthly")).toBe(false);
+    expect(cadenceFits("year", "monthly")).toBe(true);
   });
 });

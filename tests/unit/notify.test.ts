@@ -15,6 +15,7 @@ import {
 } from "@/lib/notify/events";
 import { FORMATS, formatById } from "@/lib/game/formats";
 import { lengthById } from "@/lib/game/lengths";
+import { cadenceById } from "@/lib/game/cadence";
 import type { BattleResult } from "@/lib/game/battles";
 
 /*
@@ -332,6 +333,7 @@ describe("being told your league has started something", () => {
     leagueName: "The Pit",
     format: formatById("inverse"),
     length: lengthById("fortnight"),
+    cadence: cadenceById("always"),
     startsOn: "2026-08-17",
     endsOn: "2026-08-28",
     createdBy: "u9",

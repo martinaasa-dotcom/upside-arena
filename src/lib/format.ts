@@ -38,7 +38,22 @@ export function formatTime(value: Date | string) {
   return TIME.format(typeof value === "string" ? new Date(value) : value);
 }
 
+/**
+ * A New York calendar date, stored as YYYY-MM-DD, said in words.
+ *
+ * Noon UTC, the same trick the session helpers use: a date-only ISO string
+ * parsed as midnight UTC is still the evening before in the Americas, so
+ * "Buying opens on 1 Sep" would read 31 Aug for everybody in New York. A
+ * timestamp with a time in it is not this, and goes through formatDate.
+ */
+export function formatDay(iso: string) {
+  return DATE.format(new Date(`${iso.slice(0, 10)}T12:00:00Z`));
+}
+
 export function formatDate(value: Date | string) {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return formatDay(value);
+  }
   return DATE.format(typeof value === "string" ? new Date(value) : value);
 }
 

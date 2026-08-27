@@ -19,7 +19,9 @@ import {
 } from "@/lib/market/session";
 import {
   cadenceById,
+  cadenceFits,
   contestTrading,
+  buyWindowCopy,
   DEFAULT_CADENCE,
   type Cadence,
   type CadenceId,
@@ -95,6 +97,18 @@ export type Battle = {
     src/lib/game/draft.ts.
   */
   drafted: boolean;
+  /**
+   * Whether a buy is allowed right now. Same answer the trade form uses.
+   * Selling can still be open when this is not.
+   */
+  buyingOpen: boolean;
+  /** The next calendar day a buy will be taken, including today when it will. */
+  nextBuyDay: string | null;
+  /**
+   * The next buying morning, dated. Null for the open book, for a draft,
+   * and before the contest has started.
+   */
+  buyWindow: string | null;
 };
 
 export type BattlePosition = {
@@ -226,16 +240,29 @@ function toBattle(
   row: WeeklyCycleRow,
   league: Pick<LeagueRow, "id" | "name" | "icon">,
   viewerId: string,
-  today = nyDate()
+  now = new Date()
 ): Battle {
+  const today = nyDate(now);
+  const format = formatById(row.format);
+  const cadence = cadenceById(row.cadence);
+  const clock = {
+    startsOn: row.monday,
+    endsOn: row.ends_on,
+    tradingHours: format.tradingHours,
+    cadence: cadence.id,
+    drafted: row.drafted,
+    finished: row.status === "closed",
+  };
+  const trading = contestTrading(clock, now);
+
   return {
     cycleId: row.id,
     leagueId: league.id,
     leagueName: league.name,
     leagueIcon: league.icon,
-    format: formatById(row.format),
+    format,
     length: lengthById(row.length),
-    cadence: cadenceById(row.cadence),
+    cadence,
     startsOn: row.monday,
     endsOn: row.ends_on,
     status: row.status,
@@ -248,6 +275,9 @@ function toBattle(
     timeLeft: row.status === "closed" ? "Finished" : timeLeft(row.ends_on, today),
     notStarted: today < row.monday,
     drafted: row.drafted,
+    buyingOpen: trading.buying,
+    nextBuyDay: trading.nextBuyDay,
+    buyWindow: buyWindowCopy(clock, now),
   };
 }
 
@@ -325,12 +355,12 @@ export async function getLiveBattles(userId: string): Promise<Battle[]> {
     ((leagues ?? []) as LeagueRow[]).map((league) => [league.id, league])
   );
 
-  const today = nyDate();
+  const now = new Date();
 
   return ((rows ?? []) as WeeklyCycleRow[]).flatMap((row) => {
     const league = row.league_id ? leagueById.get(row.league_id) : null;
     if (!league) return [];
-    return [toBattle(row, league, userId, today)];
+    return [toBattle(row, league, userId, now)];
   });
 }
 
@@ -389,6 +419,13 @@ export async function startBattle(
   const format = formatById(formatId);
   const length = lengthById(lengthId);
   const cadence = cadenceById(cadenceId);
+
+  if (!cadenceFits(length.id, cadence.id)) {
+    return {
+      ok: false,
+      error: `Pick a buying window that actually opens during ${length.name.toLowerCase()}.`,
+    };
+  }
 
   const today = nyDate();
 
@@ -972,6 +1009,7 @@ export type StartedBattle = {
   leagueName: string;
   format: Format;
   length: RunLength;
+  cadence: Cadence;
   startsOn: string;
   endsOn: string;
   /** Who started it. They are not told about their own battle. */
@@ -1022,7 +1060,7 @@ export async function startedBattles(now = new Date()): Promise<StartedBattle[]>
   */
   const { data: rows } = await admin
     .from("weekly_cycles")
-    .select("id, league_id, format, length, monday, ends_on, created_by, created_at")
+    .select("id, league_id, format, length, cadence, monday, ends_on, created_by, created_at")
     .not("league_id", "is", null)
     .eq("status", "open")
     .eq("drafted", false)
@@ -1035,6 +1073,7 @@ export async function startedBattles(now = new Date()): Promise<StartedBattle[]>
     league_id: string;
     format: string;
     length: string;
+    cadence: string;
     monday: string;
     ends_on: string;
     created_by: string | null;
@@ -1066,6 +1105,7 @@ export async function startedBattles(now = new Date()): Promise<StartedBattle[]>
     leagueName: leagueName.get(cycle.league_id) ?? "your league",
     format: formatById(cycle.format),
     length: lengthById(cycle.length),
+    cadence: cadenceById(cycle.cadence),
     startsOn: cycle.monday,
     endsOn: cycle.ends_on,
     createdBy: cycle.created_by,

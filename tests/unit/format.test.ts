@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatDay,
+  formatDate,
   formatGap,
   formatMoney,
   formatPercent,
@@ -15,6 +17,21 @@ describe("formatTime", () => {
     expect(formatTime("2026-08-21T20:30:00Z")).toBe("20:30");
     expect(formatTime("2026-08-21T08:05:00Z")).toBe("08:05");
     expect(formatTime("2026-08-21T00:00:00Z")).toBe("00:00");
+  });
+});
+
+describe("formatDay", () => {
+  it("keeps a New York calendar date on the day it names", () => {
+    // A date-only ISO string parsed as midnight UTC is still 31 Aug in New
+    // York. The card that said "Buying opens on 1 Sep" would have been a
+    // day early for everybody the contest is actually run for.
+    //
+    // "Sep" versus "Sept" is ICU, not us. What must not move is the day.
+    expect(formatDay("2026-09-01")).toMatch(/^1 Sep/);
+    expect(formatDay("2026-09-01")).not.toMatch(/Aug/);
+    expect(formatDate("2026-09-01")).toBe(formatDay("2026-09-01"));
+    expect(formatDay("2026-01-01")).toMatch(/^1 Jan/);
+    expect(formatDay("2026-01-01")).not.toMatch(/Dec/);
   });
 });
 

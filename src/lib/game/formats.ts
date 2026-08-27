@@ -462,6 +462,26 @@ export const FORMATS = [
 
 export type FormatId = (typeof FORMATS)[number]["id"];
 
+/**
+ * The ones that exist because a league asked for them, not because they
+ * are a different kind of game.
+ *
+ * On the form they sit under the usual books, so seventeen tiles are not
+ * one grid of names nobody can scan. The rules are the same shape as the
+ * rest: a list or a cap, checkable at trade time.
+ */
+export const PARTY_FORMAT_IDS: readonly FormatId[] = [
+  "lunch",
+  "garage",
+  "dad",
+  "vice",
+  "two_names",
+];
+
+export function isPartyFormat(id: FormatId): boolean {
+  return (PARTY_FORMAT_IDS as readonly FormatId[]).includes(id);
+}
+
 /** The house game, and what a cycle with no format recorded means. */
 export const DEFAULT_FORMAT: FormatId = "open";
 

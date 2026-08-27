@@ -479,6 +479,9 @@ export const battle: Battle = {
   timeLeft: "About 3 months left",
   notStarted: false,
   drafted: false,
+  buyingOpen: true,
+  nextBuyDay: null,
+  buyWindow: null,
 };
 
 /*
@@ -495,6 +498,9 @@ export const battleNotStarted: Battle = {
   endsOn: "2026-08-28",
   timeLeft: "Ends in 6 days",
   notStarted: true,
+  buyingOpen: false,
+  nextBuyDay: "2026-08-24",
+  buyWindow: null,
 };
 
 export const battleFinished: Battle = {
@@ -506,6 +512,9 @@ export const battleFinished: Battle = {
   finished: true,
   benchmarkClose: 25.4,
   timeLeft: "Finished",
+  buyingOpen: false,
+  nextBuyDay: null,
+  buyWindow: null,
 };
 
 /*

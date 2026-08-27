@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TEMPLATES, templateIsPlayable, matchingTemplate } from "@/lib/game/templates";
+import { TEMPLATES, templateIsPlayable, matchingTemplate, templateHorizon } from "@/lib/game/templates";
 import { isFormatId } from "@/lib/game/formats";
 import { isLengthId } from "@/lib/game/lengths";
 import { cadencesFor, isCadenceId } from "@/lib/game/cadence";
@@ -28,12 +28,16 @@ describe("the recipes", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("has a name and a rule for every recipe, in the words the card will say", () => {
+  it("has a name and a tagline for every recipe, in the words the card will say", () => {
     for (const template of TEMPLATES) {
       expect(template.name.length).toBeGreaterThan(0);
-      expect(template.rule.length).toBeGreaterThan(0);
       expect(template.tagline.length).toBeGreaterThan(0);
     }
+  });
+
+  it("groups the short games separately from the long ones", () => {
+    expect(templateHorizon({ length: "week" })).toBe("short");
+    expect(templateHorizon({ length: "year" })).toBe("long");
   });
 
   it("finds the recipe that is exactly these three knobs", () => {

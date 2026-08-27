@@ -16,10 +16,9 @@ import { getSession } from "@/lib/profile";
 import { getBattleView, getLeagueBattle } from "@/lib/game/battles";
 import { getLeagueDraft } from "@/lib/game/draft";
 import { allowedSymbols, formatAllowsCatalogCoins } from "@/lib/game/formats";
-import { NO_VALUE, formatDate } from "@/lib/format";
+import { NO_VALUE, formatDay, formatGap, formatMoney, formatPercent, ordinal } from "@/lib/format";
 import { submitCancelBattle } from "@/app/(app)/leagues/battle-actions";
 import { COLUMN, PAGE, SPLIT, STACK } from "@/lib/page-shell";
-import { formatGap, formatMoney, formatPercent, ordinal } from "@/lib/format";
 
 /*
   The battle room.
@@ -184,7 +183,7 @@ async function ReturnScore({ params }: Params) {
         label="This battle"
         value="Not you"
         as="text"
-        hint={`${view.battle.length.name}, ended ${view.battle.endsOn}`}
+        hint={`${view.battle.length.name}, ended ${formatDay(view.battle.endsOn)}`}
       />
     );
   }
@@ -196,7 +195,7 @@ async function ReturnScore({ params }: Params) {
       label="This battle"
       value={formatPercent(pct)}
       tone={pct >= 0 ? "gain" : "loss"}
-      hint={`${view.battle.length.name}, ending ${view.battle.endsOn}`}
+      hint={`${view.battle.length.name}, ending ${formatDay(view.battle.endsOn)}`}
     />
   );
 }
@@ -281,7 +280,9 @@ async function Rest({ params }: Params) {
       </div>
 
       <p className="-mt-2 text-sm text-muted-foreground">{format.rule}</p>
-      {battle.cadence.id !== "always" ? (
+      {battle.buyWindow ? (
+        <p className="-mt-2 text-sm text-muted-foreground">{battle.buyWindow}</p>
+      ) : battle.cadence.id !== "always" && !battle.finished ? (
         <p className="-mt-2 text-sm text-muted-foreground">{battle.cadence.rule}</p>
       ) : null}
 
@@ -381,15 +382,15 @@ async function Rest({ params }: Params) {
         >
           <Trail
             values={trail}
-            from={formatDate(battle.startsOn)}
-            to={battle.finished ? formatDate(battle.endsOn) : "Now"}
+            from={formatDay(battle.startsOn)}
+            to={battle.finished ? formatDay(battle.endsOn) : "Now"}
           />
         </Panel>
       ) : null}
 
       <Panel
         title="The table"
-        description={`Everybody in ${battle.leagueName} started with the same money on ${battle.startsOn}.`}
+        description={`Everybody in ${battle.leagueName} started with the same money on ${formatDay(battle.startsOn)}.`}
       >
         <StandingsTable standings={standings} />
       </Panel>
@@ -473,11 +474,7 @@ async function Rest({ params }: Params) {
             buyReason={view.buyReason}
             battleId={battle.cycleId}
             universe={allowedSymbols(format)}
-            rule={
-              battle.cadence.id === "always"
-                ? format.rule
-                : `${format.rule} ${battle.cadence.rule}`
-            }
+            rule={format.rule}
             allowCoins={formatAllowsCatalogCoins(format)}
           />
         </Panel>

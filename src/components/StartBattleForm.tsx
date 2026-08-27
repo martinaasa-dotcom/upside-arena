@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/Segmented";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
-import { FORMATS, formatById, type FormatId } from "@/lib/game/formats";
+import { FORMATS, formatById, isPartyFormat, type FormatId } from "@/lib/game/formats";
 import { LENGTHS, lengthById, type LengthId } from "@/lib/game/lengths";
 import {
   CADENCES,
@@ -21,6 +21,7 @@ import {
   TEMPLATES,
   matchingTemplate,
   templateById,
+  templateHorizon,
   type TemplateId,
 } from "@/lib/game/templates";
 import {
@@ -78,8 +79,25 @@ export function StartBattleForm({ leagueId }: { leagueId: string }) {
   function changeLength(next: LengthId) {
     setLength(next);
     const allowed = cadencesFor(next);
-    if (!allowed.includes(cadence)) setCadence(suggestedCadence(next));
+    if (!allowed.includes(cadence)) {
+      setCadence(suggestedCadence(next));
+      return;
+    }
+    /*
+      A year of "any day" is allowed, and it is also the one people land on
+      by changing the length after mixing a week. Nudge to the window that
+      makes a long contest a game rather than a lock-in. They can tap Any
+      day again if that is what they meant.
+    */
+    if ((next === "quarter" || next === "year") && cadence === "always") {
+      setCadence(suggestedCadence(next));
+    }
   }
+
+  const shortRecipes = TEMPLATES.filter((entry) => templateHorizon(entry) === "short");
+  const longRecipes = TEMPLATES.filter((entry) => templateHorizon(entry) === "long");
+  const usualFormats = FORMATS.filter((entry) => !isPartyFormat(entry.id));
+  const partyFormats = FORMATS.filter((entry) => isPartyFormat(entry.id));
 
   return (
     <Panel
@@ -106,80 +124,24 @@ export function StartBattleForm({ leagueId }: { leagueId: string }) {
         />
 
         {mode === "recipe" ? (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-4">
             <span id="battle-recipe-label" className="text-sm leading-none font-medium">
               The game
             </span>
-            <div
-              role="radiogroup"
-              aria-labelledby="battle-recipe-label"
-              className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
-            >
-              {TEMPLATES.map((entry) => {
-                const active = entry.id === templateId;
-                return (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    onClick={() => applyTemplate(entry.id)}
-                    className={cn(
-                      "flex min-h-14 items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors",
-                      "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                      active
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:bg-foreground/5"
-                    )}
-                  >
-                    <span className="shrink-0 text-lg leading-none" aria-hidden="true">
-                      {entry.icon}
-                    </span>
-                    <span className="min-w-0 text-sm leading-tight font-medium">
-                      {entry.name}
-                    </span>
-                  </button>
-                );
-              })}
+            <div role="radiogroup" aria-labelledby="battle-recipe-label" className="flex flex-col gap-4">
+              <RecipeGroup label="A week or less" templates={shortRecipes} selected={templateId} onPick={applyTemplate} />
+              <RecipeGroup label="A month or more" templates={longRecipes} selected={templateId} onPick={applyTemplate} />
             </div>
           </div>
         ) : (
           <>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-4">
               <span id="battle-format-label" className="text-sm leading-none font-medium">
                 The rule book
               </span>
-              <div
-                role="radiogroup"
-                aria-labelledby="battle-format-label"
-                className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
-              >
-                {FORMATS.map((entry) => {
-                  const active = entry.id === format;
-                  return (
-                    <button
-                      key={entry.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      onClick={() => setFormat(entry.id)}
-                      className={cn(
-                        "flex min-h-14 items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors",
-                        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                        active
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:bg-foreground/5"
-                      )}
-                    >
-                      <span className="shrink-0 text-lg leading-none" aria-hidden="true">
-                        {entry.icon}
-                      </span>
-                      <span className="min-w-0 text-sm leading-tight font-medium">
-                        {entry.name}
-                      </span>
-                    </button>
-                  );
-                })}
+              <div role="radiogroup" aria-labelledby="battle-format-label" className="flex flex-col gap-4">
+                <FormatGroup label="The usual books" formats={usualFormats} selected={format} onPick={setFormat} />
+                <FormatGroup label="The rest" formats={partyFormats} selected={format} onPick={setFormat} />
               </div>
             </div>
 
@@ -226,9 +188,13 @@ export function StartBattleForm({ leagueId }: { leagueId: string }) {
             <>
               <p className="text-sm">
                 <span className="font-medium">{chosenTemplate.name}.</span>{" "}
-                {chosenTemplate.rule}
+                {chosenTemplate.tagline}
               </p>
-              <p className="text-sm text-muted-foreground">{chosenTemplate.tagline}</p>
+              <p className="text-sm text-muted-foreground">
+                {chosenFormat.rule} {chosenLength.name}. Measured against{" "}
+                <span className="figure text-foreground">{chosenFormat.benchmark}</span>
+                {chosenCadence.id === "always" ? "." : `. ${chosenCadence.rule}`}
+              </p>
             </>
           ) : (
             <>
@@ -236,7 +202,9 @@ export function StartBattleForm({ leagueId }: { leagueId: string }) {
                 <span className="font-medium">{chosenFormat.name}.</span> {chosenFormat.rule}
               </p>
               <p className="text-sm text-muted-foreground">
-                {chosenLength.name}. {chosenLength.tagline} {chosenCadence.rule}
+                {chosenLength.name}. Measured against{" "}
+                <span className="figure text-foreground">{chosenFormat.benchmark}</span>.{" "}
+                {chosenLength.tagline} {chosenCadence.rule}
                 {chosenFormat.tradingHours === "always"
                   ? " This one runs through the weekend."
                   : ""}
@@ -275,5 +243,94 @@ export function StartBattleForm({ leagueId }: { leagueId: string }) {
         </div>
       </form>
     </Panel>
+  );
+}
+
+function RecipeGroup({
+  label,
+  templates,
+  selected,
+  onPick,
+}: {
+  label: string;
+  templates: readonly (typeof TEMPLATES)[number][];
+  selected: TemplateId;
+  onPick: (id: TemplateId) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+        {templates.map((entry) => (
+          <Tile
+            key={entry.id}
+            active={entry.id === selected}
+            icon={entry.icon}
+            name={entry.name}
+            onClick={() => onPick(entry.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FormatGroup({
+  label,
+  formats,
+  selected,
+  onPick,
+}: {
+  label: string;
+  formats: readonly { id: FormatId; name: string; icon: string }[];
+  selected: FormatId;
+  onPick: (id: FormatId) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+        {formats.map((entry) => (
+          <Tile
+            key={entry.id}
+            active={entry.id === selected}
+            icon={entry.icon}
+            name={entry.name}
+            onClick={() => onPick(entry.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Tile({
+  active,
+  icon,
+  name,
+  onClick,
+}: {
+  active: boolean;
+  icon: string;
+  name: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={active}
+      onClick={onClick}
+      className={cn(
+        "flex min-h-14 items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors",
+        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        active ? "border-primary bg-primary/10" : "border-border hover:bg-foreground/5"
+      )}
+    >
+      <span className="shrink-0 text-lg leading-none" aria-hidden="true">
+        {icon}
+      </span>
+      <span className="min-w-0 text-sm leading-tight font-medium">{name}</span>
+    </button>
   );
 }
