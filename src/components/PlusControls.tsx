@@ -13,6 +13,7 @@ import {
 } from "@/lib/billing/plan";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
+import { SettingBar } from "@/components/ui/setting-row";
 
 /*
   Subscribing, and stopping.
@@ -72,7 +73,7 @@ export function PlusControls({
     const chosen = PLUS_PLANS[cadence];
 
     return (
-      <div className="flex flex-col items-start gap-3">
+      <div className="flex flex-col gap-3">
         {cadences.length > 1 ? (
           <div
             role="radiogroup"
@@ -120,51 +121,62 @@ export function PlusControls({
           </div>
         ) : null}
 
-        <Button disabled={busy || !canSubscribe} onClick={subscribe}>
-          Take Arena Plus
-        </Button>
-
-        <p className="text-sm text-muted-foreground">
-          {canSubscribe
-            ? `${formatPrice(chosen.amount, chosen.currency)} ${chosen.every}, renewing until you stop it. Tax is worked out at checkout and shown before you pay.`
-            : "Not on sale yet."}
-        </p>
+        <SettingBar
+          action={
+            <Button size="sm" disabled={busy || !canSubscribe} onClick={subscribe}>
+              Take Arena Plus
+            </Button>
+          }
+          description={
+            canSubscribe
+              ? "Renews until you stop it. Tax is worked out at checkout and shown before you pay."
+              : undefined
+          }
+        >
+          <span className="block truncate text-sm font-medium">
+            {canSubscribe
+              ? `${formatPrice(chosen.amount, chosen.currency)} ${chosen.every}`
+              : "Not on sale yet"}
+          </span>
+        </SettingBar>
       </div>
     );
   }
 
-  return (
-    <div className="flex flex-col items-start gap-2">
-      <p className="text-sm">
-        {status === "past_due" ? (
-          <>
-            <span className="text-loss">Your last payment did not go through.</span>{" "}
-            <span className="text-muted-foreground">
-              Nothing has been taken away. Update your card and it carries on.
-            </span>
-          </>
-        ) : status === "cancelled" ? (
-          <span className="text-muted-foreground">
-            Cancelled. You keep everything until {until ?? "it runs out"}, because
-            you have paid for it.
-          </span>
-        ) : (
-          <span className="text-muted-foreground">
-            Renews {until ? `on ${until}` : "each period"}. Stop it whenever you
-            like.
-          </span>
-        )}
-      </p>
+  const statusCopy =
+    status === "past_due" ? (
+      <>
+        <span className="text-loss">Your last payment did not go through.</span>{" "}
+        <span className="text-muted-foreground">
+          Nothing has been taken away. Update your card and it carries on.
+        </span>
+      </>
+    ) : status === "cancelled" ? (
+      `Cancelled. You keep everything until ${until ?? "it runs out"}, because you have paid for it.`
+    ) : (
+      `Renews ${until ? `on ${until}` : "each period"}. Stop it whenever you like.`
+    );
 
-      {canManage ? (
-        <Button variant="outline" disabled={busy} onClick={manage}>
-          {status === "past_due" ? "Update your card" : "Manage or cancel"}
-        </Button>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          Nobody is charging you for this, so there is nothing to cancel.
-        </p>
-      )}
-    </div>
+  return (
+    <SettingBar
+      action={
+        canManage ? (
+          <Button variant="outline" size="sm" disabled={busy} onClick={manage}>
+            {status === "past_due" ? "Update your card" : "Manage or cancel"}
+          </Button>
+        ) : undefined
+      }
+      description={
+        canManage ? (
+          <p className="text-sm text-muted-foreground">{statusCopy}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Nobody is charging you for this, so there is nothing to cancel.
+          </p>
+        )
+      }
+    >
+      <span className="block truncate text-sm font-medium">Membership</span>
+    </SettingBar>
   );
 }

@@ -1,0 +1,64 @@
+import { type ReactNode } from "react";
+import { cn } from "@/lib/utils";
+
+/*
+  Label left, one control right, one row at every width.
+
+  Ported from Lab. A paragraph next to a search field still wants to stack
+  on a phone. A setting, a menu row or a list action does not: the button
+  belongs under the thumb, and wrapping it onto its own line is how the
+  Account page grew a column of left-aligned blocks.
+
+  Truncate titles on the child (`truncate`), not on this column.
+*/
+export const SETTING_ROW =
+  "flex flex-row flex-nowrap items-center justify-between gap-3";
+export const SETTING_COPY = "min-w-0 flex-1";
+/*
+  Shrink-0 so a long label ellipsises instead of shoving the control onto
+  the next line. The page gutter, the panel pad and the body's safe-area
+  inset keep this off the iOS edge-swipe and off a classic scrollbar.
+*/
+export const SETTING_ACTIONS =
+  "flex shrink-0 items-center justify-end gap-2";
+/** Title row, then the sentence. Never put that sentence in the title column. */
+export const SETTING_STACK = "flex flex-col gap-1.5";
+
+/** Title | control. A `description` sits under the row, never beside the control. */
+export function SettingBar({
+  children,
+  action,
+  description,
+  align = "center",
+  className,
+}: {
+  children: ReactNode;
+  action?: ReactNode;
+  description?: ReactNode;
+  align?: "center" | "start";
+  className?: string;
+}) {
+  const bar = (
+    <div
+      className={cn(
+        SETTING_ROW,
+        align === "start" && "items-start",
+        description == null && className
+      )}
+    >
+      <div className={SETTING_COPY}>{children}</div>
+      {action != null ? <div className={SETTING_ACTIONS}>{action}</div> : null}
+    </div>
+  );
+  if (description == null) return bar;
+  return (
+    <div className={cn(SETTING_STACK, className)}>
+      {bar}
+      {typeof description === "string" ? (
+        <p className="text-sm text-muted-foreground">{description}</p>
+      ) : (
+        description
+      )}
+    </div>
+  );
+}

@@ -9,6 +9,7 @@ import { track } from "@/lib/analytics";
 import { unshareCard } from "@/app/(app)/share-actions";
 import { weekLabel } from "@/lib/share/card";
 import { formatPercent } from "@/lib/format";
+import { SETTING_ACTIONS, SETTING_COPY, SETTING_ROW } from "@/components/ui/setting-row";
 
 /*
   Every week this player has made public, and one tap to make it private
@@ -55,9 +56,9 @@ export function SharedCards({ cards }: { cards: SharedCardSummary[] }) {
   return (
     <div className="flex flex-col gap-2">
       {live.map((card) => (
-        <Well key={card.id} className="flex flex-wrap items-center gap-3 py-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm">
+        <Well key={card.id} className={`${SETTING_ROW} py-3`}>
+          <div className={SETTING_COPY}>
+            <p className="truncate text-sm">
               Week of {weekLabel(card.monday)}
               <span
                 className={`figure ml-2 ${
@@ -70,22 +71,24 @@ export function SharedCards({ cards }: { cards: SharedCardSummary[] }) {
             <p className="truncate text-xs text-muted-foreground">{card.url}</p>
           </div>
 
-          <Button size="sm" variant="outline" asChild>
-            <a href={card.url} target="_blank" rel="noreferrer">
-              <ExternalLink className="size-4" aria-hidden="true" />
-              See it
-            </a>
-          </Button>
+          <div className={SETTING_ACTIONS}>
+            <Button size="sm" variant="outline" asChild>
+              <a href={card.url} target="_blank" rel="noreferrer">
+                <ExternalLink className="size-4" aria-hidden="true" />
+                See it
+              </a>
+            </Button>
 
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            onClick={() => takeDown(card.id)}
-          >
-            <X className="size-4" aria-hidden="true" />
-            Take it down
-          </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => takeDown(card.id)}
+            >
+              <X className="size-4" aria-hidden="true" />
+              Take it down
+            </Button>
+          </div>
         </Well>
       ))}
     </div>

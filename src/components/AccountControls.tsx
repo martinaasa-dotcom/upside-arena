@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { SettingBar } from "@/components/ui/setting-row";
 import { deleteAccount } from "@/app/(app)/profile/actions";
 import { track } from "@/lib/analytics";
 
@@ -65,71 +66,80 @@ export function AccountControls() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col items-start gap-2">
-        <Button variant="outline" onClick={exportData} disabled={exporting}>
-          <Download />
-          {exporting ? "Putting it together" : "Download my data"}
-        </Button>
-        <p className="text-sm text-muted-foreground">
-          A single file with your profile and what you have agreed to.
-        </p>
-      </div>
+    <div className="flex flex-col gap-5">
+      <SettingBar
+        action={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportData}
+            disabled={exporting}
+          >
+            <Download />
+            {exporting ? "Putting it together" : "Download"}
+          </Button>
+        }
+        description="A single file with your profile and what you have agreed to."
+      >
+        <span className="block truncate text-sm font-medium">Download my data</span>
+      </SettingBar>
 
-      <div className="flex flex-col items-start gap-2">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive">
-              <Trash2 />
-              Close my account
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Close your account for good?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Your profile, your record and your leagues are erased. We cannot
-                bring them back. Download your data first if you want to keep it.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
+      <SettingBar
+        action={
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 />
+                Close
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Close your account for good?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Your profile, your record and your leagues are erased. We cannot
+                  bring them back. Download your data first if you want to keep it.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="confirm-delete">
-                Type {CONFIRM_WORD} to confirm
-              </Label>
-              <Input
-                id="confirm-delete"
-                value={confirmation}
-                onChange={(event) => setConfirmation(event.target.value)}
-                autoComplete="off"
-              />
-            </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="confirm-delete">
+                  Type {CONFIRM_WORD} to confirm
+                </Label>
+                <Input
+                  id="confirm-delete"
+                  value={confirmation}
+                  onChange={(event) => setConfirmation(event.target.value)}
+                  autoComplete="off"
+                />
+              </div>
 
-            <AlertDialogFooter>
-              <AlertDialogCancel>Keep my account</AlertDialogCancel>
-              <AlertDialogAction
-                disabled={confirmation.trim().toLowerCase() !== CONFIRM_WORD || pending}
-                onClick={(event) => {
-                  event.preventDefault();
-                  startTransition(async () => {
-                    const result = await deleteAccount();
-                    if (result?.error) {
-                      toast.error(result.error);
-                      return;
-                    }
-                    track("account_deleted");
-                  });
-                }}
-              >
-                {pending ? "Closing" : "Close my account"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        <p className="text-sm text-muted-foreground">
-          This cannot be undone.
-        </p>
-      </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Keep my account</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={confirmation.trim().toLowerCase() !== CONFIRM_WORD || pending}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    startTransition(async () => {
+                      const result = await deleteAccount();
+                      if (result?.error) {
+                        toast.error(result.error);
+                        return;
+                      }
+                      track("account_deleted");
+                    });
+                  }}
+                >
+                  {pending ? "Closing" : "Close my account"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        }
+        description="This cannot be undone."
+      >
+        <span className="block truncate text-sm font-medium">Close my account</span>
+      </SettingBar>
     </div>
   );
 }

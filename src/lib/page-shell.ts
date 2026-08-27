@@ -50,4 +50,10 @@ export const LIST = "divide-y divide-border";
 /** Fixed table row height. A row never wraps to two lines. */
 export const ROW = "flex h-10 items-center gap-3";
 
+/*
+  Settings, menus and list actions (label left, control right) live in
+  `src/components/ui/setting-row.tsx`. Those must not wrap; ROW is the
+  shorter table variant and is a different job.
+*/
+
 export const HEADER_H = "h-14";

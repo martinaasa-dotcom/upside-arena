@@ -3,12 +3,13 @@
 import { useState, useTransition } from "react";
 import { Check, Flag, Minus, X } from "lucide-react";
 import { toast } from "sonner";
-import { Panel, Well } from "@/components/Panel";
+import { Panel } from "@/components/Panel";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { submitGoal, submitWithdrawGoal } from "@/app/(app)/leagues/actions";
 import { track } from "@/lib/analytics";
 import { GOALS, type GoalKind } from "@/lib/game/goal-kinds";
+import { SettingBar } from "@/components/ui/setting-row";
 
 /*
   Saying what you are going to do this week, to the people who will see it.
@@ -75,22 +76,20 @@ export function WeeklyGoal({
         title="What you said you would do"
         description="Your league can see this. It is worth nothing and costs nothing, which is the point of saying it."
       >
-        <div className="flex flex-wrap items-center gap-3">
-          <Well className="flex flex-1 items-center gap-3 py-3">
+        <SettingBar
+          action={
+            <Button variant="ghost" size="sm" disabled={busy} onClick={withdraw}>
+              <X className="size-4" aria-hidden="true" />
+              Take it back
+            </Button>
+          }
+          description={goal?.detail}
+        >
+          <span className="flex min-w-0 items-center gap-3">
             <Flag className="size-4 shrink-0 text-primary" aria-hidden="true" />
-            <span className="flex min-w-0 flex-col">
-              <span className="text-sm font-medium">{goal?.label}</span>
-              <span className="text-sm text-muted-foreground">
-                {goal?.detail}
-              </span>
-            </span>
-          </Well>
-
-          <Button variant="ghost" size="sm" disabled={busy} onClick={withdraw}>
-            <X className="size-4" aria-hidden="true" />
-            Take it back
-          </Button>
-        </div>
+            <span className="truncate text-sm font-medium">{goal?.label}</span>
+          </span>
+        </SettingBar>
       </Panel>
     );
   }
@@ -132,14 +131,18 @@ export function WeeklyGoal({
           })}
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <Button disabled={busy || !chosen} onClick={declare}>
-            Say it
-          </Button>
-          <p className="text-sm text-muted-foreground">
-            You can take it back, but you cannot swap it for a different one.
-          </p>
-        </div>
+        <SettingBar
+          action={
+            <Button size="sm" disabled={busy || !chosen} onClick={declare}>
+              Say it
+            </Button>
+          }
+          description="You can take it back, but you cannot swap it for a different one."
+        >
+          <span className="block truncate text-sm font-medium">
+            This week&apos;s goal
+          </span>
+        </SettingBar>
       </div>
     </Panel>
   );

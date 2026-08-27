@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { FlairSwatch } from "@/components/Flair";
 import { cn } from "@/lib/utils";
 import { submitEquip } from "@/app/(app)/profile/cosmetic-actions";
+import { SETTING_ACTIONS, SETTING_COPY, SETTING_ROW } from "@/components/ui/setting-row";
 import type { LockedReward, OwnedReward, Wardrobe as W } from "@/lib/game/streaks";
 import type { CosmeticSlot } from "@/lib/supabase/database.types";
 
@@ -80,14 +81,15 @@ function Slot({
                 type="submit"
                 className={cn(
                   "glass-well flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors",
+                  SETTING_ROW,
                   "hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                   item.equipped && "ring-1 ring-primary/40"
                 )}
               >
                 <Preview item={item} />
-                <span className="flex min-w-0 flex-1 flex-col">
+                <span className={`flex flex-col ${SETTING_COPY}`}>
                   <span className="truncate text-sm font-medium">{item.name}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="truncate text-xs text-muted-foreground">
                     {item.description}
                   </span>
                 </span>
@@ -104,9 +106,14 @@ function Slot({
         <form action={submitEquip}>
           <input type="hidden" name="slot" value={slot} />
           <input type="hidden" name="rewardId" value="" />
-          <Button type="submit" variant="ghost" size="sm">
-            Wear none
-          </Button>
+          <div className={SETTING_ROW}>
+            <div className={SETTING_COPY} />
+            <div className={SETTING_ACTIONS}>
+              <Button type="submit" variant="ghost" size="sm">
+                Wear none
+              </Button>
+            </div>
+          </div>
         </form>
       ) : null}
 
@@ -114,14 +121,14 @@ function Slot({
         <div className="flex flex-col gap-2">
           <p className="text-xs text-muted-foreground">Still to earn</p>
           {locked.map((item) => (
-            <Well key={item.id} className="flex items-center gap-3 py-2.5 opacity-70">
+            <Well key={item.id} className={`${SETTING_ROW} py-2.5 opacity-70`}>
               <Lock
                 className="size-4 shrink-0 text-muted-foreground"
                 aria-hidden="true"
               />
-              <span className="flex min-w-0 flex-1 flex-col">
+              <span className={`flex flex-col ${SETTING_COPY}`}>
                 <span className="truncate text-sm">{item.name}</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="truncate text-xs text-muted-foreground">
                   {item.description}
                 </span>
               </span>

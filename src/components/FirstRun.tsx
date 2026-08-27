@@ -4,6 +4,7 @@ import { Panel, Well } from "@/components/Panel";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
+import { SETTING_COPY, SettingBar } from "@/components/ui/setting-row";
 
 /*
   The first week, as four things to do rather than three things to read.
@@ -106,45 +107,49 @@ export function FirstRun({
       }
     >
       <div className="flex flex-col gap-3">
-        {steps.map((step) => (
-          <Well
-            key={step.title}
-            className={cn(
-              "flex items-start gap-3 py-3",
-              step.done && "opacity-60"
-            )}
-          >
-            {step.done ? (
-              <Check className="mt-0.5 size-4 shrink-0 text-gain" aria-hidden="true" />
-            ) : (
-              <Circle
-                className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                aria-hidden="true"
-              />
-            )}
-            <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="text-sm font-medium">
-                {step.title}
-                {step.done ? <span className="sr-only">, done</span> : null}
-              </span>
-              {step.done ? null : (
-                <span className="text-sm text-muted-foreground">{step.detail}</span>
-              )}
-            </span>
-          </Well>
-        ))}
+        {steps.map((step) => {
+          const current = step === next;
 
-        <div className="flex flex-wrap items-center gap-3">
-          <Button asChild>
-            <Link href={next.href}>
-              {next.action}
-              <ArrowRight className="size-4" aria-hidden="true" />
-            </Link>
-          </Button>
-          <Link href="/how" className="text-sm text-muted-foreground underline">
-            How Arena works
-          </Link>
-        </div>
+          return (
+            <Well
+              key={step.title}
+              className={cn("py-3", step.done && "opacity-60")}
+            >
+              <SettingBar
+                action={
+                  current ? (
+                    <Button asChild size="sm">
+                      <Link href={next.href}>
+                        {next.action}
+                        <ArrowRight className="size-4" aria-hidden="true" />
+                      </Link>
+                    </Button>
+                  ) : undefined
+                }
+                description={step.done ? undefined : step.detail}
+              >
+                <span className={`flex items-center gap-3 ${SETTING_COPY}`}>
+                  {step.done ? (
+                    <Check className="size-4 shrink-0 text-gain" aria-hidden="true" />
+                  ) : (
+                    <Circle
+                      className="size-4 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span className="truncate text-sm font-medium">
+                    {step.title}
+                    {step.done ? <span className="sr-only">, done</span> : null}
+                  </span>
+                </span>
+              </SettingBar>
+            </Well>
+          );
+        })}
+
+        <Link href="/how" className="text-sm text-muted-foreground underline">
+          How Arena works
+        </Link>
       </div>
     </Panel>
   );

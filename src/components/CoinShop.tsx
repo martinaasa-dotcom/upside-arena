@@ -10,6 +10,11 @@ import { formatPrice, type CoinBundle } from "@/lib/billing/plan";
 import { FlairSwatch } from "@/components/Flair";
 import { track } from "@/lib/analytics";
 import type { ForSaleReward } from "@/lib/game/streaks";
+import {
+  SETTING_ACTIONS,
+  SETTING_COPY,
+  SETTING_ROW,
+} from "@/components/ui/setting-row";
 
 /*
   Buying coins, and spending them.
@@ -90,28 +95,35 @@ export function CoinShop({
             {items.map((item) => {
             const affordable = item.coinPrice != null && coins >= item.coinPrice;
             return (
-              <Well key={item.id} className="flex flex-wrap items-center gap-3 py-3">
+              <Well key={item.id} className={`${SETTING_ROW} py-3`}>
                 {item.kind === "flair" ? <FlairSwatch styleKey={item.styleKey} /> : null}
-                <span className="flex min-w-0 flex-1 flex-col">
+                <span className={`flex flex-col ${SETTING_COPY}`}>
                   <span className="truncate text-sm font-medium">{item.name}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="truncate text-xs text-muted-foreground">
                     {item.description}
                   </span>
                 </span>
 
-                <span className="figure flex shrink-0 items-center gap-1.5 text-sm">
-                  <Coins className="size-3.5 text-primary" aria-hidden="true" />
-                  {item.coinPrice}
-                </span>
+                <div className={SETTING_ACTIONS}>
+                  <span className="figure flex items-center gap-1.5 text-sm">
+                    <Coins className="size-3.5 text-primary" aria-hidden="true" />
+                    {item.coinPrice}
+                  </span>
 
-                <Button
-                  size="sm"
-                  variant={affordable ? "default" : "outline"}
-                  disabled={busy || !affordable}
-                  onClick={() => buyItem(item)}
-                >
-                  {affordable ? "Buy" : "Not enough"}
-                </Button>
+                  <Button
+                    size="sm"
+                    variant={affordable ? "default" : "outline"}
+                    disabled={busy || !affordable}
+                    aria-label={
+                      affordable
+                        ? `Buy ${item.name} for ${item.coinPrice} coins`
+                        : `Not enough coins for ${item.name}`
+                    }
+                    onClick={() => buyItem(item)}
+                  >
+                    {affordable ? "Buy" : "Not enough"}
+                  </Button>
+                </div>
               </Well>
             );
             })}
@@ -125,7 +137,7 @@ export function CoinShop({
             {hasPlus ? "Yours as a member" : "Only for members"}
           </p>
           {memberOnly.map((item) => (
-            <Well key={item.id} className="flex items-center gap-3 py-3">
+            <Well key={item.id} className={`${SETTING_ROW} py-3`}>
               {hasPlus ? null : (
                 <Lock
                   className="size-4 shrink-0 text-muted-foreground"
@@ -133,9 +145,9 @@ export function CoinShop({
                 />
               )}
               {item.kind === "flair" ? <FlairSwatch styleKey={item.styleKey} /> : null}
-              <span className="flex min-w-0 flex-1 flex-col">
+              <span className={`flex flex-col ${SETTING_COPY}`}>
                 <span className="truncate text-sm">{item.name}</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="truncate text-xs text-muted-foreground">
                   {item.description}
                 </span>
               </span>
@@ -146,24 +158,28 @@ export function CoinShop({
 
       <div className="flex flex-col gap-2">
         <p className="text-sm text-muted-foreground">Buy coins</p>
-        <div className="grid gap-2 xs:grid-cols-3">
-          {bundles.map((entry) => (
-            <Well key={entry.id} className="flex flex-col items-start gap-2 py-3">
-              <span className="figure text-lg font-semibold">
-                {entry.coins.toLocaleString("en-GB")}
+        {bundles.map((entry) => {
+          const price = formatPrice(entry.amount, entry.currency);
+          return (
+            <Well key={entry.id} className={`${SETTING_ROW} py-3`}>
+              <span className={`truncate text-sm font-medium ${SETTING_COPY}`}>
+                {entry.label}
               </span>
-              <span className="text-xs text-muted-foreground">coins</span>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy || !canBuy}
-                onClick={() => buyBundle(entry.id)}
-              >
-                {formatPrice(entry.amount, entry.currency)}
-              </Button>
+              <div className={SETTING_ACTIONS}>
+                <span className="figure text-sm">{price}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy || !canBuy}
+                  aria-label={`Buy ${entry.label} for ${price}`}
+                  onClick={() => buyBundle(entry.id)}
+                >
+                  Buy
+                </Button>
+              </div>
             </Well>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Well } from "@/components/Panel";
 import { track } from "@/lib/analytics";
+import { SETTING_ACTIONS, SETTING_COPY, SETTING_ROW } from "@/components/ui/setting-row";
 
 /*
   The invite code, and one button that puts a ready-made message on the
@@ -17,32 +18,34 @@ export function InviteCode({ code, leagueName }: { code: string; leagueName: str
   const share = `Join my league "${leagueName}" on Upside Arena. Use code ${code} at https://upsidearena.com/leagues`;
 
   return (
-    <Well className="flex flex-wrap items-center justify-between gap-3">
-      <span className="flex flex-col gap-0.5">
-        <span className="text-sm text-muted-foreground">Invite code</span>
-        <span className="figure text-lg font-semibold tracking-widest">{code}</span>
+    <Well className={`${SETTING_ROW} px-4 py-3`}>
+      <span className={`flex flex-col gap-0.5 ${SETTING_COPY}`}>
+        <span className="truncate text-sm text-muted-foreground">Invite code</span>
+        <span className="figure truncate text-lg font-semibold tracking-widest">{code}</span>
       </span>
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(share);
-            setCopied(true);
-            // The last step Arena controls before an invite either works or
-            // is abandoned in somebody's chat app.
-            track("league_invite_copied");
-            window.setTimeout(() => setCopied(false), 2500);
-          } catch {
-            // Clipboard access can be refused. The code is on screen either
-            // way, so there is nothing to recover from.
-          }
-        }}
-      >
-        {copied ? <Check /> : <Copy />}
-        {copied ? "Copied" : "Copy invite"}
-      </Button>
+      <div className={SETTING_ACTIONS}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(share);
+              setCopied(true);
+              // The last step Arena controls before an invite either works or
+              // is abandoned in somebody's chat app.
+              track("league_invite_copied");
+              window.setTimeout(() => setCopied(false), 2500);
+            } catch {
+              // Clipboard access can be refused. The code is on screen either
+              // way, so there is nothing to recover from.
+            }
+          }}
+        >
+          {copied ? <Check /> : <Copy />}
+          {copied ? "Copied" : "Copy invite"}
+        </Button>
+      </div>
     </Well>
   );
 }

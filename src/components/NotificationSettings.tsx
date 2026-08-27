@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Well } from "@/components/Panel";
+import { SettingBar } from "@/components/ui/setting-row";
 import { track } from "@/lib/analytics";
 import {
   browserTimezone,
@@ -49,6 +50,7 @@ export function NotificationSettings({
   const [settings, setSettings] = useState(initial);
   const [subscribed, setSubscribed] = useState(devices > 0);
   const [busy, startTransition] = useTransition();
+  const ids = useId();
 
   /*
     What this particular browser can do is only knowable in the browser, so it
@@ -177,72 +179,83 @@ export function NotificationSettings({
   return (
     <div className="flex flex-col gap-5">
       {pushAvailable && device ? (
-        <Well className="flex flex-nowrap items-center justify-between gap-3 py-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">On this device</p>
-            <p className="text-sm text-muted-foreground">
-              {device.blocked
+        <Well className="py-3">
+          <SettingBar
+            action={
+              device.blocked ? null : (
+                <Button
+                  variant={pushOn ? "outline" : "default"}
+                  size="sm"
+                  disabled={busy || (denied && !pushOn)}
+                  onClick={pushOn ? turnPushOff : turnPushOn}
+                >
+                  {pushOn ? "Turn off" : "Turn on"}
+                </Button>
+              )
+            }
+            description={
+              device.blocked
                 ? device.blocked
                 : pushOn
                   ? "Arena can send notifications to this browser."
                   : denied
                     ? "Your browser is blocking notifications. Allow them in its site settings first."
-                    : "Off. Nothing is sent to this browser."}
-            </p>
-          </div>
-          {device.blocked ? null : (
-            <Button
-              className="shrink-0"
-              variant={pushOn ? "outline" : "default"}
-              size="sm"
-              disabled={busy || (denied && !pushOn)}
-              onClick={pushOn ? turnPushOff : turnPushOn}
-            >
-              {pushOn ? "Turn off" : "Turn on"}
-            </Button>
-          )}
+                    : "Off. Nothing is sent to this browser."
+            }
+          >
+            <span className="block truncate text-sm font-medium">On this device</span>
+          </SettingBar>
         </Well>
       ) : null}
 
       {emailAvailable ? (
-        <label className="flex flex-nowrap items-start justify-between gap-4">
-          <span className="flex min-w-0 flex-col">
-            <span className="text-sm font-medium">Email instead</span>
-            <span className="text-sm text-muted-foreground">
-              Used only when no browser of yours is listening, so you never get both.
-            </span>
-          </span>
-          <Switch
-            className="shrink-0"
-            checked={settings.email}
-            disabled={busy}
-            onCheckedChange={(value) => save({ email: value })}
-            aria-label="Email instead"
-          />
-        </label>
+        <SettingBar
+          action={
+            <Switch
+              id={`${ids}-email`}
+              checked={settings.email}
+              disabled={busy}
+              onCheckedChange={(value) => save({ email: value })}
+            />
+          }
+          description="Used only when no browser of yours is listening, so you never get both."
+        >
+          <label
+            htmlFor={`${ids}-email`}
+            className="block cursor-pointer truncate text-sm font-medium"
+          >
+            Email instead
+          </label>
+        </SettingBar>
       ) : null}
 
       <div className="flex flex-col gap-4">
         <p className="text-sm text-muted-foreground">What we tell you about</p>
         {KINDS.map((kind) => (
-          <label key={kind.key} className="flex flex-nowrap items-start justify-between gap-4">
-            <span className="flex min-w-0 flex-col">
-              <span className="text-sm font-medium">{kind.label}</span>
-              <span className="text-sm text-muted-foreground">{kind.detail}</span>
-            </span>
-            <Switch
-              className="shrink-0"
-              checked={settings[kind.key]}
-              disabled={busy}
-              onCheckedChange={(value) => {
-                // Which kind people actually turn off is the whole argument
-                // for having made each of them separately refusable.
-                track("notification_kind_toggled", { kind: kind.key, on: value });
-                save({ [kind.key]: value });
-              }}
-              aria-label={kind.label}
-            />
-          </label>
+          <SettingBar
+            key={kind.key}
+            action={
+              <Switch
+                id={`${ids}-${kind.key}`}
+                checked={settings[kind.key]}
+                disabled={busy}
+                onCheckedChange={(value) => {
+                  // Which kind people actually turn off is the whole argument
+                  // for having made each of them separately refusable.
+                  track("notification_kind_toggled", { kind: kind.key, on: value });
+                  save({ [kind.key]: value });
+                }}
+              />
+            }
+            description={kind.detail}
+          >
+            <label
+              htmlFor={`${ids}-${kind.key}`}
+              className="block cursor-pointer truncate text-sm font-medium"
+            >
+              {kind.label}
+            </label>
+          </SettingBar>
         ))}
       </div>
 

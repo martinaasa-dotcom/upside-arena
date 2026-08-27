@@ -24,6 +24,7 @@ export function ReplayTour() {
       variant="outline"
       size="sm"
       disabled={pending}
+      aria-label={pending ? "Opening the tour" : "Show me around again"}
       onClick={() =>
         start(async () => {
           const { ok } = await replayTour();
@@ -36,7 +37,7 @@ export function ReplayTour() {
       }
     >
       <PlayCircle className="size-4" aria-hidden="true" />
-      {pending ? "Opening…" : "Show me around again"}
+      {pending ? "Opening" : "Show me"}
     </Button>
   );
 }

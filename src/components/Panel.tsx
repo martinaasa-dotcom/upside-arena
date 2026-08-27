@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { BOX, CARD } from "@/lib/page-shell";
+import { SettingBar } from "@/components/ui/setting-row";
 
 /** Top-level panel. The ambient glow has to read through it. */
 export function Panel({
@@ -18,14 +19,18 @@ export function Panel({
   return (
     <section className={cn(BOX, className)} {...props}>
       {title || action ? (
-        <header className="mb-4 flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            {title ? <h2 className="text-lg font-semibold tracking-tight">{title}</h2> : null}
-            {description ? (
-              <p className="text-sm text-muted-foreground">{description}</p>
+        <header>
+          <SettingBar
+            action={action}
+            description={description}
+            className={children ? "mb-4" : undefined}
+          >
+            {title ? (
+              <h2 className="truncate text-lg font-semibold tracking-tight">
+                {title}
+              </h2>
             ) : null}
-          </div>
-          {action ? <div className="shrink-0">{action}</div> : null}
+          </SettingBar>
         </header>
       ) : null}
       {children}

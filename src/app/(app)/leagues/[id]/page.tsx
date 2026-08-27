@@ -403,21 +403,22 @@ async function Aside({ params }: Params) {
             ? "You made this league. If you leave, it passes to whoever joined first, so nobody loses their standings."
             : "You can come back later with the same code."
         }
-      >
-        <ConfirmAction
-          action={submitLeaveLeague}
-          fields={{ leagueId: league.id }}
-          label="Leave league"
-          title={`Leave ${league.name}?`}
-          description={
-            league.isOwner
-              ? "The league carries on without you and passes to whoever joined first. You can rejoin with the same code, and nobody's standings change."
-              : "You drop out of this week's table here. You can rejoin with the same code whenever you like."
-          }
-          confirmLabel="Leave"
-          cancelLabel="Stay in"
-        />
-      </Panel>
+        action={
+          <ConfirmAction
+            action={submitLeaveLeague}
+            fields={{ leagueId: league.id }}
+            label="Leave league"
+            title={`Leave ${league.name}?`}
+            description={
+              league.isOwner
+                ? "The league carries on without you and passes to whoever joined first. You can rejoin with the same code, and nobody's standings change."
+                : "You drop out of this week's table here. You can rejoin with the same code whenever you like."
+            }
+            confirmLabel="Leave"
+            cancelLabel="Stay in"
+          />
+        }
+      />
     </>
   );
 }

@@ -30,6 +30,7 @@ import { googleConfigured } from "@/lib/auth/google";
 import { PAGE, STACK } from "@/lib/page-shell";
 import { formatDate, initials, ordinal, plural } from "@/lib/format";
 import { signOut } from "@/app/auth/actions";
+import { SettingBar } from "@/components/ui/setting-row";
 
 /*
   One season row, whether it is a settled quarter or the one you are in.
@@ -305,11 +306,19 @@ async function Player({
           </span>
         }
       >
-        <Button asChild variant={standing.hasPlus ? "outline" : "default"} size="sm">
-          <Link href="/plus">
+        <SettingBar
+          action={
+            <Button asChild variant={standing.hasPlus ? "outline" : "default"} size="sm">
+              <Link href="/plus">
+                {standing.hasPlus ? "Manage" : "See it"}
+              </Link>
+            </Button>
+          }
+        >
+          <span className="block truncate text-sm font-medium">
             {standing.hasPlus ? "Manage your membership" : "See what there is"}
-          </Link>
-        </Button>
+          </span>
+        </SettingBar>
       </Panel>
 
       <Panel
@@ -337,11 +346,21 @@ async function Player({
         title="How Arena works"
         description="What the money is, how a week is scored, what a battle is, and what none of this is. Two minutes."
       >
-        <div className="flex flex-wrap gap-3">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/how">Read the rules</Link>
-          </Button>
-          <ReplayTour />
+        <div className="flex flex-col gap-3">
+          <SettingBar
+            action={
+              <Button asChild variant="outline" size="sm">
+                <Link href="/how">Read</Link>
+              </Button>
+            }
+          >
+            <span className="block truncate text-sm font-medium">The rules</span>
+          </SettingBar>
+          <SettingBar action={<ReplayTour />}>
+            <span className="block truncate text-sm font-medium">
+              Show me around again
+            </span>
+          </SettingBar>
         </div>
       </Panel>
 
@@ -359,13 +378,16 @@ async function Player({
         <AccountControls />
       </Panel>
 
-      <Panel title="Sign out">
-        <form action={signOut}>
-          <Button type="submit" variant="outline">
-            Sign out
-          </Button>
-        </form>
-      </Panel>
+      <Panel
+        title="Sign out"
+        action={
+          <form action={signOut}>
+            <Button type="submit" variant="outline" size="sm">
+              Sign out
+            </Button>
+          </form>
+        }
+      />
     </>
   );
 }

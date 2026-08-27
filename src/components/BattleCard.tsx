@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatPercent } from "@/lib/format";
 import type { Battle } from "@/lib/game/battles";
+import { SETTING_ACTIONS, SETTING_COPY, SETTING_ROW, SettingBar } from "@/components/ui/setting-row";
 
 /*
   A battle, summarised wherever it is not the thing on screen: on the league
@@ -29,37 +30,37 @@ export function BattleCard({
       {/*
         Its own header rather than the Panel's, because the format's icon
         belongs beside its name and Panel takes a plain string title.
-      */}
-      <header className="mb-4 flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <span aria-hidden="true">{battle.format.icon}</span>
-            {battle.format.name}
-          </h2>
-          <p className="text-sm text-muted-foreground">{battle.format.rule}</p>
-        </div>
-        {/*
-          A battle made at the weekend has not started yet, and this badge was
-          showing it a countdown in the colour that means running. So on a
-          Saturday it read as live, and somebody tapping through found the
-          trade form shut with an explanation -- the card had told them one
-          thing and the room another.
 
-          It says the day it begins instead, in the quiet variant, which is
-          also the honest answer to the only question the badge is there to
-          settle: can I do something about this now.
-        */}
-        <Badge
-          variant={battle.finished || battle.notStarted ? "outline" : "gain"}
-          className="shrink-0"
-        >
-          {battle.finished
-            ? "Finished"
-            : battle.notStarted
-              ? `Starts ${formatDate(battle.startsOn)}`
-              : battle.timeLeft}
-        </Badge>
-      </header>
+        A battle made at the weekend has not started yet, and this badge was
+        showing it a countdown in the colour that means running. So on a
+        Saturday it read as live, and somebody tapping through found the
+        trade form shut with an explanation -- the card had told them one
+        thing and the room another.
+
+        It says the day it begins instead, in the quiet variant, which is
+        also the honest answer to the only question the badge is there to
+        settle: can I do something about this now.
+      */}
+      <SettingBar
+        className="mb-4"
+        action={
+          <Badge
+            variant={battle.finished || battle.notStarted ? "outline" : "gain"}
+          >
+            {battle.finished
+              ? "Finished"
+              : battle.notStarted
+                ? `Starts ${formatDate(battle.startsOn)}`
+                : battle.timeLeft}
+          </Badge>
+        }
+        description={battle.format.rule}
+      >
+        <h2 className="flex min-w-0 items-center gap-2 truncate text-lg font-semibold tracking-tight">
+          <span aria-hidden="true">{battle.format.icon}</span>
+          <span className="truncate">{battle.format.name}</span>
+        </h2>
+      </SettingBar>
 
       <div className="flex flex-col gap-3">
         <Well className="flex flex-wrap items-center gap-x-6 gap-y-1 py-3">
@@ -91,14 +92,17 @@ export function BattleCard({
           </p>
         ) : null}
 
-        <div>
-          <Button asChild>
-            <Link href={href}>
-              <Swords className="size-4" aria-hidden="true" />
-              {battle.finished ? "See how it ended" : "Open the battle"}
-              <ArrowRight className="size-4" aria-hidden="true" />
-            </Link>
-          </Button>
+        <div className={SETTING_ROW}>
+          <div className={SETTING_COPY} />
+          <div className={SETTING_ACTIONS}>
+            <Button asChild size="sm">
+              <Link href={href}>
+                <Swords className="size-4" aria-hidden="true" />
+                {battle.finished ? "See how it ended" : "Open the battle"}
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     </Panel>

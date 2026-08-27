@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { pickClockLabel } from "@/lib/game/draft-order";
 import type { DraftRow } from "@/lib/supabase/database.types";
 import type { Format } from "@/lib/game/formats";
+import { SettingBar } from "@/components/ui/setting-row";
 
 /*
   A draft on the league page, before it has been bought.
@@ -37,48 +38,47 @@ export function DraftCard({
 
   return (
     <Panel>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 items-start gap-2.5">
-          <div className="card-sheen glass-well rounded-xl p-2 text-primary">
-            <ListOrdered className="size-4" aria-hidden="true" />
-          </div>
-          <div className="min-w-0 flex-col">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="truncate text-lg font-semibold tracking-tight">
-                Draft night
-              </h2>
+      <div className="flex flex-col gap-3">
+        <SettingBar
+          action={
+            <>
               <Badge variant={picking ? "default" : "outline"}>
                 {waiting ? "Open" : picking ? "Picking" : "All picked"}
               </Badge>
+              <Button asChild size="sm">
+                <Link href={href}>
+                  {draft.status === "picked"
+                    ? "See the board"
+                    : youAreSeated
+                      ? "Open the room"
+                      : "Join it"}
+                </Link>
+              </Button>
+            </>
+          }
+          description={`${format.name}, ${draft.rounds} names each, ${pickClockLabel(draft.pick_seconds).toLowerCase()}.`}
+        >
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="card-sheen glass-well rounded-xl p-2 text-primary">
+              <ListOrdered className="size-4" aria-hidden="true" />
             </div>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {format.name}, {draft.rounds} names each,{" "}
-              {pickClockLabel(draft.pick_seconds).toLowerCase()}.
-            </p>
-            <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <Users className="size-3.5" aria-hidden="true" />
-                {seats} {seats === 1 ? "person" : "people"} in
-              </span>
-              {picking ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <Timer className="size-3.5" aria-hidden="true" />
-                  Somebody is on the clock
-                </span>
-              ) : null}
-            </p>
+            <h2 className="truncate text-lg font-semibold tracking-tight">
+              Draft night
+            </h2>
           </div>
-        </div>
-
-        <Button asChild className="shrink-0">
-          <Link href={href}>
-            {draft.status === "picked"
-              ? "See the board"
-              : youAreSeated
-                ? "Open the room"
-                : "Join it"}
-          </Link>
-        </Button>
+        </SettingBar>
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <Users className="size-3.5" aria-hidden="true" />
+            {seats} {seats === 1 ? "person" : "people"} in
+          </span>
+          {picking ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Timer className="size-3.5" aria-hidden="true" />
+              Somebody is on the clock
+            </span>
+          ) : null}
+        </p>
       </div>
     </Panel>
   );

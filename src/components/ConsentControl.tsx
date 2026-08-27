@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
+import { SettingBar } from "@/components/ui/setting-row";
 import {
   getConsent,
   getServerConsent,
@@ -26,25 +27,31 @@ export function ConsentControl() {
   const granted = consent === "granted";
 
   return (
-    <div className="flex flex-nowrap items-center justify-between gap-3">
-      <p className="min-w-0 flex-1 text-sm text-muted-foreground">
-        {granted
+    <SettingBar
+      action={
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            // Record the withdrawal before it takes effect, otherwise the event
+            // itself would be dropped by the gate it is reporting on.
+            if (granted) track("consent_withdrawn");
+            setConsent(granted ? "denied" : "granted");
+            if (!granted) track("consent_granted");
+          }}
+        >
+          {granted ? "Stop measuring" : "Allow measuring"}
+        </Button>
+      }
+      description={
+        granted
           ? "You are letting us measure page views and load times."
-          : "We are not measuring how you use the app."}
-      </p>
-      <Button
-        className="shrink-0"
-        variant="outline"
-        onClick={() => {
-          // Record the withdrawal before it takes effect, otherwise the event
-          // itself would be dropped by the gate it is reporting on.
-          if (granted) track("consent_withdrawn");
-          setConsent(granted ? "denied" : "granted");
-          if (!granted) track("consent_granted");
-        }}
-      >
-        {granted ? "Stop measuring" : "Allow measuring"}
-      </Button>
-    </div>
+          : "We are not measuring how you use the app."
+      }
+    >
+      <span className="block truncate text-sm font-medium">
+        {granted ? "On" : "Off"}
+      </span>
+    </SettingBar>
   );
 }

@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { ConfirmAction } from "@/components/ConfirmAction";
 import { Badge } from "@/components/ui/badge";
+import { SETTING_ACTIONS, SETTING_COPY, SETTING_ROW } from "@/components/ui/setting-row";
 import { removeAddress } from "@/app/(app)/profile/address-actions";
 import { connectGoogle } from "@/app/auth/actions";
 import type { LinkedAddress } from "@/lib/auth/linked-emails";
@@ -46,7 +47,7 @@ function GoogleGlyph() {
   );
 }
 
-const ROW = "glass-well flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 rounded-lg px-4 py-2";
+const ROW = `glass-well ${SETTING_ROW} min-h-14 rounded-lg px-4 py-2`;
 
 export function SignInAddresses({
   primaryEmail,
@@ -63,13 +64,15 @@ export function SignInAddresses({
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
         <div className={ROW}>
-          <span className="figure min-w-0 flex-1 truncate text-sm">{primaryEmail}</span>
-          <Badge variant="outline">Main</Badge>
+          <span className={`figure truncate text-sm ${SETTING_COPY}`}>{primaryEmail}</span>
+          <div className={SETTING_ACTIONS}>
+            <Badge variant="outline">Main</Badge>
+          </div>
         </div>
 
         {addresses.map((address) => (
           <div key={address.id} className={ROW}>
-            <span className="figure min-w-0 flex-1 truncate text-sm">{address.email}</span>
+            <span className={`figure truncate text-sm ${SETTING_COPY}`}>{address.email}</span>
 
             {/*
               Always. The Google handshake writes the address down already
@@ -77,18 +80,20 @@ export function SignInAddresses({
               a mailbox. The column stays, because the row still records when
               it was proved.
             */}
-            <Badge variant="outline">Signs in</Badge>
+            <div className={SETTING_ACTIONS}>
+              <Badge variant="outline">Signs in</Badge>
 
-            <ConfirmAction
-              action={removeAddress}
-              fields={{ id: address.id }}
-              label="Remove"
-              variant="ghost"
-              title={`Stop ${address.email} signing you in?`}
-              description="Tapping Continue with Google from that account would open a new, empty Arena account instead of this one. You can connect it again at any time."
-              confirmLabel="Remove it"
-              cancelLabel="Keep it"
-            />
+              <ConfirmAction
+                action={removeAddress}
+                fields={{ id: address.id }}
+                label="Remove"
+                variant="ghost"
+                title={`Stop ${address.email} signing you in?`}
+                description="Tapping Continue with Google from that account would open a new, empty Arena account instead of this one. You can connect it again at any time."
+                confirmLabel="Remove it"
+                cancelLabel="Keep it"
+              />
+            </div>
           </div>
         ))}
       </div>
