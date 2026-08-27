@@ -15,9 +15,15 @@ import { getSessionOpen } from "@/lib/market/benchmark";
 import {
   beforeContestEnd,
   hasOpenedToday,
-  isTradingOpen,
   nyDate,
 } from "@/lib/market/session";
+import {
+  cadenceById,
+  contestTrading,
+  DEFAULT_CADENCE,
+  type Cadence,
+  type CadenceId,
+} from "@/lib/game/cadence";
 import {
   DEFAULT_FORMAT,
   checkTrade,
@@ -66,6 +72,7 @@ export type Battle = {
   leagueIcon: string | null;
   format: Format;
   length: RunLength;
+  cadence: Cadence;
   startsOn: string;
   endsOn: string;
   status: WeeklyCycleRow["status"];
@@ -173,8 +180,18 @@ export type BattleView = {
   */
   trail: number[];
   tradingOpen: boolean;
-  /** Why it is not, when it is not. Empty when it is. */
+  /**
+   * Whether a buy is allowed right now.
+   *
+   * Selling can be open on a day buying is not: that is a cadence window,
+   * and trapping somebody in a name until the next one would be the thing
+   * the window exists to prevent.
+   */
+  buyingOpen: boolean;
+  /** Why selling is not allowed, when it is not. Empty when it is. */
   closedReason: string;
+  /** Why buying is not allowed, when it is not. Empty when it is. */
+  buyReason: string;
   marketState: string | null;
 };
 
@@ -218,6 +235,7 @@ function toBattle(
     leagueIcon: league.icon,
     format: formatById(row.format),
     length: lengthById(row.length),
+    cadence: cadenceById(row.cadence),
     startsOn: row.monday,
     endsOn: row.ends_on,
     status: row.status,
@@ -363,12 +381,14 @@ export async function startBattle(
   userId: string,
   leagueId: string,
   formatId: FormatId,
-  lengthId: LengthId
+  lengthId: LengthId,
+  cadenceId: CadenceId = DEFAULT_CADENCE
 ): Promise<BattleOutcome> {
   if (!canWriteGame) return { ok: false, error: "Battles are not switched on yet." };
 
   const format = formatById(formatId);
   const length = lengthById(lengthId);
+  const cadence = cadenceById(cadenceId);
 
   const today = nyDate();
 
@@ -402,6 +422,7 @@ export async function startBattle(
     p_starting_balance: STARTING_BALANCE,
     p_benchmark_symbol: format.benchmark,
     p_benchmark_open: benchmarkOpen,
+    p_cadence: cadence.id,
   });
 
   if (error) {
@@ -468,65 +489,19 @@ export async function cancelBattle(
   return { ok: true };
 }
 
-/** Whether trading is allowed in this battle right now, and why not if not. */
-export function battleTrading(battle: Battle, now = new Date()): {
-  open: boolean;
-  reason: string;
-} {
-  if (battle.finished) {
-    return { open: false, reason: "This battle is over. The result is above." };
-  }
-
-  if (battle.notStarted) {
-    return {
-      open: false,
-      reason: "This battle starts on Monday. Nothing you do before then counts.",
-    };
-  }
-
-  /*
-    A drafted battle, which takes no trades at all.
-
-    Checked before the market hours below it, because the answer does not
-    depend on them: telling somebody the market is shut invites them back at
-    09:30 to a form that will still refuse them.
-  */
-  if (battle.drafted) {
-    return {
-      open: false,
-      reason: "You hold what you drafted. Nothing here is bought or sold until it settles.",
-    };
-  }
-
-  /*
-    Past its last day but not yet settled.
-
-    A contest is due the day after it ends and is scored by whoever notices,
-    so there is always a stretch -- a few minutes, or a whole weekend -- where
-    it has finished and its status still says open. For a market-hours battle
-    that stretch is covered by the market being shut anyway. For one whose
-    market never shuts it was not, so the form was enabled, the order was sent,
-    and the database refused it. Being told no by a button that looked like yes
-    is worse than the button being off.
-  */
-  if (nyDate(now) > battle.endsOn) {
-    return {
-      open: false,
-      reason: "This battle has finished. The result lands once it is scored.",
-    };
-  }
-
-  if (battle.format.tradingHours === "always") return { open: true, reason: "" };
-
-  if (!isTradingOpen(now)) {
-    return {
-      open: false,
-      reason:
-        "The market is closed. Trading runs from 09:30 to 16:00 New York time, weekdays.",
-    };
-  }
-
-  return { open: true, reason: "" };
+/** Whether this battle will take a sale or a buy right now, and why not. */
+export function battleTrading(battle: Battle, now = new Date()) {
+  return contestTrading(
+    {
+      startsOn: battle.startsOn,
+      endsOn: battle.endsOn,
+      tradingHours: battle.format.tradingHours,
+      cadence: battle.cadence.id,
+      drafted: battle.drafted,
+      finished: battle.finished,
+    },
+    now
+  );
 }
 
 /**
@@ -899,8 +874,10 @@ export const getBattleView = cache(async function getBattleView(
     cash: mine ? num(mine.cash) : you ? battle.startingBalance : null,
     trail,
     reveal,
-    tradingOpen: trading.open,
+    tradingOpen: trading.selling,
+    buyingOpen: trading.buying,
     closedReason: trading.reason,
+    buyReason: trading.buyReason,
     marketState: benchmarkQuote?.marketState ?? null,
   };
 });
@@ -1272,7 +1249,12 @@ export async function placeBattleTrade(
   if (!context) return { ok: false, error: "We could not find that battle." };
 
   const trading = battleTrading(context.battle);
-  if (!trading.open) return { ok: false, error: trading.reason };
+  if (input.side === "sell" ? !trading.selling : !trading.buying) {
+    return {
+      ok: false,
+      error: input.side === "sell" ? trading.reason : trading.buyReason || trading.reason,
+    };
+  }
 
   const quotes = await getQuotes([symbol]);
   const quote = quotes[symbol];

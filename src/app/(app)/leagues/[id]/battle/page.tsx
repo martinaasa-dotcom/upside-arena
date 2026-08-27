@@ -281,6 +281,9 @@ async function Rest({ params }: Params) {
       </div>
 
       <p className="-mt-2 text-sm text-muted-foreground">{format.rule}</p>
+      {battle.cadence.id !== "always" ? (
+        <p className="-mt-2 text-sm text-muted-foreground">{battle.cadence.rule}</p>
+      ) : null}
 
       {/*
         The table on the left, the way to trade under its rules on the right.
@@ -466,9 +469,15 @@ async function Rest({ params }: Params) {
             ownedSymbols={positions.map((p) => p.symbol)}
             tradingOpen={view.tradingOpen}
             closedReason={view.closedReason}
+            buyingOpen={view.buyingOpen}
+            buyReason={view.buyReason}
             battleId={battle.cycleId}
             universe={allowedSymbols(format)}
-            rule={format.rule}
+            rule={
+              battle.cadence.id === "always"
+                ? format.rule
+                : `${format.rule} ${battle.cadence.rule}`
+            }
             allowCoins={formatAllowsCatalogCoins(format)}
           />
         </Panel>

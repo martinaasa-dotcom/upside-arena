@@ -54,6 +54,8 @@ export function TradeForm({
   ownedSymbols,
   tradingOpen,
   closedReason,
+  buyingOpen: buyingOpenProp,
+  buyReason = "",
   battleId,
   universe,
   rule,
@@ -63,6 +65,13 @@ export function TradeForm({
   ownedSymbols: string[];
   tradingOpen: boolean;
   closedReason: string;
+  /**
+   * Whether a buy is allowed right now. Defaults to tradingOpen, which is
+   * right for the house week. A battle with a buying window can leave sales
+   * open on a day buys are not.
+   */
+  buyingOpen?: boolean;
+  buyReason?: string;
   /** The battle this order is for. Absent means the house week. */
   battleId?: string;
   /** Every name the format allows, when it names them. Null means search. */
@@ -407,7 +416,13 @@ export function TradeForm({
         <Button
           type="submit"
           size="lg"
-          disabled={pending || !picked || !validShares || !tradingOpen}
+          disabled={
+            pending ||
+            !picked ||
+            !validShares ||
+            !tradingOpen ||
+            (side === "buy" && !buyingOpen)
+          }
         >
           {pending
             ? "Placing"

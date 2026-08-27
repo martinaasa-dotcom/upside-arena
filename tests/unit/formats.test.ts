@@ -201,6 +201,16 @@ describe("how much of one thing", () => {
     expect(checkTrade(oneShot, { ...base, symbol: "AAPL", positions: holding }).ok).toBe(true);
   });
 
+  it("stops a third company in a two-company format", () => {
+    const two = formatById("two_names");
+    const holding = [
+      { symbol: "AAPL", quantity: 10, costBasis: 1000 },
+      { symbol: "MSFT", quantity: 10, costBasis: 1000 },
+    ];
+    expect(checkTrade(two, { ...base, symbol: "GOOGL", positions: holding }).ok).toBe(false);
+    expect(checkTrade(two, { ...base, symbol: "AAPL", positions: holding }).ok).toBe(true);
+  });
+
   it("caps one name at its share of what everybody started with", () => {
     // Spread allows a quarter of 100,000, so 25,000.
     expect(

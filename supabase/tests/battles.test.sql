@@ -54,6 +54,12 @@ select public.assert(
   'a league battle can start on the same Monday as the house week'
 );
 
+select public.assert(
+  (select cadence from public.weekly_cycles
+    where league_id is not null and monday = '2026-08-17') = 'always',
+  'a battle started without a cadence is the open book'
+);
+
 -- The one the whole app runs on must still be the house one. Without the
 -- league_id clause in ensure_cycle this comes back as somebody's battle.
 select public.ensure_cycle('2026-08-17', 100000, 776.18);
@@ -429,6 +435,28 @@ select public.assert(
    join public.leagues l on l.id = c.league_id
    where l.name = 'The Pit' and c.status <> 'closed') = 0,
   'a cancelled battle is gone rather than shortened'
+);
+
+select public.create_battle(
+  'aaaaaaaa-0000-0000-0000-000000000001',
+  (select id from public.leagues where name = 'The Pit'),
+  'silicon', 'long', 'year',
+  '2026-09-08', '2027-09-03', 100000, 'SOXX', 200.00,
+  'monthly'
+);
+
+select public.assert(
+  (select cadence from public.weekly_cycles c
+    join public.leagues l on l.id = c.league_id
+    where l.name = 'The Pit' and c.status <> 'closed') = 'monthly',
+  'a battle records the buying window it was started with'
+);
+
+select public.cancel_battle(
+  'aaaaaaaa-0000-0000-0000-000000000001',
+  (select c.id from public.weekly_cycles c
+    join public.leagues l on l.id = c.league_id
+    where l.name = 'The Pit' and c.status <> 'closed')
 );
 
 -- A settled one cannot be, which is what stops this being a way to throw away

@@ -87,7 +87,7 @@ export const MORE_ROOMS = [
     icon: "battles",
     title: "Battles",
     detail:
-      "The same market, a different rule book. Only chip makers, only coins, one company all week, or pick the losers instead.",
+      "The same market, a different rule book. Pick the companies, how long it runs, and when anybody may buy.",
   },
   {
     icon: "season",

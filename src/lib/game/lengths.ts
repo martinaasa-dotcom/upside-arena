@@ -10,10 +10,10 @@
   and it is the twitchy one. Somebody who wants to buy three companies and not
   look at them until spring has nowhere to do that here, and telling them the
   week is the point does not make them wrong. So a battle can be a day, a
-  week, a fortnight, a month, a quarter or a year, and the longer ones are a
-  genuinely different game rather than a longer version of the same one:
-  nobody resets, the trade limit stops mattering, and the person who fiddles
-  most usually loses.
+  week, a fortnight, a month, a quarter or a year. The longer ones do not
+  reset, and a cadence decides whether the book stays open, opens one morning
+  a month, or opens once and then does not. The person who fiddles most only
+  wins if the league left the book open.
 
   Pure, and free of any clock. The caller supplies today's New York date the
   same way every other date-sensitive thing in this app does, so a player in

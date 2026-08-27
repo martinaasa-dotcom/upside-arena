@@ -156,6 +156,22 @@ export function isTradingOpen(now = new Date()): boolean {
 }
 
 /**
+ * Whether we are in the first half hour of today's regular session.
+ *
+ * A buying window, not a different market. The session is still the session;
+ * this is only "are we early enough in it that a format which only opens at
+ * the bell will take a buy". After 10:00 the market is open and this is not,
+ * which is the whole point of the constraint.
+ *
+ * The window is half-open at the end, the same way the session itself is:
+ * 09:30 counts, 10:00 does not.
+ */
+export function isOpeningBell(now = new Date(), windowMinutes = 30): boolean {
+  if (!isTradingOpen(now)) return false;
+  return nyMinutes(now) < OPEN_MINUTES + windowMinutes;
+}
+
+/**
  * Whether the market has opened yet today, whether or not it is still open.
  *
  * Different question from isTradingOpen, and the difference is what makes a

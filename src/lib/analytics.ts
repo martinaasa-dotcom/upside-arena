@@ -60,9 +60,8 @@ export type AnalyticsEvent =
   | "standings_viewed"
   | "goal_declared"
   | "goal_withdrawn"
-  // Battles: which rule books and which lengths people actually pick. The
-  // format and the length are the whole point of measuring these, and neither
-  // is a person: they are two choices from two fixed lists.
+  // Battles: which rule books, lengths and buying windows people actually pick.
+  // None of those is a person: they are choices from fixed lists.
   | "battle_started"
   | "battle_viewed"
   | "battle_cancelled"

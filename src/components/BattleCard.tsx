@@ -74,6 +74,9 @@ export function BattleCard({
           {battle.format.tradingHours === "always" ? (
             <span className="text-sm text-primary">Runs through the weekend</span>
           ) : null}
+          {battle.cadence.id !== "always" ? (
+            <span className="text-sm text-muted-foreground">{battle.cadence.rule}</span>
+          ) : null}
         </Well>
 
         {result ? (

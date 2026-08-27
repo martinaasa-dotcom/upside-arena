@@ -326,7 +326,7 @@ export default function GalleryPage() {
       {/*
         Battles and the weekend, which are the two widest things on this page.
 
-        The format picker is twelve cards of two lines each, the lineup rows
+        The format picker is a grid of named recipes, the lineup rows
         carry a company name against a five-figure estimate, and the first-week
         list is four rows of a heading over a paragraph. All three are exactly
         the shape that cropped its own second line the last four times.

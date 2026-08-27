@@ -5,6 +5,8 @@ import { PAGE, PAGE_FRAME } from "@/lib/page-shell";
 import { MAX_LINEUP_ORDERS, STARTING_BALANCE } from "@/lib/game";
 import { FORMATS, MIN_SHARE_PRICE } from "@/lib/game/formats";
 import { LENGTHS } from "@/lib/game/lengths";
+import { CADENCES } from "@/lib/game/cadence";
+import { TEMPLATES } from "@/lib/game/templates";
 import { MIN_WEEKS_TO_RANK } from "@/lib/game/seasons";
 import { DAILY_CAP, QUIET_HOURS } from "@/lib/notify/timing";
 import { KINDS } from "@/lib/notify/kinds";
@@ -180,9 +182,9 @@ export default function HowPage() {
             </div>
 
             <p>
-              And it runs for as long as the league decides. A day is a sprint;
-              a year is a different game entirely, in which the person who
-              fiddles the most usually loses.
+              And it runs for as long as the league decides. A day is a sprint.
+              A year can be buy once and live with it, or one buying morning a
+              month, and the league picks which.
             </p>
 
             <ul>
@@ -190,6 +192,35 @@ export default function HowPage() {
                 <li key={length.id}>
                   <span className="text-foreground">{length.name}</span>:{" "}
                   {length.tagline}
+                </li>
+              ))}
+            </ul>
+
+            <p>
+              And you pick when anybody may buy. Selling is never shut by this:
+              a window that trapped somebody in a name would not be a longer
+              game, it would be a worse one. The open book is still the default.
+            </p>
+
+            <ul>
+              {CADENCES.map((cadence) => (
+                <li key={cadence.id}>
+                  <span className="text-foreground">{cadence.name}</span>:{" "}
+                  {cadence.rule}
+                </li>
+              ))}
+            </ul>
+
+            <p>
+              Those three mix. A league that does not want to mix them picks a
+              recipe instead, which is just a name for one combination.
+            </p>
+
+            <ul>
+              {TEMPLATES.map((template) => (
+                <li key={template.id}>
+                  <span className="text-foreground">{template.name}</span>:{" "}
+                  {template.rule}
                 </li>
               ))}
             </ul>

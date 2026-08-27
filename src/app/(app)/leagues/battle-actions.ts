@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cancelBattle, startBattle } from "@/lib/game/battles";
 import { isFormatId } from "@/lib/game/formats";
 import { isLengthId } from "@/lib/game/lengths";
+import { isCadenceId } from "@/lib/game/cadence";
 import { playerChanged } from "@/lib/game/cache";
 
 /*
@@ -33,6 +34,7 @@ const startSchema = z.object({
   leagueId: z.string().uuid(),
   format: z.string().refine(isFormatId, "Pick one of the formats."),
   length: z.string().refine(isLengthId, "Pick how long it runs for."),
+  cadence: z.string().refine(isCadenceId, "Pick when buying is allowed."),
 });
 
 export async function submitStartBattle(
@@ -45,6 +47,7 @@ export async function submitStartBattle(
     leagueId: formData.get("leagueId"),
     format: formData.get("format"),
     length: formData.get("length"),
+    cadence: formData.get("cadence"),
   });
 
   if (!parsed.success) {
@@ -55,7 +58,8 @@ export async function submitStartBattle(
     user.id,
     parsed.data.leagueId,
     parsed.data.format,
-    parsed.data.length
+    parsed.data.length,
+    parsed.data.cadence
   );
 
   if (!result.ok) return { error: result.error };

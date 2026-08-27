@@ -13,6 +13,7 @@ import type { HeadToHead, Honour, PlayedWeek, RecordedWeek } from "@/lib/game/re
 import type { MoversView } from "@/lib/market/movers";
 import { formatById } from "@/lib/game/formats";
 import { lengthById } from "@/lib/game/lengths";
+import { cadenceById } from "@/lib/game/cadence";
 
 /*
   The awkward cases, on purpose.
@@ -465,6 +466,7 @@ export const battle: Battle = {
   leagueIcon: "\u{1F3C6}",
   format: formatById("crypto"),
   length: lengthById("quarter"),
+  cadence: cadenceById("always"),
   startsOn: "2026-08-17",
   endsOn: "2026-11-13",
   status: "open",

@@ -3,6 +3,7 @@ import {
   addDays,
   beforeContestEnd,
   cycleMonday,
+  isOpeningBell,
   isTradingDay,
   isTradingOpen,
   isLineupWindow,
@@ -99,6 +100,14 @@ describe("isTradingOpen", () => {
     expect(isTradingOpen(at("2026-08-19T13:30:00Z"))).toBe(true);
     // 20:00 UTC is 16:00, the close itself.
     expect(isTradingOpen(at("2026-08-19T20:00:00Z"))).toBe(false);
+  });
+
+  it("is the first half hour of that session, and not a minute later", () => {
+    // 13:30 UTC is 09:30 in New York. 14:00 UTC is 10:00, the window's end.
+    expect(isOpeningBell(at("2026-08-19T13:30:00Z"))).toBe(true);
+    expect(isOpeningBell(at("2026-08-19T13:59:00Z"))).toBe(true);
+    expect(isOpeningBell(at("2026-08-19T14:00:00Z"))).toBe(false);
+    expect(isTradingOpen(at("2026-08-19T14:00:00Z"))).toBe(true);
   });
 
   it("is shut all weekend", () => {

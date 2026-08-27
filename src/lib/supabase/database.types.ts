@@ -54,6 +54,8 @@ export type WeeklyCycleRow = {
   direction: "long" | "short";
   /** A length id from src/lib/game/lengths.ts. */
   length: string;
+  /** A cadence id from src/lib/game/cadence.ts. always is the open book. */
+  cadence: string;
   /** The league whose battle this is, or null for the house week. */
   league_id: string | null;
   created_by: string | null;
@@ -618,6 +620,7 @@ export type Database = {
           p_starting_balance: number;
           p_benchmark_symbol: string;
           p_benchmark_open?: number | null;
+          p_cadence?: string;
         };
         Returns: WeeklyCycleRow;
       };
