@@ -24,8 +24,22 @@ export function ServiceWorker() {
       });
     };
 
-    if (document.readyState === "complete") register();
-    else window.addEventListener("load", register, { once: true });
+    /*
+      Not on the first paint. `load` still races the webfont and hydration
+      on a slow phone, which is the landing's long task. Idle with a 2.5s
+      ceiling waits for a quiet moment without leaving installability
+      hanging; turning notifications on registers the worker itself.
+    */
+    const schedule = () => {
+      if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(register, { timeout: 2500 });
+      } else {
+        register();
+      }
+    };
+
+    if (document.readyState === "complete") schedule();
+    else window.addEventListener("load", schedule, { once: true });
   }, []);
 
   return null;

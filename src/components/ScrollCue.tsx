@@ -265,15 +265,16 @@ export function ScrollCue({
           The bottom of the first screen, in the page's coordinates.
 
           The hero is the first thing in the document and starts at y=0, so
-          `100svh` from the top of it is the fold. `svh` rather than `dvh`,
-          so a phone that later retracts its address bar does not find this
-          somewhere else. Absolute, so it costs no layout and cannot change
-          any of the measurements above by appearing.
+          one viewport from the top of it is the fold. The offset lives in
+          `.scroll-cue-band` (`vh` then `svh`), so a phone that does not
+          know `svh` still places this, and one that does cannot move it
+          when the address bar retracts. Absolute, so it costs no layout
+          and cannot change any of the measurements above by appearing.
 
           `pointer-events-none` is not optional on anything full-width and
           transparent over content, or it eats every click along that line.
         */
-        "pointer-events-none absolute inset-x-0 top-[calc(100svh-3.5rem)] flex h-14 items-center justify-center px-6",
+        "scroll-cue-band pointer-events-none absolute inset-x-0 flex h-14 items-center justify-center px-6",
         className
       )}
     >
@@ -296,7 +297,7 @@ export function ScrollCue({
         )}
       >
         {label}
-        <ChevronDown className="scroll-cue-nudge size-4" aria-hidden />
+        <ChevronDown size={16} className="scroll-cue-nudge size-4" aria-hidden />
       </button>
     </div>
   );

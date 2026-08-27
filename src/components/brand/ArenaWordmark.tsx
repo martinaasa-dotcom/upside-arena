@@ -19,10 +19,17 @@ export function ArenaWordmark({
   className,
   size = 20,
   markOnly = false,
+  uid,
 }: {
   className?: string;
   size?: number;
   markOnly?: boolean;
+  /*
+    Two lockups on one page cannot share paint-server ids. Home mounts the
+    header and the walkthrough at the same size; the landing mounts a hero
+    and a footer. See ArenaMark.
+  */
+  uid?: string;
 }) {
   const mark = size * LOCKUP.mark;
 
@@ -33,6 +40,7 @@ export function ArenaWordmark({
     >
       <ArenaMark
         size={mark}
+        uid={uid}
         title={markOnly ? "Upside Arena" : undefined}
         /*
           Lifted off the row's centre line, and only when there is type to

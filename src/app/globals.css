@@ -764,9 +764,9 @@
 
     So the landing splits the field in two. `::before` is the first screen:
     the same two corner lamps the rest of the app uses, dithered, boxed to
-    `100svh`. `::after` is the rest of the page: three more lobes, no SVG
-    filter. Both halves of the hero therefore live in one layer that fits in
-    a single WebKit filter tile.
+    one viewport (`vh`, then `svh`). `::after` is the rest of the page:
+    three more lobes, no SVG filter. Both halves of the hero therefore live
+    in one layer that fits in a single WebKit filter tile.
 
     They used to be five gradients on one document-tall filtered `::after`.
     Positions were `%` of the page, so the magenta hero lamp sat at 21% of a
@@ -801,6 +801,11 @@
       `overflow: hidden` and `contain: paint` pin the SVG filter region to
       that box. Without them WebKit can expand the filter to the gradient's
       painted overflow and we are back to a tall tile.
+
+      `vh` first, then `svh`. `svh` is iOS 15.4; older WebKit drops a
+      declaration whose unit it does not know, and with only `svh` this
+      box has no height at all. A browser that understands both keeps the
+      second, so a retracting address bar still cannot grow the lamps.
     */
     display: block;
     position: absolute;
@@ -809,6 +814,7 @@
     right: 0;
     left: 0;
     z-index: -1;
+    height: 100vh;
     height: 100svh;
     overflow: hidden;
     pointer-events: none;
@@ -890,39 +896,6 @@
     }
   }
 
-  /*
-    `backdrop-filter` on a card that hangs off the fold is the same fill-in
-    the old scroll cue caused: WebKit re-samples the backdrop as new pixels
-    arrive, and the lower half of the sample card appears late. The veil and
-    the rim stay; only the blur goes. Lab dropped it on a phone (767px).
-    Arena also drops it on any coarse pointer, so an iPad in landscape, which
-    is past 767 and still Safari, does not keep the layers a phone was
-    spared. Desktop with a mouse is unchanged.
-  */
-  @media (max-width: 767px), (hover: none) and (pointer: coarse) {
-    .landing-field .glass,
-    .landing-field .glass-well {
-      -webkit-backdrop-filter: none;
-      backdrop-filter: none;
-    }
-
-    /*
-      The measurement notice is a sibling of the landing, not inside it,
-      and it is `position: fixed` with a backdrop-filter. That pair is the
-      scroll-cue fault: WebKit re-filters the sample card under the notice
-      every frame. Same drop, same reason. The veil stays (it is already
-      86% opaque), so the copy is still readable.
-
-      A subsequent-sibling selector rather than `:has()`, because `:has()`
-      is iOS 15.4 and this rule is for the phones that already struggle
-      with the blur.
-    */
-    .landing-field ~ .glass-notice {
-      -webkit-backdrop-filter: none;
-      backdrop-filter: none;
-    }
-  }
-
   /* Money, percents, tickers, counts. */
   .figure {
     font-family: var(--font-mono);
@@ -986,10 +959,26 @@
   /*
     No compositing transform. The sample card is meant to hang past the
     fold, and WebKit skips the off-screen half of a transformed layer
-    until it scrolls on. `translateZ(0)` is correct on the 100svh lamp
-    box above, and wrong on anything taller than the window.
+    until it scrolls on. `translateZ(0)` is correct on the first-screen
+    lamp box above, and wrong on anything taller than the window.
   */
   transform: none;
+}
+
+.landing-hero {
+  /*
+    Floor so a tall window shows the next heading rather than a section's
+    own padding. `svh` so a retracting address bar cannot grow it. `vh`
+    first, because `svh` is iOS 15.4 and older WebKit drops the whole
+    declaration if it does not know the unit.
+  */
+  min-height: calc(100vh - 9rem);
+  min-height: calc(100svh - 9rem);
+}
+
+.scroll-cue-band {
+  top: calc(100vh - 3.5rem);
+  top: calc(100svh - 3.5rem);
 }
 
 /*
@@ -1000,6 +989,35 @@
 */
 .landing-field .rise {
   animation: none;
+}
+
+/*
+  Unlayered on purpose, next to `.landing-field .rise`. `.glass` lives in
+  `@layer components`; an unlayered `backdrop-filter: none` is what actually
+  stops WebKit re-filtering the sample card as it scrolls on.
+
+  Lab dropped the blur on a phone (767px). Arena also drops it on any
+  coarse pointer, so an iPad in landscape, which is past 767 and still
+  Safari, does not keep the layers a phone was spared. Desktop with a
+  mouse is unchanged. The veil and the rim stay.
+
+  The measurement notice is a sibling of the landing, not inside it, and
+  it is `position: fixed` with a backdrop-filter. That pair is the
+  scroll-cue fault. A subsequent-sibling selector rather than `:has()`,
+  because `:has()` is iOS 15.4 and this rule is for the phones that
+  already struggle with the blur.
+*/
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .landing-field .glass,
+  .landing-field .glass-well {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .landing-field ~ .glass-notice {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 /*

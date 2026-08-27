@@ -18,6 +18,8 @@ const LANDING = readFileSync("src/components/SignedOutLanding.tsx", "utf8");
 const SIGNIN = readFileSync("src/components/SignInCard.tsx", "utf8");
 const MARK = readFileSync("src/components/brand/ArenaMark.tsx", "utf8");
 const LAYOUT = readFileSync("src/app/layout.tsx", "utf8");
+const PAGE = readFileSync("src/app/page.tsx", "utf8");
+const SW = readFileSync("src/components/ServiceWorker.tsx", "utf8");
 
 function ruleOf(selector: string): string {
   const start = CSS.indexOf(`${selector} {`);
@@ -28,7 +30,10 @@ function ruleOf(selector: string): string {
 describe("the landing hero lamps paint as one first-screen layer", () => {
   it("boxes the dithered pair to one screen, not the document", () => {
     const rule = ruleOf(".landing-field::before");
-    expect(rule).toContain("height: 100svh");
+    expect(rule.indexOf("height: 100vh")).toBeGreaterThan(-1);
+    expect(rule.indexOf("height: 100svh")).toBeGreaterThan(
+      rule.indexOf("height: 100vh")
+    );
     expect(rule).toContain("position: absolute");
     expect(rule).toContain("url(#ambient-dither)");
     expect(rule).toContain("translateZ(0)");
@@ -87,6 +92,16 @@ describe("the landing does not hide itself before paint", () => {
     expect(CSS).toMatch(
       /@media \(max-width: 767px\), \(hover: none\) and \(pointer: coarse\) \{[\s\S]*?\.landing-field \.glass,[\s\S]*?backdrop-filter:\s*none/
     );
+    /*
+      Unlayered, next to `.landing-field .rise`. The same selectors used
+      to live inside `@layer components`, where a utility can beat them.
+    */
+    const glow = CSS.indexOf(".landing-field .ambient-glow");
+    const drop = CSS.indexOf(".landing-field .glass,");
+    expect(glow, "the unlayered glow rule is missing").toBeGreaterThan(-1);
+    expect(drop, "the backdrop drop moved back into the layer").toBeGreaterThan(
+      glow
+    );
   });
 
   it("does not fade sections in on scroll", () => {
@@ -133,16 +148,53 @@ describe("the landing has no bitmap to decode", () => {
   });
 
   it("sizes the hero against svh, so the address bar cannot grow it", () => {
-    expect(LANDING).toContain("min-h-[calc(100svh-9rem)]");
+    const hero = ruleOf(".landing-hero");
+    expect(hero.indexOf("min-height: calc(100vh - 9rem)")).toBeGreaterThan(-1);
+    expect(hero.indexOf("min-height: calc(100svh - 9rem)")).toBeGreaterThan(
+      hero.indexOf("min-height: calc(100vh - 9rem)")
+    );
     expect(LANDING).toContain("env(safe-area-inset-top)");
     expect(LANDING).toContain("env(safe-area-inset-bottom)");
     expect(LAYOUT).toMatch(/viewportFit:\s*"cover"/);
   });
 
-  it("names Google for Safari to prefetch, not only Chrome", () => {
-    expect(LAYOUT).toMatch(
+  it("draws the lockup as HTML, not a hydration island", () => {
+    expect(MARK).not.toMatch(/^["']use client["']/m);
+    expect(MARK).not.toMatch(/import \{[^}]*useId/);
+    expect(LANDING).toContain('uid="hero"');
+    expect(LANDING).toContain('uid="foot"');
+  });
+
+  it("names Google on this page, not on every room", () => {
+    expect(PAGE).toMatch(
+      /rel="preconnect"[^>]*href="https:\/\/accounts\.google\.com"/
+    );
+    expect(PAGE).toMatch(
       /rel="dns-prefetch"[^>]*href="https:\/\/accounts\.google\.com"/
     );
+    expect(LAYOUT).not.toContain("dns-prefetch");
+    expect(LAYOUT).not.toContain("accounts.google.com");
+  });
+
+  it("keeps the sign-in form a server component", () => {
+    expect(SIGNIN).not.toMatch(/^["']use client["']/m);
+    expect(SIGNIN).toContain("TrackSubmit");
+    expect(SIGNIN).toContain('event="signin_google_started"');
+  });
+
+  it("asks the document for three brand files, not a raster of every size", () => {
+    expect(LAYOUT).toContain("/favicon.svg?v=3");
+    expect(LAYOUT).toContain("/favicon.ico?v=3");
+    expect(LAYOUT).toContain("/apple-touch-icon.png?v=3");
+    expect(LAYOUT).not.toContain("/icons/icon-16.png");
+    expect(LAYOUT).not.toContain("/icons/icon-32.png");
+    expect(LAYOUT).not.toContain("/icons/icon-48.png");
+    expect(LAYOUT).not.toContain("/icons/icon-192.png");
+    expect(LAYOUT).not.toContain("/icons/icon-180.png");
+  });
+
+  it("does not register the service worker on the first paint", () => {
+    expect(SW).toContain("requestIdleCallback");
   });
 });
 

@@ -63,33 +63,45 @@ export default function LandingPage({
   searchParams: Search;
 }) {
   return (
-    /*
-      `landing-field` splits the field: the first screen reuses the room's
-      two lamps, dithered and boxed to one viewport, and the rest of the
-      page carries three more lobes with no SVG filter. Safari tiles a
-      document-tall filter, so both halves of the hero have to live in a
-      layer that fits in one tile.
-    */
-    <div className={`${PAGE_FRAME} landing-field`}>
+    <>
       {/*
-        Counted once for the page rather than once per button. The card is
-        rendered twice, at the top and at the end, and a card reporting its own
-        views would count one visitor as two.
+        The landing is the only page that sends somebody to Google. A named
+        hint on the root layout would open a connection on every signed-in
+        room. Chrome honours X-DNS-Prefetch-Control as permission; Safari
+        ignores that header and only prefetches hosts named in a link.
+        `preconnect` is the tap. `dns-prefetch` is what older WebKit takes.
+        Next hoists both into the document head from a server page.
       */}
-      <TrackView event="signin_viewed" />
+      <link rel="preconnect" href="https://accounts.google.com" />
+      <link rel="dns-prefetch" href="https://accounts.google.com" />
+      {/*
+        `landing-field` splits the field: the first screen reuses the room's
+        two lamps, dithered and boxed to one viewport, and the rest of the
+        page carries three more lobes with no SVG filter. Safari tiles a
+        document-tall filter, so both halves of the hero have to live in a
+        layer that fits in one tile.
+      */}
+      <div className={`${PAGE_FRAME} landing-field`}>
+        {/*
+          Counted once for the page rather than once per button. The card is
+          rendered twice, at the top and at the end, and a card reporting its
+          own views would count one visitor as two.
+        */}
+        <TrackView event="signin_viewed" />
 
-      <SignedOutLanding
-        signIn={
-          <SignInSpace>
-            <SignIn searchParams={searchParams} />
-          </SignInSpace>
-        }
-        signInAgain={
-          <SignInSpace>
-            <SignIn searchParams={searchParams} />
-          </SignInSpace>
-        }
-      />
-    </div>
+        <SignedOutLanding
+          signIn={
+            <SignInSpace>
+              <SignIn searchParams={searchParams} />
+            </SignInSpace>
+          }
+          signInAgain={
+            <SignInSpace>
+              <SignIn searchParams={searchParams} />
+            </SignInSpace>
+          }
+        />
+      </div>
+    </>
   );
 }

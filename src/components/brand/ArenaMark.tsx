@@ -1,5 +1,3 @@
-"use client";
-
 /*
   Arena's own mark. Related to Lab's by construction, not by colour.
 
@@ -18,10 +16,16 @@
   The geometry lives in src/lib/brand/mark.ts, because the share card and the
   icon rasters have to draw the same thing through different renderers and a
   second copy would drift.
+
+  Unique paint-server ids are a prop, so a server page (the landing hero)
+  can draw this in the HTML without a hydration island, and a client header
+  can still import it. Two copies on one page that share an id is the
+  missing-logo bug: `url(#near)` resolves to the first match, which may be
+  inside a hidden subtree and then paints nothing. Callers that mount more
+  than one pass `uid`.
 */
 
 import type { CSSProperties } from "react";
-import { useId } from "react";
 
 import {
   COLOURWAYS,
@@ -37,6 +41,12 @@ type ArenaMarkProps = {
   size?: number;
   title?: string;
   /*
+    Distinguishes paint servers when more than one mark is on the page.
+    Header and walkthrough are both the default size, on the same Home
+    screen, so they cannot share a default.
+  */
+  uid?: string;
+  /*
     For the one adjustment a caller is allowed to make: where the drawing sits
     relative to whatever it stands beside. The lockup lifts it off the row's
     centre line (see LOCKUP_LIFT); nothing else should be reaching in here.
@@ -44,24 +54,19 @@ type ArenaMarkProps = {
   style?: CSSProperties;
 };
 
-export function ArenaMark({ className, size = 20, title, style }: ArenaMarkProps) {
-  /*
-    Unique ids per instance, and this is load-bearing rather than tidiness.
+function paintId(uid: string, name: string) {
+  return `arena-${uid.replace(/[^a-zA-Z0-9]/g, "")}-${name}`;
+}
 
-    The lockup renders more than once per page: the header and a page's own
-    hero both mount it. Fixed ids mean `url(#near)` resolves to the first
-    match in document order, which may be a copy inside a subtree a breakpoint
-    has hidden -- and a paint server in a `display:none` subtree does not
-    paint, so the visible mark fills with nothing. It holds its box and draws
-    absolutely nothing, which is exactly what "the logo is missing" looks
-    like.
-
-    `useId` is stable across server and client render, so this does not cause
-    a hydration mismatch. The punctuation React puts in the value is legal in
-    an id but awkward in a URL fragment, so it is stripped.
-  */
-  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
-  const ref = (name: string) => `arena-${uid}-${name}`;
+export function ArenaMark({
+  className,
+  size = 20,
+  title,
+  uid,
+  style,
+}: ArenaMarkProps) {
+  const token = uid ?? `s${String(size).replace(".", "p")}`;
+  const ref = (name: string) => paintId(token, name);
   const way = COLOURWAYS.MARK;
 
   return (

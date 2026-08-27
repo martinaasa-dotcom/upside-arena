@@ -13,10 +13,11 @@ export const STATIC_SECURITY_HEADERS: { key: string; value: string }[] = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   /*
-    Lab ships this. Chrome will otherwise wait until a link is clicked
-    before resolving accounts.google.com, which is the only place the
-    landing ever sends somebody. Prefetch is a header rather than a
-    <link> so every page gets it, including the prerendered shell.
+    Chrome will otherwise wait until a link is clicked before resolving
+    any cross-origin host. The header is permission, not a connection:
+    the landing is what actually names accounts.google.com, in a
+    preconnect link, because that is the only page that sends somebody
+    there. Safari ignores this header entirely.
   */
   { key: "X-DNS-Prefetch-Control", value: "on" },
   { key: "X-Frame-Options", value: "DENY" },

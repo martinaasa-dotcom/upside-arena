@@ -39,21 +39,28 @@ export const metadata: Metadata = {
     things a browser will hold on to past a deploy and a stale one outlives
     the rebrand that replaced it.
 
-    The Apple entry is deliberately the 180 square: iOS draws its own
-    squircle over whatever it is given, so the file it is given must be
-    full-bleed and must not be rounded already. See docs/brand/ARENA_MARK.md.
+    Three files in the document, not a raster of every size. Chrome will
+    download every <link rel="icon"> it sees before the hero font, and the
+    16/32/48/192 PNGs already live in the manifest for install. The Apple
+    entry is the conventional path so iOS does not fetch this one and then
+    also poke `/apple-touch-icon.png` on its own. It is the 180 square:
+    iOS draws its own squircle over whatever it is given, so the file it
+    is given must be full-bleed and must not be rounded already. See
+    docs/brand/ARENA_MARK.md.
   */
   icons: {
     icon: [
       { url: "/favicon.svg?v=3", type: "image/svg+xml" },
-      { url: "/icons/icon-16.png?v=3", sizes: "16x16", type: "image/png" },
-      { url: "/icons/icon-32.png?v=3", sizes: "32x32", type: "image/png" },
-      { url: "/icons/icon-48.png?v=3", sizes: "48x48", type: "image/png" },
-      { url: "/icons/icon-192.png?v=3", sizes: "192x192", type: "image/png" },
       { url: "/favicon.ico?v=3", sizes: "16x16 32x32" },
     ],
     shortcut: "/favicon.ico?v=3",
-    apple: [{ url: "/icons/icon-180.png?v=3", sizes: "180x180", type: "image/png" }],
+    apple: [
+      {
+        url: "/apple-touch-icon.png?v=3",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
   },
   openGraph: {
     type: "website",
@@ -61,14 +68,14 @@ export const metadata: Metadata = {
     title: "Upside Arena",
     description:
       "A free weekly stock-picking game you play with friends. Play money only.",
-    images: [{ url: "/og.png", width: 1200, height: 630 }],
+    images: [{ url: "/og.png?v=3", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Upside Arena",
     description:
       "A free weekly stock-picking game you play with friends. Play money only.",
-    images: ["/og.png"],
+    images: ["/og.png?v=3"],
   },
 };
 
@@ -85,15 +92,6 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${GeistSans.variable} ${geistMono.variable}`}>
-      <head>
-        {/*
-          Chrome honours X-DNS-Prefetch-Control on every response. Safari
-          does not: it only prefetches hosts named in a dns-prefetch link.
-          accounts.google.com is the only place the landing sends somebody,
-          and resolving it after the tap is a wait on a phone.
-        */}
-        <link rel="dns-prefetch" href="https://accounts.google.com" />
-      </head>
       <body className="antialiased">
         <AmbientDither />
         <a

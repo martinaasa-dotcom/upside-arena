@@ -36,6 +36,12 @@ const CUE = readFileSync("src/components/ScrollCue.tsx", "utf8");
 const LANDING = readFileSync("src/components/SignedOutLanding.tsx", "utf8");
 const CSS = readFileSync("src/app/globals.css", "utf8");
 
+function ruleOfCue(selector: string): string {
+  const start = CSS.indexOf(`${selector} {`);
+  expect(start, `${selector} is missing from globals.css`).toBeGreaterThan(-1);
+  return CSS.slice(start, CSS.indexOf("}", start));
+}
+
 /*
   The component with its prose taken out. The note above it names the very
   things it must not carry, so a check run over the whole file would fail on
@@ -70,18 +76,30 @@ describe("the cue at the fold belongs to the page", () => {
   it("draws in the last band of the first screen, in the page's own units", () => {
     // Measured off the top of the document, which is where the hero starts,
     // rather than off the hero's bottom, which on a short window is a screen
-    // and a half further down.
-    const band = CODE.match(/top-\[calc\(100svh-([\d.]+)rem\)\]/);
-    expect(band, "the cue is positioned differently now").not.toBeNull();
-    expect(CODE, "the band's height has to match its offset").toContain(
-      `h-${Number(band![1]) * 4}`
+    // and a half further down. The offset is in CSS so older WebKit that
+    // does not know `svh` still has a `vh` underneath it.
+    expect(CODE).toContain("scroll-cue-band");
+    expect(CODE).toContain("h-14");
+    const band = ruleOfCue(".scroll-cue-band");
+    expect(band.indexOf("top: calc(100vh - 3.5rem)")).toBeGreaterThan(-1);
+    expect(band.indexOf("top: calc(100svh - 3.5rem)")).toBeGreaterThan(
+      band.indexOf("top: calc(100vh - 3.5rem)")
     );
   });
 
   it("uses `svh`, so a retracting address bar cannot move it or the hero", () => {
-    expect(CODE).toContain("100svh");
+    const lamps = ruleOfCue(".landing-field::before");
+    const hero = ruleOfCue(".landing-hero");
+    const band = ruleOfCue(".scroll-cue-band");
+    for (const [name, rule] of [
+      ["lamps", lamps],
+      ["hero", hero],
+      ["cue", band],
+    ] as const) {
+      expect(rule, name).toContain("100svh");
+      expect(rule, name).not.toContain("100dvh");
+    }
     expect(CODE).not.toContain("100dvh");
-    expect(LANDING).toContain("100svh");
     expect(LANDING).not.toContain("100dvh");
   });
 
@@ -158,16 +176,15 @@ describe("the cue stands down when the page is already saying it continues", () 
 
 describe("the cue is laid out inside the hero", () => {
   it("has the hero establish the containing block", () => {
-    expect(LANDING).toMatch(
-      /<section className="relative min-h-\[calc\(100svh-9rem\)\]/
-    );
+    expect(LANDING).toMatch(/<section className="relative[^"]*landing-hero/);
   });
 
   it("is mounted once, in the hero rather than beside the footer", () => {
     expect(LANDING.match(/<ScrollCue \/>/g) ?? []).toHaveLength(1);
-    const hero = LANDING.slice(
-      LANDING.indexOf('<section className="relative min-h-[calc(100svh-9rem)]')
-    );
+    const heroOpen = LANDING.indexOf("<section className=\"relative");
+    expect(heroOpen).toBeGreaterThan(-1);
+    expect(LANDING.slice(heroOpen, heroOpen + 120)).toContain("landing-hero");
+    const hero = LANDING.slice(heroOpen);
     expect(hero.indexOf("<ScrollCue />")).toBeLessThan(
       hero.indexOf("</section>")
     );
@@ -179,7 +196,9 @@ describe("the cue is laid out inside the hero", () => {
       so the peek has to be worth something: the first 48px of a section is
       its own top padding, and an empty band is not a beginning.
     */
-    const peek = LANDING.match(/min-h-\[calc\(100svh-(\d+(?:\.\d+)?)rem\)\]/);
+    const peek = ruleOfCue(".landing-hero").match(
+      /min-height: calc\(100svh - (\d+(?:\.\d+)?)rem\)/
+    );
     expect(peek, "the hero carries a height floor").not.toBeNull();
     const pad = LANDING.match(/<section className=\{cn\("px-6 py-\d+ sm:py-(\d+)"/);
     expect(pad, "the Section padding is written differently now").not.toBeNull();

@@ -292,16 +292,17 @@ function Hero({ signIn }: { signIn: ReactNode }) {
       9rem and not less, because what has to be in view is a heading rather
       than a section's own top padding: 48px of that peek is the pad, which
       leaves 96px of the heading showing. That is also what makes `ScrollCue`
-      stand down on a tall window, since the page is already saying it. `svh`
-      rather than `dvh`, so a phone that later retracts its address bar does
-      not find the hero taller than the window it was sized against.
+      stand down on a tall window, since the page is already saying it. The
+      floor itself is in CSS (`vh` then `svh`), so a phone that does not
+      know `svh` still has a height, and one that does cannot grow the hero
+      when the address bar retracts.
 
       `relative`, because the cue is laid out against the top of this
       section, which is the top of the document.
     */
-    <section className="relative min-h-[calc(100svh-9rem)] px-6 pb-12 pt-[max(2.5rem,env(safe-area-inset-top))] sm:pb-16 landing-hero">
+    <section className="relative landing-hero px-6 pb-12 pt-[max(2.5rem,env(safe-area-inset-top))] sm:pb-16">
       <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col items-center text-center">
-        <ArenaWordmark size={38} />
+        <ArenaWordmark uid="hero" size={38} />
 
         {/*
           Two type steps, not two headlines, and both lines short enough to
@@ -699,7 +700,7 @@ function Footer() {
   return (
     <footer className="border-t border-border px-6 py-12 pb-[max(3rem,env(safe-area-inset-bottom))]">
       <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
-        <ArenaWordmark size={18} />
+        <ArenaWordmark uid="foot" size={18} />
 
         <div className="flex flex-col gap-4 text-sm text-muted-foreground sm:items-end sm:text-right">
           <nav

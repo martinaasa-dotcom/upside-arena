@@ -1,8 +1,6 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import { signInWithGoogle } from "@/app/auth/actions";
-import { track } from "@/lib/analytics";
+import { TrackSubmit } from "@/components/TrackSubmit";
 
 /*
   Sign-in, and it is one button.
@@ -23,9 +21,10 @@ import { track } from "@/lib/analytics";
   export returns, so nothing about the record depends on how somebody signed
   in.
 
-  It reports no analytics of its own. The page renders this twice, at the top
-  and at the end, and a card that counted its own views would count one
-  visitor as two. `signin_viewed` belongs to the page, and is on it.
+  A server component. The only client piece is TrackSubmit around the form,
+  which is what reports `signin_google_started`. The page renders this twice,
+  at the top and at the end, and a card that counted its own views would
+  count one visitor as two. `signin_viewed` belongs to the page, and is on it.
 */
 export function SignInCard({
   googleEnabled,
@@ -50,18 +49,21 @@ export function SignInCard({
   }
 
   return (
-    <form action={signInWithGoogle} className={className}>
+    <TrackSubmit
+      action={signInWithGoogle}
+      event="signin_google_started"
+      className={className}
+    >
       {next ? <input type="hidden" name="next" value={next} /> : null}
       <Button
         type="submit"
         size="cta"
         className="w-full gap-2.5 text-base sm:w-auto sm:min-w-[15rem]"
-        onClick={() => track("signin_google_started")}
       >
         <GoogleGlyph />
         Continue with Google
       </Button>
-    </form>
+    </TrackSubmit>
   );
 }
 

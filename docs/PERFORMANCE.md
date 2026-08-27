@@ -47,6 +47,10 @@ that older WebKit can fail to decode. LCP is the 64px headline waiting on
 its webfont, which is why the reduced-motion column on that date (hero
 visible immediately) still read slower than `/how`.
 
+The document asks for three brand files (svg, ico, Apple's conventional
+path). Putting the 16/32/48/192 PNGs in the HTML made Chrome fetch them
+on `/` before the webfont; they already live in the manifest for install.
+
 Re-run `scripts/vitals.mjs` after touching this page and replace the `/`
 row. Do not leave "not reported" in the table once a run has a number.
 
@@ -59,18 +63,20 @@ fifth of a second for the pages whose largest element is ordinary text.
 
 `/` spent **around 330 milliseconds in a single long task** on that date,
 where every other page spent at most 60. That is hydration: the landing is a
-server component but it carries the sign-in button, the consent question,
-the service worker registration and the ambient dither, and they all wake up
-at once. It used to carry five arrival observers as well; those are gone,
-ported from Lab, because they hid already-painted HTML and older WebKit
-skipped the translated layer.
+server component but it carries the consent question, the scroll cue, the
+page-view ping and analytics, and they all wake up at once. It used to
+carry five arrival observers as well; those are gone, ported from Lab,
+because they hid already-painted HTML and older WebKit skipped the
+translated layer. The sign-in form is a server component too. The only
+client piece on the button is `TrackSubmit`, which reports the tap. The
+service worker waits for idle rather than racing the webfont.
 
 Nobody is waiting on it in the sense that matters (there is one control on
 the page and it is not usable any earlier or later than the paint), but a
 third of a second of blocked main thread on a laptop is closer to a second
 and a half on the phone somebody actually opens this on, and the whole of
-that window is a tap that does nothing. It is the first thing to look at if
-the landing page is ever worked on again.
+that window is a tap that does nothing. Re-run `scripts/vitals.mjs` before
+treating 330ms as current.
 
 ## What was found by measuring
 
