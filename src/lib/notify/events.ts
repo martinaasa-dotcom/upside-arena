@@ -527,19 +527,22 @@ export async function notifyStreaksAtRisk(): Promise<NotifyResult> {
   ]);
 
   for (const row of rows) {
+    result.considered++;
+
     /*
       Everything true about a streak reminder was true yesterday too, for
       anyone who keeps a streak without opening early, so the trigger alone
-      would fire on every one of them again today. Left alone this from the
-      caller was the one message in the app that behaved like a daily
-      habit-loop email. The cooldown is what actually stops it; "considered"
-      is counted after it so a run's numbers describe who this pass could
-      have reminded, not who it silently skipped for having heard from us
-      two days ago.
+      would fire on every one of them again today. Left alone this was the
+      one message in the app that behaved like a daily habit-loop email.
+      The cooldown is what actually stops it, and it is counted the same
+      way every other reason this loop declines to send is counted, so the
+      numbers a run reports still add up: considered is sent plus every
+      bucket in skipped, cooldown included.
     */
-    if (recentlyReminded.has(row.user_id)) continue;
-
-    result.considered++;
+    if (recentlyReminded.has(row.user_id)) {
+      result.skipped.cooldown = (result.skipped.cooldown ?? 0) + 1;
+      continue;
+    }
 
     const outcome = await deliver(
       row.user_id,
