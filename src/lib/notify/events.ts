@@ -18,7 +18,12 @@ import {
 import { isTradingDay, isTradingOpen, nyDate } from "@/lib/market/session";
 import { formatDay, formatGap, ordinal } from "@/lib/format";
 import { emailConfigured, pushConfigured, sendEmail, sendPush } from "@/lib/notify/send";
-import { DAILY_CAP, isAwakeHour, isStreakReminderHour } from "@/lib/notify/timing";
+import {
+  DAILY_CAP,
+  STREAK_REMINDER_COOLDOWN_HOURS,
+  isAwakeHour,
+  isStreakReminderHour,
+} from "@/lib/notify/timing";
 
 /*
   Deciding what is worth interrupting someone for.
@@ -102,6 +107,33 @@ async function emailsFor(userIds: string[]): Promise<Map<string, string>> {
   );
 
   return map;
+}
+
+/**
+ * Who has already had this kind of message inside the cooldown window.
+ *
+ * Deduping by dedupe_key stops the same day's event being sent twice; this is
+ * the other question, whether the same *kind* of message has gone out to
+ * someone too recently to send another regardless of the day. Only a channel
+ * that actually reached somewhere counts, the same rule the daily cap uses,
+ * so a message recorded as "none" because every channel was off does not
+ * count as having heard from us.
+ */
+async function remindedRecently(
+  userIds: string[],
+  kind: "streak_reminder",
+  hours: number
+): Promise<Set<string>> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("notifications")
+    .select("user_id")
+    .in("user_id", userIds)
+    .eq("kind", kind)
+    .neq("channel", "none")
+    .gt("created_at", new Date(Date.now() - hours * 60 * 60 * 1000).toISOString());
+
+  return new Set(((data ?? []) as { user_id: string }[]).map((row) => row.user_id));
 }
 
 /**
@@ -487,13 +519,26 @@ export async function notifyStreaksAtRisk(): Promise<NotifyResult> {
   if (rows.length === 0) return result;
 
   const userIds = rows.map((r) => r.user_id);
-  const [prefs, emails, devices] = await Promise.all([
+  const [prefs, emails, devices, recentlyReminded] = await Promise.all([
     settingsFor(userIds),
     emailConfigured ? emailsFor(userIds) : Promise.resolve(new Map<string, string>()),
     devicesFor(userIds),
+    remindedRecently(userIds, "streak_reminder", STREAK_REMINDER_COOLDOWN_HOURS),
   ]);
 
   for (const row of rows) {
+    /*
+      Everything true about a streak reminder was true yesterday too, for
+      anyone who keeps a streak without opening early, so the trigger alone
+      would fire on every one of them again today. Left alone this from the
+      caller was the one message in the app that behaved like a daily
+      habit-loop email. The cooldown is what actually stops it; "considered"
+      is counted after it so a run's numbers describe who this pass could
+      have reminded, not who it silently skipped for having heard from us
+      two days ago.
+    */
+    if (recentlyReminded.has(row.user_id)) continue;
+
     result.considered++;
 
     const outcome = await deliver(

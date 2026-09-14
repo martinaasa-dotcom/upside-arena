@@ -39,6 +39,20 @@ export const QUIET_HOURS = "nine at night and eight in the morning";
 export const STREAK_FROM = 14;
 export const STREAK_UNTIL = 20;
 
+/**
+ * How long to leave somebody alone after a streak reminder before another one
+ * is allowed.
+ *
+ * The reminder's own trigger, "you have not opened Arena yet today", is true
+ * again every single trading day for anyone who keeps a streak without
+ * opening early, which made it the one message in this app that behaved like
+ * a daily habit-loop email rather than a one-off nudge about something that
+ * happened. A real deadline five days in a row is still five emails in a row.
+ * This is the second gate, beside DAILY_CAP, that keeps a single kind from
+ * being the thing somebody mutes the whole channel over.
+ */
+export const STREAK_REMINDER_COOLDOWN_HOURS = 72;
+
 /** The hour of the clock in a given place. Falls back to midday if unknown. */
 export function hourIn(timezone: string, now: Date): number {
   try {
