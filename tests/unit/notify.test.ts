@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   AWAKE_FROM,
   AWAKE_UNTIL,
-  STREAK_REMINDER_COOLDOWN_HOURS,
   hourIn,
   isAwakeHour,
   isStreakReminderHour,
@@ -114,14 +113,6 @@ describe("when a streak reminder is worth sending", () => {
     // Midnight UTC is eight in the evening in New York, which is the first
     // hour that is too late to be asking anyone for anything.
     expect(isStreakReminderHour(utc("2026-08-20T00:00:00Z"))).toBe(false);
-  });
-
-  it("cannot fire every trading day for the same person", () => {
-    // The reminder's own trigger, "you have not opened Arena yet today", is
-    // true again every day somebody keeps a streak without opening early.
-    // The cooldown is the thing that actually stops it being a daily email,
-    // so it has to be longer than one day.
-    expect(STREAK_REMINDER_COOLDOWN_HOURS).toBeGreaterThan(24);
   });
 });
 
