@@ -47,6 +47,7 @@ export const KINDS = [
   {
     key: "streakReminder" as const,
     label: "When your streak needs today",
-    detail: "Late afternoon, and only if you already have a streak going.",
+    detail:
+      "Late afternoon, only if you already have a streak going, and once for each day it is actually at risk. If you do not come back, we stop.",
   },
 ];

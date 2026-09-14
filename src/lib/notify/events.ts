@@ -500,7 +500,24 @@ export async function notifyStreaksAtRisk(): Promise<NotifyResult> {
       row.user_id,
       prefs.get(row.user_id),
       "streak_reminder",
-      `streak:${today}`,
+      /*
+        Keyed on the day they last showed up, not on today. current_streak
+        and last_active_date are only ever written by record_activity, which
+        only runs when someone opens the app -- so a player who never comes
+        back has a last_active_date that never changes, and this dedupe key
+        never changes with it. The table's own unique(user_id, dedupe_key)
+        then does the rest: the first reminder after they go quiet inserts
+        and sends, every later pass for the same stale last_active_date
+        finds the row already there and sends nothing, forever, with no
+        separate cooldown to maintain. Someone who keeps returning late in
+        the day gets a new key, and a real reminder, each time they do --
+        which is correct, because that is a new day genuinely at risk, not
+        the same email again. Keying on today instead was the bug: it made
+        every day a new key for someone who never returns, which is what
+        turned this into a daily email for anybody who let a streak lapse
+        and stopped opening Arena.
+      */
+      `streak:${row.last_active_date}`,
       `Your ${row.current_streak} day streak`,
       row.freezes_available > 0
         ? "Today is not counted yet. Opening Arena is enough, and you have a freeze if you miss it."
